@@ -1,0 +1,1110 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="StudyTown">
+<meta name="theme-color" content="#0a0f1e">
+<title>StudyTown</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&family=Zen+Kaku+Gothic+New:wght@700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0a0f1e; --bg2:#0f1729; --card:#151d35; --card2:#1a2440;
+  --gold:#f5c842; --gold2:#e8a020; --green:#2ecc71; --green2:#27ae60;
+  --blue:#3a86ff; --purple:#9b59b6; --orange:#e67e22; --red:#e74c3c;
+  --text:#e8eaf6; --text2:#8892b0; --streak:#ff6b35; --border:rgba(245,200,66,0.15);
+  --parent:#1a0a2e; --parent-accent:#9c27b0; --parent-border:rgba(156,39,176,0.3);
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bot: env(safe-area-inset-bottom, 0px);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overflow:hidden;}
+body{
+  font-family:'Noto Sans JP',sans-serif;
+  background:var(--bg); color:var(--text);
+  max-width:430px; margin:0 auto;
+  display:flex; flex-direction:column;
+  position:relative; overflow:hidden;
+  height:100dvh;
+}
+
+/* ===== SCROLLABLE MAIN ===== */
+.main-scroll{
+  flex:1; overflow-y:auto; overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
+  padding-bottom:calc(64px + var(--safe-bot));
+  padding-top:var(--safe-top);
+}
+.main-scroll::-webkit-scrollbar{display:none;}
+
+/* ===== BOTTOM NAV ===== */
+.bottom-nav{
+  position:fixed; bottom:0; left:50%; transform:translateX(-50%);
+  width:100%; max-width:430px;
+  display:flex;
+  background:rgba(10,15,30,0.97);
+  backdrop-filter:blur(20px);
+  border-top:1px solid var(--border);
+  padding-bottom:var(--safe-bot);
+  z-index:100;
+}
+.nav-item{
+  flex:1; display:flex; flex-direction:column; align-items:center; gap:2px;
+  font-size:0.62rem; color:var(--text2); cursor:pointer;
+  padding:8px 0 6px; transition:color 0.15s;
+}
+.nav-item.active{color:var(--gold);}
+.nav-icon{font-size:1.25rem;}
+
+/* ===== SCREENS ===== */
+.screen{display:none;}
+.screen.active{display:block;}
+
+/* ===== TOWN SCENE ===== */
+.town-scene{
+  width:100%; height:200px; position:relative; overflow:hidden;
+  background:linear-gradient(180deg,#0a1628 0%,#0d2044 40%,#1a3a5c 70%,#2d5a3d 100%);
+}
+.stars{
+  position:absolute;inset:0;
+  background-image:
+    radial-gradient(1px 1px at 15% 12%,white 0%,transparent 100%),
+    radial-gradient(1px 1px at 55% 8%,white 0%,transparent 100%),
+    radial-gradient(1.5px 1.5px at 32% 22%,white 0%,transparent 100%),
+    radial-gradient(1px 1px at 78% 18%,white 0%,transparent 100%),
+    radial-gradient(1px 1px at 8% 28%,rgba(255,255,255,0.6) 0%,transparent 100%),
+    radial-gradient(1px 1px at 88% 10%,rgba(255,255,255,0.8) 0%,transparent 100%),
+    radial-gradient(1px 1px at 48% 5%,white 0%,transparent 100%),
+    radial-gradient(1.5px 1.5px at 72% 28%,rgba(255,255,255,0.7) 0%,transparent 100%),
+    radial-gradient(1px 1px at 25% 35%,rgba(255,255,255,0.5) 0%,transparent 100%),
+    radial-gradient(1px 1px at 65% 20%,rgba(255,255,255,0.6) 0%,transparent 100%);
+  animation:twinkle 3s ease-in-out infinite alternate;
+}
+@keyframes twinkle{from{opacity:0.7}to{opacity:1}}
+.town-svg{width:100%;height:100%;position:absolute;bottom:0;}
+.shooting-star{
+  position:absolute;top:20px;left:-50px;
+  width:80px;height:2px;
+  background:linear-gradient(90deg,transparent,var(--gold),white);
+  border-radius:2px;
+  animation:shoot 5s ease-in infinite;
+  animation-delay:2s;
+}
+@keyframes shoot{0%{left:-80px;top:20px;opacity:1}100%{left:110%;top:80px;opacity:0}}
+.town-label{
+  position:absolute;bottom:10px;left:50%;transform:translateX(-50%);
+  background:linear-gradient(135deg,#1a2440,#0f1729);
+  border:2px solid var(--gold);border-radius:8px;
+  padding:3px 14px;
+  font-family:'Zen Kaku Gothic New',sans-serif;font-size:12px;font-weight:700;color:var(--gold);
+  box-shadow:0 0 12px rgba(245,200,66,0.4);white-space:nowrap;
+}
+
+/* ===== STREAK ===== */
+.streak-wrap{text-align:center;padding:14px 20px 8px;}
+.streak-box{
+  display:inline-flex;align-items:center;gap:10px;
+  background:linear-gradient(135deg,#1e2d1e,#152815);
+  border:2px solid rgba(46,204,113,0.4);border-radius:16px;
+  padding:10px 22px;
+  box-shadow:0 0 20px rgba(46,204,113,0.15),inset 0 1px 0 rgba(255,255,255,0.05);
+}
+.streak-fire{font-size:1.9rem;animation:flicker 0.8s ease-in-out infinite alternate;}
+@keyframes flicker{from{transform:scale(1) rotate(-3deg)}to{transform:scale(1.1) rotate(3deg)}}
+.streak-num{
+  font-family:'Zen Kaku Gothic New',sans-serif;font-size:2rem;font-weight:900;
+  color:var(--gold);text-shadow:0 0 20px rgba(245,200,66,0.6);line-height:1;
+}
+.streak-label{font-size:0.8rem;color:var(--text2);margin-top:2px;}
+
+/* ===== SUBJECTS ===== */
+.subjects-wrap{
+  display:flex;gap:8px;padding:10px 16px;
+  overflow-x:auto;scrollbar-width:none;
+}
+.subjects-wrap::-webkit-scrollbar{display:none;}
+.subject-badge{
+  flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:3px;
+  background:var(--card);border:1.5px solid var(--border);border-radius:12px;
+  padding:8px 10px;min-width:64px;cursor:pointer;transition:transform 0.15s;
+}
+.subject-badge:active{transform:scale(0.93);}
+.subject-badge.s-kokugo{border-color:rgba(58,134,255,0.5);}
+.subject-badge.s-eigo{border-color:rgba(46,204,113,0.5);}
+.subject-badge.s-math{border-color:rgba(230,126,34,0.5);}
+.subject-badge.s-rika{border-color:rgba(155,89,182,0.5);}
+.subject-badge.s-shakai{border-color:rgba(231,76,60,0.5);}
+.sub-icon{font-size:1.4rem;}
+.sub-name{font-size:0.68rem;font-weight:700;color:var(--text2);}
+.sub-pt{font-size:0.72rem;font-weight:900;color:var(--gold);}
+
+/* ===== SECTION TITLE ===== */
+.sec-title{
+  display:flex;align-items:center;gap:8px;
+  padding:10px 16px 6px;
+  font-size:0.88rem;font-weight:700;color:var(--gold);
+  border-left:3px solid var(--gold);margin-left:16px;
+}
+
+/* ===== CARD ===== */
+.card{
+  margin:0 16px 12px;background:var(--card);
+  border:1.5px solid var(--border);border-radius:16px;padding:14px 16px;
+}
+
+/* ===== PROGRESS ===== */
+.progress-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;}
+.progress-label{font-size:0.8rem;color:var(--text2);}
+.progress-pct{font-size:0.8rem;font-weight:700;color:var(--green);}
+.progress-bar{width:100%;height:8px;background:rgba(255,255,255,0.07);border-radius:99px;overflow:hidden;margin-bottom:10px;}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--green2),var(--green));border-radius:99px;transition:width 0.8s cubic-bezier(.4,0,.2,1);box-shadow:0 0 8px rgba(46,204,113,0.4);}
+.record-row{display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-top:1px solid rgba(255,255,255,0.05);}
+.record-dot{width:7px;height:7px;border-radius:50%;background:var(--gold);margin-right:7px;flex-shrink:0;}
+.record-name{font-size:0.8rem;flex:1;}
+.record-time{font-size:0.76rem;color:var(--text2);margin-right:6px;}
+.record-pt{font-size:0.76rem;font-weight:700;color:var(--gold);}
+.no-record{text-align:center;color:var(--text2);font-size:0.8rem;padding:6px 0;}
+
+/* ===== BTN ===== */
+.btn-main{
+  display:block;width:calc(100% - 32px);margin:4px 16px 10px;
+  background:linear-gradient(135deg,var(--green2),var(--green));
+  border:none;border-radius:14px;color:white;
+  font-family:'Zen Kaku Gothic New',sans-serif;font-size:0.95rem;font-weight:700;
+  padding:14px;cursor:pointer;text-align:center;
+  box-shadow:0 4px 20px rgba(46,204,113,0.4);transition:transform 0.15s;
+}
+.btn-main:active{transform:scale(0.97);}
+.btn-secondary{
+  display:block;width:calc(100% - 32px);margin:4px 16px 10px;
+  background:var(--card);border:1.5px solid var(--border);border-radius:14px;
+  color:var(--text);font-family:'Zen Kaku Gothic New',sans-serif;
+  font-size:0.95rem;font-weight:700;padding:14px;cursor:pointer;text-align:center;
+  transition:transform 0.15s;
+}
+.btn-secondary:active{transform:scale(0.97);}
+
+/* ===== RANK ===== */
+.rank-row{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05);}
+.rank-row:last-child{border-bottom:none;}
+.rank-num{font-family:'Zen Kaku Gothic New',sans-serif;font-size:0.88rem;font-weight:900;min-width:26px;text-align:center;color:var(--text2);}
+.rank-num.gold{color:var(--gold);}
+.rank-num.silver{color:#b0b8c8;}
+.rank-avatar{width:30px;height:30px;border-radius:50%;background:var(--card2);display:flex;align-items:center;justify-content:center;font-size:0.9rem;flex-shrink:0;}
+.rank-name{flex:1;font-size:0.82rem;font-weight:700;}
+.rank-you{font-size:0.65rem;color:var(--blue);margin-left:3px;}
+.rank-pt{font-size:0.82rem;font-weight:700;color:var(--gold);}
+
+/* ===== POINT SCREEN ===== */
+.pt-hero{text-align:center;padding:18px 20px 6px;}
+.pt-total-label{font-size:0.78rem;color:var(--text2);margin-bottom:3px;}
+.pt-total{font-family:'Zen Kaku Gothic New',sans-serif;font-size:2.8rem;font-weight:900;color:var(--gold);text-shadow:0 0 30px rgba(245,200,66,0.5);line-height:1;}
+.pt-sub{font-size:0.78rem;color:var(--text2);margin-top:3px;}
+.chart-bars{display:flex;align-items:flex-end;gap:5px;height:72px;border-bottom:1px solid rgba(255,255,255,0.08);padding-bottom:4px;margin-bottom:4px;}
+.chart-day{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;}
+.chart-bar{width:100%;border-radius:4px 4px 0 0;transition:height 0.8s cubic-bezier(.4,0,.2,1);min-height:2px;}
+.chart-day-lbl{font-size:0.6rem;color:var(--text2);}
+.badges-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:0 16px 12px;}
+.badge-item{background:var(--card);border:1.5px solid var(--border);border-radius:14px;padding:10px 6px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:5px;}
+.badge-item.locked{opacity:0.35;filter:grayscale(1);}
+.badge-icon-lg{font-size:1.8rem;}
+.badge-name{font-size:0.65rem;font-weight:700;color:var(--text2);}
+.reward-bar{height:8px;background:rgba(255,255,255,0.07);border-radius:99px;overflow:hidden;margin:6px 0;}
+.reward-fill{height:100%;background:linear-gradient(90deg,var(--blue),#6ab4ff);border-radius:99px;box-shadow:0 0 8px rgba(58,134,255,0.4);transition:width 0.8s;}
+.reward-remaining{font-size:0.73rem;color:var(--text2);text-align:right;}
+
+/* ===== PDF SCREEN ===== */
+.drop-zone{
+  margin:12px 16px;border:2px dashed rgba(245,200,66,0.3);border-radius:16px;
+  padding:28px 16px;text-align:center;cursor:pointer;transition:all 0.2s;
+  background:rgba(245,200,66,0.03);
+}
+.drop-zone.drag-over{border-color:var(--gold);background:rgba(245,200,66,0.08);}
+.drop-icon{font-size:2.4rem;margin-bottom:8px;}
+.drop-text{font-size:0.88rem;font-weight:700;color:var(--text);margin-bottom:4px;}
+.drop-sub{font-size:0.75rem;color:var(--text2);}
+.pdf-tag-row{display:flex;gap:8px;padding:0 16px 10px;flex-wrap:wrap;}
+.pdf-tag{
+  padding:5px 12px;border-radius:99px;border:1.5px solid var(--border);
+  font-size:0.75rem;font-weight:700;cursor:pointer;background:var(--card);color:var(--text2);
+  transition:all 0.15s;
+}
+.pdf-tag.active-kokugo{border-color:var(--blue);background:rgba(58,134,255,0.15);color:#7ab8ff;}
+.pdf-tag.active-eigo{border-color:var(--green);background:rgba(46,204,113,0.15);color:#7ae8a8;}
+.pdf-tag.active-math{border-color:var(--orange);background:rgba(230,126,34,0.15);color:#f0a060;}
+.pdf-tag.active-rika{border-color:var(--purple);background:rgba(155,89,182,0.15);color:#c8a0e0;}
+.pdf-tag.active-shakai{border-color:var(--red);background:rgba(231,76,60,0.15);color:#f0a0a0;}
+.pdf-list{padding:0 16px 80px;}
+.pdf-item{
+  display:flex;align-items:center;gap:12px;
+  background:var(--card);border:1.5px solid var(--border);border-radius:14px;
+  padding:12px 14px;margin-bottom:8px;cursor:pointer;transition:transform 0.15s;
+}
+.pdf-item:active{transform:scale(0.98);}
+.pdf-icon{font-size:1.6rem;flex-shrink:0;}
+.pdf-info{flex:1;min-width:0;}
+.pdf-name{font-size:0.82rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.pdf-meta{font-size:0.7rem;color:var(--text2);margin-top:2px;}
+.pdf-tag-badge{font-size:0.65rem;font-weight:700;padding:2px 8px;border-radius:99px;margin-top:4px;display:inline-block;}
+.pdf-pt-badge{font-size:0.72rem;font-weight:700;color:var(--gold);flex-shrink:0;}
+
+/* ===== CALENDAR ===== */
+.cal-wrap{padding:0 16px 80px;}
+.cal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+.cal-month{font-family:'Zen Kaku Gothic New',sans-serif;font-size:1rem;font-weight:700;}
+.cal-nav{font-size:1.2rem;cursor:pointer;color:var(--text2);padding:4px 8px;}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:12px;}
+.cal-dow{font-size:0.62rem;text-align:center;color:var(--text2);padding:3px 0;font-weight:700;}
+.cal-day{
+  aspect-ratio:1;display:flex;align-items:center;justify-content:center;
+  font-size:0.72rem;border-radius:8px;cursor:pointer;position:relative;
+  transition:background 0.15s;
+}
+.cal-day.has-record{background:rgba(46,204,113,0.2);color:var(--green);font-weight:700;}
+.cal-day.today{border:2px solid var(--gold);}
+.cal-day.selected{background:var(--gold);color:#0a0f1e;font-weight:900;}
+.cal-day.empty{cursor:default;}
+.cal-dot{width:4px;height:4px;border-radius:50%;background:var(--green);position:absolute;bottom:2px;left:50%;transform:translateX(-50%);}
+.cal-detail{background:var(--card);border:1.5px solid var(--border);border-radius:14px;padding:12px 14px;}
+.cal-detail-date{font-size:0.8rem;font-weight:700;color:var(--gold);margin-bottom:8px;}
+.cal-detail-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.05);}
+.cal-detail-row:last-child{border-bottom:none;}
+
+/* ===== MODAL OVERLAY ===== */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,0.75);backdrop-filter:blur(4px);
+  z-index:200;display:none;align-items:flex-end;justify-content:center;
+}
+.modal-overlay.open{display:flex;}
+.modal-sheet{
+  width:100%;max-width:430px;background:var(--bg2);
+  border-radius:24px 24px 0 0;padding:18px 18px calc(24px + var(--safe-bot));
+  animation:slideUp 0.3s cubic-bezier(.4,0,.2,1);
+  max-height:90dvh;overflow-y:auto;
+}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal-handle{width:40px;height:4px;background:rgba(255,255,255,0.15);border-radius:99px;margin:0 auto 18px;}
+.modal-title{font-family:'Zen Kaku Gothic New',sans-serif;font-size:1.05rem;font-weight:700;margin-bottom:14px;color:var(--text);display:flex;align-items:center;gap:8px;}
+.modal-back{font-size:1.2rem;cursor:pointer;color:var(--text2);}
+.sub-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;}
+.sub-btn{background:var(--card);border:2px solid rgba(255,255,255,0.08);border-radius:12px;padding:10px 4px 8px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;transition:all 0.15s;color:var(--text);}
+.sub-btn.sel-kokugo{border-color:var(--blue);background:rgba(58,134,255,0.15);}
+.sub-btn.sel-eigo{border-color:var(--green);background:rgba(46,204,113,0.15);}
+.sub-btn.sel-math{border-color:var(--orange);background:rgba(230,126,34,0.15);}
+.sub-btn.sel-rika{border-color:var(--purple);background:rgba(155,89,182,0.15);}
+.sub-btn.sel-shakai{border-color:var(--red);background:rgba(231,76,60,0.15);}
+.sub-btn:active{transform:scale(0.95);}
+.sub-btn-icon{font-size:1.5rem;}
+.sub-btn-name{font-size:0.72rem;font-weight:700;}
+.time-row{display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:14px;}
+.time-btn{width:42px;height:42px;background:var(--card);border:2px solid var(--border);border-radius:12px;color:var(--gold);font-size:1.3rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s;}
+.time-btn:active{transform:scale(0.9);}
+.time-display{font-family:'Zen Kaku Gothic New',sans-serif;font-size:1.8rem;font-weight:900;color:var(--gold);letter-spacing:2px;background:var(--card);border:2px solid var(--border);border-radius:14px;padding:6px 18px;min-width:110px;text-align:center;}
+.memo-input{width:100%;background:var(--card);border:1.5px solid var(--border);border-radius:12px;color:var(--text);font-size:0.88rem;font-family:'Noto Sans JP',sans-serif;padding:11px 13px;margin-bottom:14px;outline:none;resize:none;transition:border-color 0.2s;}
+.memo-input:focus{border-color:rgba(245,200,66,0.4);}
+.memo-input::placeholder{color:var(--text2);}
+.input-label{font-size:0.78rem;color:var(--text2);margin-bottom:7px;}
+.btn-submit{width:100%;padding:14px;background:linear-gradient(135deg,var(--green2),var(--green));border:none;border-radius:14px;color:white;font-family:'Zen Kaku Gothic New',sans-serif;font-size:0.95rem;font-weight:700;cursor:pointer;box-shadow:0 4px 20px rgba(46,204,113,0.4);transition:all 0.15s;display:flex;align-items:center;justify-content:center;gap:8px;}
+.btn-submit:active{transform:scale(0.97);}
+.btn-submit:disabled{opacity:0.4;cursor:not-allowed;}
+
+/* ===== PARENT MODE ===== */
+body.parent-mode{--bg:#0d0716;--bg2:#110a1f;--card:#1a0d2e;--card2:#22103c;--border:var(--parent-border);}
+.parent-banner{
+  display:none;background:linear-gradient(135deg,#4a0080,#7b1fa2);
+  padding:calc(8px + var(--safe-top)) 16px 8px;
+  font-size:0.8rem;font-weight:700;text-align:center;
+  color:rgba(255,255,255,0.9);letter-spacing:1px;
+}
+body.parent-mode .parent-banner{display:block;}
+body.parent-mode .bottom-nav{border-top-color:var(--parent-border);}
+body.parent-mode .nav-item.active{color:#ce93d8;}
+
+/* Parent dashboard cards */
+.parent-stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 16px 10px;}
+.parent-stat{background:var(--card);border:1.5px solid var(--parent-border);border-radius:14px;padding:14px;text-align:center;}
+.parent-stat-num{font-family:'Zen Kaku Gothic New',sans-serif;font-size:1.6rem;font-weight:900;color:#ce93d8;}
+.parent-stat-label{font-size:0.7rem;color:var(--text2);margin-top:3px;}
+.parent-alert{
+  margin:0 16px 10px;background:rgba(230,126,34,0.1);
+  border:1.5px solid rgba(230,126,34,0.3);border-radius:14px;padding:12px 14px;
+}
+.parent-alert-title{font-size:0.8rem;font-weight:700;color:var(--orange);margin-bottom:6px;}
+.parent-alert-item{font-size:0.78rem;color:var(--text2);padding:3px 0;}
+
+/* Radar chart using CSS */
+.radar-wrap{display:flex;justify-content:center;padding:8px 0 12px;}
+
+/* ===== PASSCODE SCREEN ===== */
+.passcode-overlay{
+  position:fixed;inset:0;background:rgba(5,0,15,0.96);backdrop-filter:blur(20px);
+  z-index:300;display:none;flex-direction:column;align-items:center;justify-content:center;
+  padding:20px;
+}
+.passcode-overlay.open{display:flex;}
+.passcode-title{font-family:'Zen Kaku Gothic New',sans-serif;font-size:1.1rem;font-weight:700;color:#ce93d8;margin-bottom:6px;}
+.passcode-sub{font-size:0.78rem;color:var(--text2);margin-bottom:24px;text-align:center;}
+.passcode-dots{display:flex;gap:14px;margin-bottom:24px;}
+.passcode-dot{width:16px;height:16px;border-radius:50%;border:2px solid #ce93d8;background:transparent;transition:background 0.15s;}
+.passcode-dot.filled{background:#ce93d8;}
+.passcode-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;width:240px;}
+.passcode-key{
+  height:64px;border-radius:16px;background:rgba(156,39,176,0.12);
+  border:1.5px solid rgba(156,39,176,0.25);
+  font-family:'Zen Kaku Gothic New',sans-serif;font-size:1.4rem;font-weight:700;
+  color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:all 0.15s;
+}
+.passcode-key:active{background:rgba(156,39,176,0.3);transform:scale(0.95);}
+.passcode-key.del{font-size:1rem;color:var(--text2);}
+.passcode-error{color:var(--red);font-size:0.8rem;margin-top:12px;opacity:0;transition:opacity 0.3s;}
+.passcode-error.show{opacity:1;}
+.passcode-cancel{margin-top:16px;font-size:0.82rem;color:var(--text2);cursor:pointer;padding:8px 16px;}
+
+/* ===== SETTINGS ===== */
+.settings-card{margin:10px 16px 8px;background:var(--card);border:1.5px solid var(--border);border-radius:16px;overflow:hidden;}
+.settings-row{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-bottom:1px solid rgba(255,255,255,0.05);cursor:pointer;}
+.settings-row:last-child{border-bottom:none;}
+.settings-label{font-size:0.86rem;display:flex;align-items:center;gap:10px;}
+.settings-arrow{color:var(--text2);font-size:0.8rem;}
+.settings-val{font-size:0.78rem;color:var(--text2);}
+.danger{color:var(--red);}
+
+/* ===== TOAST ===== */
+.toast{
+  position:fixed;top:calc(20px + var(--safe-top));left:50%;transform:translateX(-50%) translateY(-100px);
+  background:linear-gradient(135deg,#1a2e1a,#152515);
+  border:2px solid var(--green);border-radius:14px;padding:10px 18px;
+  font-weight:700;font-size:0.85rem;color:white;
+  box-shadow:0 8px 24px rgba(0,0,0,0.4),0 0 20px rgba(46,204,113,0.3);
+  z-index:500;transition:transform 0.4s cubic-bezier(.4,0,.2,1);
+  white-space:nowrap;display:flex;align-items:center;gap:7px;
+  max-width:90vw;
+}
+.toast.show{transform:translateX(-50%) translateY(0);}
+
+/* ===== INSTALL BANNER ===== */
+.install-banner{
+  display:none;margin:8px 16px;background:linear-gradient(135deg,#0d2044,#152030);
+  border:1.5px solid rgba(58,134,255,0.35);border-radius:14px;padding:12px 14px;
+  align-items:center;gap:10px;
+}
+.install-banner.show{display:flex;}
+.install-text{flex:1;font-size:0.78rem;color:var(--text2);}
+.install-text strong{color:var(--blue);display:block;margin-bottom:2px;}
+.install-btn{background:var(--blue);border:none;border-radius:10px;color:white;font-size:0.78rem;font-weight:700;padding:7px 12px;cursor:pointer;white-space:nowrap;}
+.install-close{color:var(--text2);cursor:pointer;font-size:1rem;padding:4px;}
+</style>
+</head>
+<body>
+
+<!-- Parent mode banner -->
+<div class="parent-banner">👩 お母さんモード（管理者）</div>
+
+<!-- PWA Install Banner -->
+<div class="install-banner" id="install-banner">
+  <div class="install-text">
+    <strong>📱 ホーム画面に追加しよう</strong>
+    スマホのアプリとして使えるよ！
+  </div>
+  <button class="install-btn" id="install-btn">追加する</button>
+  <span class="install-close" onclick="document.getElementById('install-banner').classList.remove('show')">✕</span>
+</div>
+
+<!-- ==================== HOME SCREEN ==================== -->
+<div class="main-scroll">
+<div id="screen-home" class="screen active">
+  <div class="town-scene">
+    <div class="stars"></div>
+    <div class="shooting-star"></div>
+    <svg class="town-svg" viewBox="0 0 430 160" xmlns="http://www.w3.org/2000/svg" id="town-svg">
+      <defs>
+        <linearGradient id="groundGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#2d5a3d"/>
+          <stop offset="100%" stop-color="#1a3828"/>
+        </linearGradient>
+      </defs>
+      <rect x="0" y="120" width="430" height="40" fill="url(#groundGrad)"/>
+      <ellipse cx="215" cy="140" rx="80" ry="8" fill="#1a2530" opacity="0.8"/>
+    </svg>
+    <div class="town-label" id="town-level-text">Lv.1 空き地</div>
+  </div>
+
+  <div class="streak-wrap">
+    <div class="streak-box">
+      <span class="streak-fire">🔥</span>
+      <div>
+        <div class="streak-num" id="streak-count">0</div>
+        <div class="streak-label">日連続</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="subjects-wrap">
+    <div class="subject-badge s-kokugo" onclick="openModal('国語')"><span class="sub-icon">📖</span><span class="sub-name">国語</span><span class="sub-pt" id="pt-国語">0pt</span></div>
+    <div class="subject-badge s-eigo"   onclick="openModal('英語')"><span class="sub-icon">🔤</span><span class="sub-name">英語</span><span class="sub-pt" id="pt-英語">0pt</span></div>
+    <div class="subject-badge s-math"   onclick="openModal('数学')"><span class="sub-icon">📐</span><span class="sub-name">数学</span><span class="sub-pt" id="pt-数学">0pt</span></div>
+    <div class="subject-badge s-rika"   onclick="openModal('理科')"><span class="sub-icon">⚗️</span><span class="sub-name">理科</span><span class="sub-pt" id="pt-理科">0pt</span></div>
+    <div class="subject-badge s-shakai" onclick="openModal('社会')"><span class="sub-icon">🌍</span><span class="sub-name">社会</span><span class="sub-pt" id="pt-社会">0pt</span></div>
+  </div>
+
+  <div class="sec-title">📝 今日の記録</div>
+  <div class="card">
+    <div class="progress-row">
+      <span class="progress-label">学習時間</span>
+      <span class="progress-pct" id="today-pct">0% (0/60分)</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="today-bar" style="width:0%"></div></div>
+    <div id="today-records"><div class="no-record">まだ記録がありません</div></div>
+  </div>
+
+  <button class="btn-main" onclick="openModal(null)">✏️ 勉強を記録する</button>
+
+  <div class="sec-title">🏆 今週のランキング</div>
+  <div class="card">
+    <div class="rank-row"><div class="rank-num gold">#1</div><div class="rank-avatar">🦊</div><div class="rank-name">たくみ</div><div class="rank-pt">8,200pt</div></div>
+    <div class="rank-row" style="background:rgba(245,200,66,0.05);border-radius:8px;"><div class="rank-num silver">#2</div><div class="rank-avatar">😎</div><div class="rank-name">あなた<span class="rank-you">（自分）</span></div><div class="rank-pt" id="rank-mypt">0pt</div></div>
+    <div class="rank-row"><div class="rank-num">#3</div><div class="rank-avatar">🐱</div><div class="rank-name">ゆうき</div><div class="rank-pt">4,100pt</div></div>
+  </div>
+</div>
+
+<!-- ==================== POINT SCREEN ==================== -->
+<div id="screen-point" class="screen">
+  <div class="pt-hero">
+    <div class="pt-total-label">累計ポイント</div>
+    <div class="pt-total" id="pt-total-display">0</div>
+    <div class="pt-sub">pt</div>
+  </div>
+  <div class="card">
+    <div style="font-size:0.8rem;font-weight:700;color:var(--text2);margin-bottom:10px;">📊 今週の学習（分）</div>
+    <div class="chart-bars" id="chart-bars"></div>
+    <div style="display:flex;gap:5px;justify-content:space-around;" id="chart-labels"></div>
+  </div>
+  <div class="sec-title">🎖️ アチーブメント</div>
+  <div class="badges-grid" id="badges-grid"></div>
+  <div class="sec-title">🎁 次の報酬まで</div>
+  <div class="card" style="margin-bottom:80px;">
+    <div style="font-size:0.8rem;color:var(--text2);margin-bottom:6px;">次の目標</div>
+    <div style="font-size:0.88rem;font-weight:700;margin-bottom:6px;" id="reward-name">📱 スマホ+30分</div>
+    <div class="reward-bar"><div class="reward-fill" id="reward-fill" style="width:0%"></div></div>
+    <div class="reward-remaining" id="reward-remaining">500ptまで あと500pt</div>
+  </div>
+</div>
+
+<!-- ==================== PDF SCREEN ==================== -->
+<div id="screen-pdf" class="screen">
+  <div style="padding:14px 16px 6px;">
+    <div style="font-family:'Zen Kaku Gothic New';font-size:1.05rem;font-weight:700;">📂 教材ライブラリ</div>
+    <div style="font-size:0.75rem;color:var(--text2);margin-top:3px;">PDFを追加するごとに+50pt！</div>
+  </div>
+
+  <div class="drop-zone" id="drop-zone" onclick="document.getElementById('pdf-input').click()">
+    <div class="drop-icon">📄</div>
+    <div class="drop-text">タップしてPDFを追加</div>
+    <div class="drop-sub">またはドラッグ＆ドロップ</div>
+  </div>
+  <input type="file" id="pdf-input" accept=".pdf,application/pdf" style="display:none" onchange="handlePdfUpload(event)">
+
+  <div style="padding:0 16px 6px;font-size:0.78rem;color:var(--text2);">科目で絞り込み</div>
+  <div class="pdf-tag-row" id="pdf-filter-tags">
+    <div class="pdf-tag" onclick="filterPdf('all',this)">すべて</div>
+    <div class="pdf-tag" onclick="filterPdf('国語',this)">📖 国語</div>
+    <div class="pdf-tag" onclick="filterPdf('英語',this)">🔤 英語</div>
+    <div class="pdf-tag" onclick="filterPdf('数学',this)">📐 数学</div>
+    <div class="pdf-tag" onclick="filterPdf('理科',this)">⚗️ 理科</div>
+    <div class="pdf-tag" onclick="filterPdf('社会',this)">🌍 社会</div>
+  </div>
+
+  <div class="pdf-list" id="pdf-list"></div>
+</div>
+
+<!-- ==================== CALENDAR SCREEN ==================== -->
+<div id="screen-calendar" class="screen">
+  <div style="padding:14px 16px 6px;">
+    <div style="font-family:'Zen Kaku Gothic New';font-size:1.05rem;font-weight:700;">📅 学習カレンダー</div>
+  </div>
+  <div class="cal-wrap">
+    <div class="cal-header">
+      <span class="cal-nav" onclick="changeMonth(-1)">‹</span>
+      <span class="cal-month" id="cal-month-label"></span>
+      <span class="cal-nav" onclick="changeMonth(1)">›</span>
+    </div>
+    <div class="cal-grid" id="cal-grid"></div>
+    <div class="cal-detail" id="cal-detail">
+      <div style="text-align:center;color:var(--text2);font-size:0.8rem;">日付を選ぶと記録が見られるよ</div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SETTINGS SCREEN ==================== -->
+<div id="screen-settings" class="screen">
+  <div style="padding:14px 16px 6px;">
+    <div style="font-family:'Zen Kaku Gothic New';font-size:1.05rem;font-weight:700;">⚙️ 設定</div>
+  </div>
+  <div class="settings-card">
+    <div class="settings-row" onclick="openGoalSetting()">
+      <span class="settings-label">🎯 1日の目標時間</span>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <span class="settings-val" id="goal-val">60分</span>
+        <span class="settings-arrow">›</span>
+      </div>
+    </div>
+    <div class="settings-row" onclick="openPasscodeSetting()">
+      <span class="settings-label">🔐 お母さんモードのパスコード</span>
+      <span class="settings-arrow">›</span>
+    </div>
+    <div class="settings-row" onclick="enterParentMode()">
+      <span class="settings-label">👩 お母さんモードに切り替え</span>
+      <span class="settings-arrow">›</span>
+    </div>
+  </div>
+  <div class="settings-card">
+    <div class="settings-row danger" onclick="resetData()">
+      <span class="settings-label danger">🗑️ データをリセット</span>
+      <span class="settings-arrow">›</span>
+    </div>
+  </div>
+  <div style="text-align:center;color:var(--text2);font-size:0.72rem;padding:16px 0 80px;">
+    StudyTown v2.0 — フェーズ2実装中<br>
+    スマホのブラウザで「ホーム画面に追加」するとアプリとして使えるよ！
+  </div>
+</div>
+
+<!-- ==================== PARENT SCREEN ==================== -->
+<div id="screen-parent" class="screen">
+  <div style="padding:14px 16px 6px;">
+    <div style="font-family:'Zen Kaku Gothic New';font-size:1.05rem;font-weight:700;color:#ce93d8;">👩 保護者ダッシュボード</div>
+    <div style="font-size:0.73rem;color:var(--text2);margin-top:3px;">お子さんの学習状況をここで確認できます</div>
+  </div>
+
+  <div class="parent-stat-grid">
+    <div class="parent-stat">
+      <div class="parent-stat-num" id="p-streak">0</div>
+      <div class="parent-stat-label">🔥 連続日数</div>
+    </div>
+    <div class="parent-stat">
+      <div class="parent-stat-num" id="p-total-pt">0</div>
+      <div class="parent-stat-label">🪙 累計ポイント</div>
+    </div>
+    <div class="parent-stat">
+      <div class="parent-stat-num" id="p-week-min">0分</div>
+      <div class="parent-stat-label">📚 今週の学習時間</div>
+    </div>
+    <div class="parent-stat">
+      <div class="parent-stat-num" id="p-pdf-count">0冊</div>
+      <div class="parent-stat-label">📄 登録した教材</div>
+    </div>
+  </div>
+
+  <div class="parent-alert" id="p-alert" style="display:none;">
+    <div class="parent-alert-title">⚠️ 注意が必要な科目</div>
+    <div id="p-alert-body"></div>
+  </div>
+
+  <div class="sec-title" style="color:#ce93d8;border-color:#ce93d8;">📊 今週の科目バランス</div>
+  <div class="card">
+    <div id="p-bar-chart"></div>
+  </div>
+
+  <div class="sec-title" style="color:#ce93d8;border-color:#ce93d8;">📝 直近の記録</div>
+  <div class="card" style="margin-bottom:10px;">
+    <div id="p-recent-records"></div>
+  </div>
+
+  <div class="sec-title" style="color:#ce93d8;border-color:#ce93d8;">📂 登録済み教材</div>
+  <div class="card" style="margin-bottom:10px;">
+    <div id="p-pdf-list"></div>
+  </div>
+
+  <button class="btn-secondary" style="margin-bottom:80px;" onclick="exitParentMode()">← 子どもモードに戻る</button>
+</div>
+</div><!-- /main-scroll -->
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav" id="bottom-nav">
+  <div class="nav-item active" onclick="switchScreen('home',this)" id="nav-home"><span class="nav-icon">🏠</span>ホーム</div>
+  <div class="nav-item" onclick="switchScreen('pdf',this)"      id="nav-pdf"><span class="nav-icon">📂</span>教材</div>
+  <div class="nav-item" onclick="openModal(null)"               id="nav-rec"><span class="nav-icon">✏️</span>記録</div>
+  <div class="nav-item" onclick="switchScreen('point',this)"    id="nav-pt"><span class="nav-icon">🪙</span>ポイント</div>
+  <div class="nav-item" onclick="switchScreen('settings',this)" id="nav-set"><span class="nav-icon">⚙️</span>設定</div>
+</nav>
+
+<!-- RECORD MODAL -->
+<div class="modal-overlay" id="modal" onclick="closeModalOut(event)">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title"><span class="modal-back" onclick="closeModal()">←</span>今日の勉強を記録する</div>
+    <div class="input-label">科目を選択</div>
+    <div class="sub-grid">
+      <button class="sub-btn" id="sub-国語" onclick="selectSub('国語')"><span class="sub-btn-icon">📖</span><span class="sub-btn-name">国語</span></button>
+      <button class="sub-btn" id="sub-英語" onclick="selectSub('英語')"><span class="sub-btn-icon">🔤</span><span class="sub-btn-name">英語</span></button>
+      <button class="sub-btn" id="sub-数学" onclick="selectSub('数学')"><span class="sub-btn-icon">📐</span><span class="sub-btn-name">数学</span></button>
+      <button class="sub-btn" id="sub-理科" onclick="selectSub('理科')"><span class="sub-btn-icon">⚗️</span><span class="sub-btn-name">理科</span></button>
+      <button class="sub-btn" id="sub-社会" onclick="selectSub('社会')"><span class="sub-btn-icon">🌍</span><span class="sub-btn-name">社会</span></button>
+    </div>
+    <div class="input-label">勉強時間</div>
+    <div class="time-row">
+      <button class="time-btn" onclick="changeTime(-15)">−</button>
+      <div class="time-display"><span id="time-val">30</span>分</div>
+      <button class="time-btn" onclick="changeTime(15)">＋</button>
+    </div>
+    <textarea class="memo-input" id="memo-input" rows="2" placeholder="メモ（任意）例：二次方程式の練習"></textarea>
+    <button class="btn-submit" id="btn-submit" onclick="submitRecord()" disabled>記録する <span id="submit-pt-label">+0pt</span></button>
+  </div>
+</div>
+
+<!-- PASSCODE OVERLAY -->
+<div class="passcode-overlay" id="passcode-overlay">
+  <div style="font-size:2.5rem;margin-bottom:8px;">🔐</div>
+  <div class="passcode-title" id="pc-title">お母さんモード</div>
+  <div class="passcode-sub" id="pc-sub">パスコードを入力してください<br><span style="font-size:0.7rem;opacity:0.6;">初回は 1234 です（設定で変更できます）</span></div>
+  <div class="passcode-dots" id="pc-dots">
+    <div class="passcode-dot" id="dot-0"></div>
+    <div class="passcode-dot" id="dot-1"></div>
+    <div class="passcode-dot" id="dot-2"></div>
+    <div class="passcode-dot" id="dot-3"></div>
+  </div>
+  <div class="passcode-pad">
+    <div class="passcode-key" onclick="pcKey('1')">1</div>
+    <div class="passcode-key" onclick="pcKey('2')">2</div>
+    <div class="passcode-key" onclick="pcKey('3')">3</div>
+    <div class="passcode-key" onclick="pcKey('4')">4</div>
+    <div class="passcode-key" onclick="pcKey('5')">5</div>
+    <div class="passcode-key" onclick="pcKey('6')">6</div>
+    <div class="passcode-key" onclick="pcKey('7')">7</div>
+    <div class="passcode-key" onclick="pcKey('8')">8</div>
+    <div class="passcode-key" onclick="pcKey('9')">9</div>
+    <div class="passcode-key" style="visibility:hidden;"></div>
+    <div class="passcode-key" onclick="pcKey('0')">0</div>
+    <div class="passcode-key del" onclick="pcDel()">⌫</div>
+  </div>
+  <div class="passcode-error" id="pc-error">パスコードが違います</div>
+  <div class="passcode-cancel" onclick="closePasscode()">キャンセル</div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">🎉 <span id="toast-msg"></span></div>
+
+<script>
+// ==================== STATE ====================
+const KEY = 'studytown_v2';
+function defaultState() {
+  return {
+    streak:0, lastStudyDate:null, totalPoints:0,
+    subjectPoints:{国語:0,英語:0,数学:0,理科:0,社会:0},
+    records:[], weeklyMinutes:{月:0,火:0,水:0,木:0,金:0,土:0,日:0},
+    dailyBonusClaimed:null, goalMinutes:60,
+    passcode:'1234',
+    pdfs:[], // {id,name,subject,date,size}
+    calMonth: null,
+  };
+}
+let S = (() => { try { const s=localStorage.getItem(KEY); return s?JSON.parse(s):defaultState(); } catch{return defaultState();} })();
+const save = () => localStorage.setItem(KEY, JSON.stringify(S));
+
+// ==================== HELPERS ====================
+const todayStr = () => new Date().toISOString().slice(0,10);
+const dow = () => ['日','月','火','水','木','金','土'][new Date().getDay()];
+const calcPts = m => Math.floor(m/15)*10 + (m>=60?5:0);
+const subColors = {国語:'var(--blue)',英語:'var(--green)',数学:'var(--orange)',理科:'var(--purple)',社会:'var(--red)'};
+const DAYS = ['月','火','水','木','金','土','日'];
+
+// ==================== STREAK ====================
+function checkStreak() {
+  const today = todayStr();
+  if (S.lastStudyDate === today) return;
+  const yest = new Date(); yest.setDate(yest.getDate()-1);
+  const yStr = yest.toISOString().slice(0,10);
+  if (S.lastStudyDate !== null && S.lastStudyDate !== yStr) S.streak = 0;
+}
+
+// ==================== TOWN ====================
+function renderTown() {
+  const n = S.streak;
+  let lv, name;
+  if (n<8){lv=1;name='空き地';}
+  else if(n<31){lv=2;name='小さな村';}
+  else if(n<91){lv=3;name='成長する町';}
+  else{lv=4;name='大都市';}
+  document.getElementById('town-level-text').textContent=`Lv.${lv} ${name}`;
+  const svg=document.getElementById('town-svg');
+  svg.querySelectorAll('.dyn').forEach(e=>e.remove());
+  const g=document.createElementNS('http://www.w3.org/2000/svg','g');
+  g.setAttribute('class','dyn');
+  if(lv===1){g.innerHTML=`<rect x="190" y="96" width="30" height="24" fill="#5d4037" rx="2"/><polygon points="190,96 220,96 205,80" fill="#c0392b"/><rect x="200" y="108" width="10" height="12" fill="#3e2723"/><rect x="192" y="100" width="7" height="7" fill="#ffd54f" opacity="0.8"/><circle cx="265" cy="115" r="3" fill="#f5c842" opacity="0.7"/><rect x="263" y="100" width="4" height="18" fill="#795548"/>`;}
+  else if(lv===2){g.innerHTML=`<rect x="120" y="92" width="34" height="28" fill="#5d4037" rx="2"/><polygon points="120,92 154,92 137,74" fill="#c0392b"/><rect x="130" y="104" width="14" height="16" fill="#3e2723"/><rect x="122" y="96" width="9" height="9" fill="#ffd54f" opacity="0.8"/><rect x="185" y="88" width="40" height="32" fill="#4e342e" rx="2"/><polygon points="185,88 225,88 205,68" fill="#b71c1c"/><rect x="197" y="102" width="16" height="18" fill="#3e2723"/><rect x="187" y="93" width="11" height="11" fill="#ffd54f" opacity="0.8"/><rect x="255" y="84" width="50" height="36" fill="#37474f" rx="2"/><polygon points="255,84 305,84 280,62" fill="#546e7a"/><rect x="274" y="100" width="12" height="20" fill="#263238"/><rect x="258" y="90" width="12" height="12" fill="#80deea" opacity="0.8"/><rect x="293" y="90" width="12" height="12" fill="#80deea" opacity="0.8"/><rect x="165" y="100" width="4" height="22" fill="#8d6e63"/><circle cx="167" cy="100" r="5" fill="#ffd54f" opacity="0.6"/>`;}
+  else if(lv===3){g.innerHTML=`<rect x="60" y="60" width="44" height="60" fill="#37474f" rx="2"/><rect x="62" y="63" width="8" height="8" fill="#80deea" opacity="0.7"/><rect x="74" y="63" width="8" height="8" fill="#ffd54f" opacity="0.8"/><rect x="86" y="63" width="8" height="8" fill="#80deea" opacity="0.7"/><rect x="62" y="77" width="8" height="8" fill="#ffd54f" opacity="0.8"/><rect x="74" y="77" width="8" height="8" fill="#80deea" opacity="0.7"/><rect x="86" y="77" width="8" height="8" fill="#ffd54f" opacity="0.8"/><rect x="62" y="91" width="8" height="8" fill="#80deea" opacity="0.7"/><rect x="74" y="91" width="8" height="8" fill="#ffd54f" opacity="0.8"/><rect x="86" y="91" width="8" height="8" fill="#80deea" opacity="0.7"/><rect x="130" y="50" width="30" height="70" fill="#455a64" rx="2"/><circle cx="145" cy="72" r="12" fill="#546e7a"/><circle cx="145" cy="72" r="10" fill="#ffd54f" opacity="0.3"/><line x1="145" y1="72" x2="145" y2="63" stroke="white" stroke-width="1.5"/><line x1="145" y1="72" x2="151" y2="72" stroke="white" stroke-width="1.5"/><rect x="141" y="100" width="8" height="20" fill="#3e2723"/><rect x="185" y="75" width="55" height="45" fill="#4e342e" rx="2"/><polygon points="185,75 240,75 212,55" fill="#b71c1c"/><rect x="200" y="90" width="20" height="30" fill="#3e2723"/><rect x="188" y="80" width="10" height="10" fill="#ffd54f" opacity="0.8"/><rect x="221" y="80" width="10" height="10" fill="#ffd54f" opacity="0.8"/><rect x="260" y="68" width="45" height="52" fill="#37474f" rx="2"/><rect x="263" y="72" width="9" height="9" fill="#80deea" opacity="0.7"/><rect x="276" y="72" width="9" height="9" fill="#ffd54f" opacity="0.8"/><rect x="289" y="72" width="9" height="9" fill="#80deea" opacity="0.7"/><rect x="263" y="86" width="9" height="9" fill="#ffd54f" opacity="0.8"/><rect x="276" y="86" width="9" height="9" fill="#80deea" opacity="0.7"/><rect x="289" y="86" width="9" height="9" fill="#ffd54f" opacity="0.8"/><rect x="274" y="100" width="16" height="20" fill="#3e2723"/><circle cx="350" cy="108" r="12" fill="#2e7d32" opacity="0.8"/><circle cx="370" cy="104" r="10" fill="#388e3c" opacity="0.8"/><rect x="170" y="100" width="3" height="22" fill="#8d6e63"/><circle cx="171" cy="100" r="4" fill="#ffd54f" opacity="0.7"/>`;}
+  else{g.innerHTML=`<rect x="20" y="35" width="40" height="85" fill="#263238" rx="2"/><rect x="23" y="38" width="7" height="7" fill="#80deea" opacity="0.8"/><rect x="34" y="38" width="7" height="7" fill="#ffd54f" opacity="0.9"/><rect x="45" y="38" width="7" height="7" fill="#80deea" opacity="0.8"/><rect x="23" y="50" width="7" height="7" fill="#ffd54f" opacity="0.9"/><rect x="34" y="50" width="7" height="7" fill="#80deea" opacity="0.8"/><rect x="45" y="50" width="7" height="7" fill="#ffd54f" opacity="0.9"/><rect x="23" y="62" width="7" height="7" fill="#80deea" opacity="0.8"/><rect x="34" y="62" width="7" height="7" fill="#ffd54f" opacity="0.9"/><rect x="45" y="62" width="7" height="7" fill="#80deea" opacity="0.8"/><rect x="23" y="74" width="7" height="7" fill="#ffd54f" opacity="0.9"/><rect x="34" y="74" width="7" height="7" fill="#80deea" opacity="0.8"/><rect x="45" y="74" width="7" height="7" fill="#ffd54f" opacity="0.9"/><rect x="38" y="25" width="4" height="12" fill="#546e7a"/><circle cx="40" cy="24" r="3" fill="#ef5350" opacity="0.9"/><rect x="75" y="48" width="35" height="72" fill="#37474f" rx="2"/><rect x="78" y="52" width="7" height="7" fill="#ffd54f" opacity="0.9"/><rect x="89" y="52" width="7" height="7" fill="#80deea" opacity="0.8"/><rect x="78" y="64" width="7" height="7" fill="#80deea" opacity="0.8"/><rect x="89" y="64" width="7" height="7" fill="#ffd54f" opacity="0.9"/><rect x="78" y="76" width="7" height="7" fill="#ffd54f" opacity="0.9"/><rect x="89" y="76" width="7" height="7" fill="#80deea" opacity="0.8"/><rect x="78" y="88" width="7" height="7" fill="#80deea" opacity="0.8"/><rect x="89" y="88" width="7" height="7" fill="#ffd54f" opacity="0.9"/><rect x="130" y="42" width="32" height="78" fill="#455a64" rx="2"/><circle cx="146" cy="65" r="14" fill="#546e7a"/><circle cx="146" cy="65" r="11" fill="#ffd54f" opacity="0.3"/><line x1="146" y1="65" x2="146" y2="55" stroke="white" stroke-width="2"/><line x1="146" y1="65" x2="154" y2="65" stroke="white" stroke-width="2"/><rect x="142" y="96" width="8" height="24" fill="#3e2723"/><ellipse cx="220" cy="112" rx="50" ry="14" fill="#1b5e20" opacity="0.9"/><ellipse cx="220" cy="112" rx="36" ry="9" fill="#2e7d32" opacity="0.9"/><ellipse cx="220" cy="112" rx="22" ry="5" fill="#388e3c" opacity="0.9"/><rect x="290" y="30" width="44" height="90" fill="#1a237e" rx="2"/><rect x="293" y="34" width="8" height="8" fill="#80deea" opacity="0.9"/><rect x="305" y="34" width="8" height="8" fill="#ffd54f"/><rect x="317" y="34" width="8" height="8" fill="#80deea" opacity="0.9"/><rect x="293" y="47" width="8" height="8" fill="#ffd54f"/><rect x="305" y="47" width="8" height="8" fill="#80deea" opacity="0.9"/><rect x="317" y="47" width="8" height="8" fill="#ffd54f"/><rect x="293" y="60" width="8" height="8" fill="#80deea" opacity="0.9"/><rect x="305" y="60" width="8" height="8" fill="#ffd54f"/><rect x="317" y="60" width="8" height="8" fill="#80deea" opacity="0.9"/><rect x="293" y="73" width="8" height="8" fill="#ffd54f"/><rect x="305" y="73" width="8" height="8" fill="#80deea" opacity="0.9"/><rect x="317" y="73" width="8" height="8" fill="#ffd54f"/><rect x="305" y="30" width="4" height="10" fill="#546e7a"/><circle cx="307" cy="30" r="3" fill="#ef5350"/><rect x="355" y="72" width="65" height="48" fill="#4a148c" rx="2"/><polygon points="355,72 420,72 387,52" fill="#6a1b9a"/><rect x="374" y="88" width="26" height="32" fill="#4527a0"/><rect x="358" y="78" width="12" height="12" fill="#ce93d8" opacity="0.8"/><rect x="398" y="78" width="12" height="12" fill="#ce93d8" opacity="0.8"/><rect x="270" y="100" width="3" height="22" fill="#8d6e63"/><circle cx="271" cy="100" r="5" fill="#ffd54f" opacity="0.8"/>`;}
+  svg.appendChild(g);
+}
+
+// ==================== RENDER ALL ====================
+function renderAll() {
+  document.getElementById('streak-count').textContent = S.streak;
+  document.getElementById('rank-mypt').textContent = S.totalPoints.toLocaleString()+'pt';
+  ['国語','英語','数学','理科','社会'].forEach(s => {
+    const el=document.getElementById('pt-'+s);
+    if(el) el.textContent=(S.subjectPoints[s]||0)+'pt';
+  });
+  renderTodayRecords();
+  renderTown();
+  renderPointScreen();
+  renderPdfList();
+  renderCalendar();
+  document.getElementById('goal-val').textContent = S.goalMinutes+'分';
+}
+
+function renderTodayRecords() {
+  const today=todayStr();
+  const recs=S.records.filter(r=>r.date===today);
+  const totalMin=recs.reduce((a,r)=>a+r.minutes,0);
+  const goal=S.goalMinutes||60;
+  const pct=Math.min(100,Math.round(totalMin/goal*100));
+  document.getElementById('today-pct').textContent=`${pct}% (${totalMin}/${goal}分)`;
+  document.getElementById('today-bar').style.width=pct+'%';
+  const c=document.getElementById('today-records');
+  if(!recs.length){c.innerHTML='<div class="no-record">まだ記録がありません</div>';return;}
+  c.innerHTML=recs.map(r=>`<div class="record-row"><div class="record-dot"></div><span class="record-name">${r.subject}${r.memo?' — '+r.memo:''}</span><span class="record-time">+${r.minutes}分</span><span class="record-pt">+${r.points}pt</span></div>`).join('');
+}
+
+// ==================== RECORD MODAL ====================
+let selSub=null, selTime=30;
+const subSelClass={国語:'sel-kokugo',英語:'sel-eigo',数学:'sel-math',理科:'sel-rika',社会:'sel-shakai'};
+
+function openModal(sub) {
+  selSub=sub; selTime=30;
+  document.getElementById('time-val').textContent=30;
+  document.getElementById('memo-input').value='';
+  ['国語','英語','数学','理科','社会'].forEach(s=>document.getElementById('sub-'+s).className='sub-btn');
+  if(sub) selectSub(sub);
+  updateSubmitBtn();
+  document.getElementById('modal').classList.add('open');
+}
+function closeModal(){document.getElementById('modal').classList.remove('open');}
+function closeModalOut(e){if(e.target===document.getElementById('modal'))closeModal();}
+function selectSub(s){
+  ['国語','英語','数学','理科','社会'].forEach(x=>document.getElementById('sub-'+x).className='sub-btn');
+  selSub=s;
+  document.getElementById('sub-'+s).className='sub-btn '+subSelClass[s];
+  updateSubmitBtn();
+}
+function changeTime(d){selTime=Math.max(15,Math.min(300,selTime+d));document.getElementById('time-val').textContent=selTime;updateSubmitBtn();}
+function updateSubmitBtn(){
+  const pts=calcPts(selTime);
+  document.getElementById('submit-pt-label').textContent='+'+pts+'pt';
+  document.getElementById('btn-submit').disabled=!selSub;
+}
+function submitRecord(){
+  if(!selSub)return;
+  const today=todayStr(); const pts=calcPts(selTime); const memo=document.getElementById('memo-input').value.trim();
+  let bonus=0;
+  if(S.dailyBonusClaimed!==today){bonus=20;S.dailyBonusClaimed=today;}
+  if(S.lastStudyDate!==today){
+    const yest=new Date();yest.setDate(yest.getDate()-1);
+    const yStr=yest.toISOString().slice(0,10);
+    S.streak=(S.lastStudyDate===yStr||S.lastStudyDate===null)?S.streak+1:1;
+    S.lastStudyDate=today;
+  }
+  let sb=0; if(S.streak===7)sb=100; if(S.streak===30)sb=500;
+  const total=pts+bonus+sb;
+  S.records.push({date:today,subject:selSub,minutes:selTime,points:total,memo});
+  S.totalPoints+=total;
+  S.subjectPoints[selSub]=(S.subjectPoints[selSub]||0)+total;
+  S.weeklyMinutes[dow()]=(S.weeklyMinutes[dow()]||0)+selTime;
+  save(); closeModal();
+  let msg=`${selSub} ${selTime}分 +${total}pt`;
+  if(bonus>0)msg+=' 🌟+20pt';
+  if(sb>0)msg+=` 🔥${S.streak}日連続+${sb}pt`;
+  showToast(msg); renderAll();
+}
+
+// ==================== POINT SCREEN ====================
+const BADGES=[
+  {icon:'🔥',name:'7日連続',check:s=>s.streak>=7},
+  {icon:'🏅',name:'30日の記録',check:s=>s.streak>=30},
+  {icon:'📐',name:'数学マスター',check:s=>(s.subjectPoints['数学']||0)>=100},
+  {icon:'🌟',name:'全科目制覇',check:s=>Object.values(s.subjectPoints).every(v=>v>0)},
+  {icon:'💎',name:'1000pt達成',check:s=>s.totalPoints>=1000},
+  {icon:'📚',name:'5日勉強',check:s=>new Set(s.records.map(r=>r.date)).size>=5},
+];
+const REWARDS=[{name:'📱 スマホ+30分',pts:500},{name:'💰 お小遣い+500円',pts:1000},{name:'🍜 ご飯リクエスト',pts:800},{name:'🏙️ 街に新建物',pts:300}];
+const BAR_COLORS=['#3a86ff','#2ecc71','#e67e22','#9b59b6','#e74c3c','#f5c842','#ff6b35'];
+
+function renderPointScreen(){
+  document.getElementById('pt-total-display').textContent=S.totalPoints.toLocaleString();
+  const mx=Math.max(...Object.values(S.weeklyMinutes),30);
+  document.getElementById('chart-bars').innerHTML=DAYS.map((d,i)=>{
+    const m=S.weeklyMinutes[d]||0;
+    const h=Math.max(4,Math.round(m/mx*68));
+    return `<div class="chart-day"><div class="chart-bar" style="height:${h}px;background:${BAR_COLORS[i]};opacity:${m?1:0.2}"></div></div>`;
+  }).join('');
+  document.getElementById('chart-labels').innerHTML=DAYS.map(d=>`<div style="flex:1;text-align:center;font-size:0.6rem;color:var(--text2)">${d}</div>`).join('');
+  document.getElementById('badges-grid').innerHTML=BADGES.map(b=>`<div class="badge-item ${b.check(S)?'':'locked'}"><span class="badge-icon-lg">${b.icon}</span><span class="badge-name">${b.name}</span></div>`).join('');
+  const nr=REWARDS.find(r=>S.totalPoints<r.pts)||REWARDS[REWARDS.length-1];
+  const rem=Math.max(0,nr.pts-S.totalPoints);
+  const pct=Math.min(100,Math.round(S.totalPoints/nr.pts*100));
+  document.getElementById('reward-name').textContent=nr.name;
+  document.getElementById('reward-fill').style.width=pct+'%';
+  document.getElementById('reward-remaining').textContent=`${nr.pts}ptまで あと${rem}pt`;
+}
+
+// ==================== PDF ====================
+let pdfFilter='all';
+function handlePdfUpload(e) {
+  const file=e.target.files[0]; if(!file)return;
+  // Ask subject via simple prompt (could be improved with modal)
+  const sub=prompt('科目を選択してください\n1:国語 2:英語 3:数学 4:理科 5:社会','3');
+  const subMap={'1':'国語','2':'英語','3':'数学','4':'理科','5':'社会'};
+  const subject=subMap[sub]||'数学';
+  const id=Date.now().toString();
+  const kb=Math.round(file.size/1024);
+  S.pdfs.push({id,name:file.name,subject,date:todayStr(),size:kb+'KB'});
+  S.totalPoints+=50; S.subjectPoints[subject]=(S.subjectPoints[subject]||0)+50;
+  save(); renderAll(); e.target.value='';
+  showToast(`📄 ${file.name} を追加 +50pt`);
+}
+function filterPdf(f,el){
+  pdfFilter=f;
+  document.querySelectorAll('.pdf-tag').forEach(t=>t.className='pdf-tag');
+  const colorMap={国語:'active-kokugo',英語:'active-eigo',数学:'active-math',理科:'active-rika',社会:'active-shakai'};
+  if(el) el.className='pdf-tag '+(colorMap[f]||'active-kokugo');
+  renderPdfList();
+}
+function renderPdfList(){
+  const list=S.pdfs.filter(p=>pdfFilter==='all'||p.subject===pdfFilter);
+  const tagClass={国語:'active-kokugo',英語:'active-eigo',数学:'active-math',理科:'active-rika',社会:'active-shakai'};
+  const tagBg={国語:'rgba(58,134,255,0.2)',英語:'rgba(46,204,113,0.2)',数学:'rgba(230,126,34,0.2)',理科:'rgba(155,89,182,0.2)',社会:'rgba(231,76,60,0.2)'};
+  const tagColor={国語:'#7ab8ff',英語:'#7ae8a8',数学:'#f0a060',理科:'#c8a0e0',社会:'#f0a0a0'};
+  const el=document.getElementById('pdf-list');
+  if(!list.length){el.innerHTML='<div style="text-align:center;color:var(--text2);font-size:0.82rem;padding:24px 0;">まだ教材がありません<br>PDFを追加してポイントをゲット！</div>';return;}
+  el.innerHTML=list.map(p=>`
+    <div class="pdf-item">
+      <span class="pdf-icon">📄</span>
+      <div class="pdf-info">
+        <div class="pdf-name">${p.name}</div>
+        <div class="pdf-meta">${p.date} · ${p.size}</div>
+        <span class="pdf-tag-badge" style="background:${tagBg[p.subject]};color:${tagColor[p.subject]}">${p.subject}</span>
+      </div>
+      <span class="pdf-pt-badge">+50pt</span>
+    </div>
+  `).join('');
+}
+
+// drag & drop
+const dz=document.getElementById('drop-zone');
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag-over');});
+dz.addEventListener('dragleave',()=>dz.classList.remove('drag-over'));
+dz.addEventListener('drop',e=>{
+  e.preventDefault();dz.classList.remove('drag-over');
+  const file=e.dataTransfer.files[0];
+  if(file&&file.type==='application/pdf'){
+    const ev={target:{files:[file],value:''}};
+    handlePdfUpload(ev);
+  }
+});
+
+// ==================== CALENDAR ====================
+let calYear=new Date().getFullYear(), calMon=new Date().getMonth();
+function changeMonth(d){calMon+=d;if(calMon<0){calMon=11;calYear--;}if(calMon>11){calMon=0;calYear++;}renderCalendar();}
+function renderCalendar(){
+  const dows=['日','月','火','水','木','金','土'];
+  document.getElementById('cal-month-label').textContent=`${calYear}年${calMon+1}月`;
+  const first=new Date(calYear,calMon,1).getDay();
+  const days=new Date(calYear,calMon+1,0).getDate();
+  const today=todayStr();
+  const recordDates=new Set(S.records.map(r=>r.date));
+  let html=dows.map(d=>`<div class="cal-dow">${d}</div>`).join('');
+  for(let i=0;i<first;i++) html+=`<div class="cal-day empty"></div>`;
+  for(let d=1;d<=days;d++){
+    const ds=`${calYear}-${String(calMon+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const has=recordDates.has(ds);
+    const isToday=ds===today;
+    html+=`<div class="cal-day ${has?'has-record':''} ${isToday?'today':''}" onclick="showCalDay('${ds}')">${d}${has?'<div class="cal-dot"></div>':''}</div>`;
+  }
+  document.getElementById('cal-grid').innerHTML=html;
+  document.getElementById('cal-detail').innerHTML='<div style="text-align:center;color:var(--text2);font-size:0.8rem;">日付を選ぶと記録が見られるよ</div>';
+}
+function showCalDay(ds){
+  document.querySelectorAll('.cal-day').forEach(el=>el.classList.remove('selected'));
+  event.currentTarget.classList.add('selected');
+  const recs=S.records.filter(r=>r.date===ds);
+  const pdfs=S.pdfs.filter(p=>p.date===ds);
+  const detail=document.getElementById('cal-detail');
+  if(!recs.length&&!pdfs.length){detail.innerHTML=`<div class="cal-detail-date">${ds}</div><div style="text-align:center;color:var(--text2);font-size:0.8rem;">この日の記録はありません</div>`;return;}
+  let html=`<div class="cal-detail-date">📅 ${ds}</div>`;
+  recs.forEach(r=>{html+=`<div class="cal-detail-row"><span style="font-size:1rem">${r.subject==='国語'?'📖':r.subject==='英語'?'🔤':r.subject==='数学'?'📐':r.subject==='理科'?'⚗️':'🌍'}</span><span style="flex:1;font-size:0.8rem">${r.subject}${r.memo?' — '+r.memo:''}</span><span style="font-size:0.76rem;color:var(--text2)">${r.minutes}分</span><span style="font-size:0.76rem;font-weight:700;color:var(--gold);margin-left:6px">+${r.points}pt</span></div>`;});
+  pdfs.forEach(p=>{html+=`<div class="cal-detail-row"><span style="font-size:1rem">📄</span><span style="flex:1;font-size:0.8rem">${p.name}</span><span style="font-size:0.76rem;font-weight:700;color:var(--gold)">+50pt</span></div>`;});
+  detail.innerHTML=html;
+}
+
+// ==================== PARENT MODE ====================
+let pcMode='enter'; // 'enter' | 'set'
+let pcBuf='';
+
+function enterParentMode(){pcMode='enter';pcBuf='';updatePcDots();document.getElementById('pc-title').textContent='お母さんモード';document.getElementById('pc-sub').innerHTML='パスコードを入力してください<br><span style="font-size:0.7rem;opacity:0.6;">初回は 1234 です</span>';document.getElementById('pc-error').classList.remove('show');document.getElementById('passcode-overlay').classList.add('open');}
+
+function openPasscodeSetting(){pcMode='set';pcBuf='';updatePcDots();document.getElementById('pc-title').textContent='新しいパスコード';document.getElementById('pc-sub').innerHTML='お母さんモード用の<br>新しい4桁パスコードを入力してください';document.getElementById('pc-error').classList.remove('show');document.getElementById('passcode-overlay').classList.add('open');}
+
+function closePasscode(){document.getElementById('passcode-overlay').classList.remove('open');}
+
+function pcKey(k){
+  if(pcBuf.length>=4)return;
+  pcBuf+=k; updatePcDots();
+  if(pcBuf.length===4) setTimeout(()=>pcConfirm(),150);
+}
+function pcDel(){pcBuf=pcBuf.slice(0,-1);updatePcDots();}
+function updatePcDots(){
+  for(let i=0;i<4;i++) document.getElementById('dot-'+i).className='passcode-dot'+(i<pcBuf.length?' filled':'');
+}
+function pcConfirm(){
+  if(pcMode==='enter'){
+    if(pcBuf===S.passcode){
+      closePasscode();
+      document.body.classList.add('parent-mode');
+      switchScreen('parent',null);
+      document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+      renderParent();
+    } else {
+      document.getElementById('pc-error').classList.add('show');
+      setTimeout(()=>{pcBuf='';updatePcDots();document.getElementById('pc-error').classList.remove('show');},1200);
+    }
+  } else {
+    S.passcode=pcBuf; save(); closePasscode();
+    showToast('🔐 パスコードを変更しました');
+  }
+}
+
+function exitParentMode(){
+  document.body.classList.remove('parent-mode');
+  switchScreen('home',document.getElementById('nav-home'));
+}
+
+function renderParent(){
+  document.getElementById('p-streak').textContent=S.streak;
+  document.getElementById('p-total-pt').textContent=S.totalPoints.toLocaleString();
+  const weekMin=Object.values(S.weeklyMinutes).reduce((a,b)=>a+b,0);
+  document.getElementById('p-week-min').textContent=weekMin+'分';
+  document.getElementById('p-pdf-count').textContent=S.pdfs.length+'冊';
+
+  // alert low subjects
+  const lowSubs=Object.entries(S.subjectPoints).filter(([,v])=>v===0).map(([k])=>k);
+  if(lowSubs.length){
+    document.getElementById('p-alert').style.display='block';
+    document.getElementById('p-alert-body').innerHTML=lowSubs.map(s=>`<div class="parent-alert-item">・${s}：まだ記録がありません</div>`).join('');
+  }
+
+  // subject bar chart
+  const maxPt=Math.max(...Object.values(S.subjectPoints),1);
+  document.getElementById('p-bar-chart').innerHTML=Object.entries(S.subjectPoints).map(([sub,pt])=>`
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+      <div style="width:40px;font-size:0.75rem;color:var(--text2);text-align:right">${sub}</div>
+      <div style="flex:1;height:14px;background:rgba(255,255,255,0.07);border-radius:99px;overflow:hidden;">
+        <div style="height:100%;width:${Math.round(pt/maxPt*100)}%;background:${subColors[sub]};border-radius:99px;transition:width 0.8s"></div>
+      </div>
+      <div style="font-size:0.75rem;font-weight:700;color:var(--gold);min-width:44px">${pt}pt</div>
+    </div>
+  `).join('');
+
+  // recent records
+  const recent=[...S.records].reverse().slice(0,10);
+  document.getElementById('p-recent-records').innerHTML=recent.length?recent.map(r=>`
+    <div class="cal-detail-row">
+      <span style="font-size:0.9rem">${r.subject==='国語'?'📖':r.subject==='英語'?'🔤':r.subject==='数学'?'📐':r.subject==='理科'?'⚗️':'🌍'}</span>
+      <span style="flex:1;font-size:0.78rem">${r.date} ${r.subject}${r.memo?' — '+r.memo:''}</span>
+      <span style="font-size:0.74rem;color:var(--text2)">${r.minutes}分</span>
+      <span style="font-size:0.74rem;font-weight:700;color:var(--gold);margin-left:6px">+${r.points}pt</span>
+    </div>
+  `).join(''):'<div style="text-align:center;color:var(--text2);font-size:0.8rem;padding:8px">まだ記録がありません</div>';
+
+  // pdf list
+  document.getElementById('p-pdf-list').innerHTML=S.pdfs.length?S.pdfs.map(p=>`
+    <div class="cal-detail-row">
+      <span style="font-size:0.9rem">📄</span>
+      <div style="flex:1;min-width:0"><div style="font-size:0.78rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.name}</div><div style="font-size:0.68rem;color:var(--text2)">${p.subject} · ${p.date}</div></div>
+    </div>
+  `).join(''):'<div style="text-align:center;color:var(--text2);font-size:0.8rem;padding:8px">教材がありません</div>';
+}
+
+// ==================== SETTINGS ====================
+function openGoalSetting(){
+  const v=prompt('1日の目標学習時間（分）を入力してください',S.goalMinutes);
+  if(v&&!isNaN(v)&&+v>0){S.goalMinutes=+v;save();renderAll();showToast(`🎯 目標を${v}分に設定しました`);}
+}
+function resetData(){
+  if(!confirm('本当にリセットしますか？'))return;
+  localStorage.removeItem(KEY);
+  S=defaultState();save();renderAll();showToast('リセットしました');
+}
+
+// ==================== SCREEN SWITCH ====================
+function switchScreen(name,navEl){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-'+name).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  if(navEl)navEl.classList.add('active');
+  document.querySelector('.main-scroll').scrollTop=0;
+  if(name==='point')renderPointScreen();
+  if(name==='calendar')renderCalendar();
+  if(name==='parent')renderParent();
+  if(name==='pdf')renderPdfList();
+}
+
+// ==================== TOAST ====================
+function showToast(msg){
+  const t=document.getElementById('toast');
+  document.getElementById('toast-msg').textContent=msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3500);
+}
+
+// ==================== PWA INSTALL ====================
+let deferredPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault();deferredPrompt=e;
+  document.getElementById('install-banner').classList.add('show');
+});
+document.getElementById('install-btn').addEventListener('click',async()=>{
+  if(!deferredPrompt)return;
+  deferredPrompt.prompt();
+  const{outcome}=await deferredPrompt.userChoice;
+  if(outcome==='accepted') document.getElementById('install-banner').classList.remove('show');
+  deferredPrompt=null;
+});
+
+// iOS Safari hint
+const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent)&&!window.matchMedia('(display-mode: standalone)').matches;
+if(isIOS){
+  document.getElementById('install-banner').classList.add('show');
+  document.querySelector('.install-text').innerHTML='<strong>📱 ホーム画面に追加</strong>Safariの共有ボタン→「ホーム画面に追加」でアプリとして使えるよ！';
+  document.getElementById('install-btn').style.display='none';
+}
+
+// ==================== INIT ====================
+checkStreak(); renderAll();
+// Init calendar nav nav
+const calScreen=document.getElementById('screen-calendar');
+// Add calendar to nav dynamically — actually it's on PDF nav, swap it
+</script>
+
+<!-- PWA Manifest inline -->
+<script>
+// Create manifest blob for PWA
+const manifest={
+  name:'StudyTown',short_name:'StudyTown',
+  description:'中学3年生専用 勉強継続アプリ',
+  theme_color:'#0a0f1e',background_color:'#0a0f1e',
+  display:'standalone',orientation:'portrait',
+  start_url:'./',
+  icons:[{src:'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="100" fill="%230a0f1e"/><text y="320" x="80" font-size="380">🏙️</text></svg>',sizes:'512x512',type:'image/svg+xml'}]
+};
+const blob=new Blob([JSON.stringify(manifest)],{type:'application/json'});
+const url=URL.createObjectURL(blob);
+const link=document.createElement('link');
+link.rel='manifest';link.href=url;
+document.head.appendChild(link);
+</script>
+</body>
+</html>
