@@ -386,6 +386,83 @@ body.parent-mode .nav-item.active{color:#ce93d8;}
 }
 .toast.show{transform:translateX(-50%) translateY(0);}
 
+/* ===== REWARD SYSTEM ===== */
+.reward-list{padding:0 16px 12px;}
+.reward-item{
+  display:flex;align-items:center;gap:12px;
+  background:var(--card);border:1.5px solid var(--border);
+  border-radius:14px;padding:13px 14px;margin-bottom:8px;
+}
+.reward-item.can-redeem{border-color:rgba(245,200,66,0.5);background:rgba(245,200,66,0.05);}
+.reward-emoji{font-size:1.8rem;flex-shrink:0;}
+.reward-info{flex:1;}
+.reward-item-name{font-size:0.88rem;font-weight:700;}
+.reward-item-pts{font-size:0.75rem;color:var(--text2);margin-top:2px;}
+.reward-redeem-btn{
+  background:linear-gradient(135deg,var(--gold2),var(--gold));
+  border:none;border-radius:10px;color:#0a0f1e;
+  font-size:0.75rem;font-weight:900;padding:7px 12px;cursor:pointer;
+  transition:transform 0.15s;white-space:nowrap;
+}
+.reward-redeem-btn:active{transform:scale(0.95);}
+.reward-redeem-btn:disabled{background:rgba(255,255,255,0.1);color:var(--text2);cursor:not-allowed;}
+.exchange-history{padding:0 16px 12px;}
+.exchange-row{
+  display:flex;align-items:center;gap:10px;
+  padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);
+  font-size:0.8rem;
+}
+.exchange-row:last-child{border-bottom:none;}
+.exchange-status{font-size:0.68rem;padding:3px 8px;border-radius:99px;font-weight:700;flex-shrink:0;}
+.exchange-status.pending{background:rgba(230,126,34,0.2);color:var(--orange);}
+.exchange-status.approved{background:rgba(46,204,113,0.2);color:var(--green);}
+
+/* ===== TEST ALERT ===== */
+.test-alert-card{
+  margin:0 16px 12px;
+  background:linear-gradient(135deg,rgba(231,76,60,0.12),rgba(230,126,34,0.08));
+  border:1.5px solid rgba(231,76,60,0.4);border-radius:16px;padding:14px 16px;
+}
+.test-alert-title{font-size:0.88rem;font-weight:700;color:var(--red);margin-bottom:8px;display:flex;align-items:center;gap:6px;}
+.test-item{display:flex;align-items:center;justify-content:space-between;padding:5px 0;font-size:0.8rem;}
+.test-days-left{font-weight:700;color:var(--orange);}
+.test-days-left.urgent{color:var(--red);}
+
+/* ===== PARENT REQUEST CARD ===== */
+.request-card{
+  margin:0 16px 10px;
+  background:rgba(245,200,66,0.06);
+  border:1.5px solid rgba(245,200,66,0.3);
+  border-radius:14px;padding:12px 14px;
+}
+.request-title{font-size:0.8rem;font-weight:700;color:var(--gold);margin-bottom:8px;}
+.request-row{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05);}
+.request-row:last-child{border-bottom:none;}
+.request-info{flex:1;font-size:0.8rem;}
+.request-pts{font-size:0.75rem;color:var(--text2);}
+.req-btn{border:none;border-radius:8px;font-size:0.72rem;font-weight:700;padding:5px 10px;cursor:pointer;transition:transform 0.15s;}
+.req-btn:active{transform:scale(0.95);}
+.req-approve{background:rgba(46,204,113,0.2);color:var(--green);}
+.req-deny{background:rgba(231,76,60,0.2);color:var(--red);margin-left:4px;}
+
+/* ===== TEST SETTING MODAL ===== */
+.test-input{
+  width:100%;background:var(--card);border:1.5px solid var(--border);
+  border-radius:12px;color:var(--text);font-size:0.88rem;
+  font-family:'Noto Sans JP',sans-serif;padding:11px 13px;
+  outline:none;margin-bottom:10px;
+}
+.test-input:focus{border-color:rgba(245,200,66,0.4);}
+.test-list{margin-bottom:12px;}
+.test-list-item{
+  display:flex;align-items:center;gap:8px;
+  background:var(--card);border:1.5px solid var(--border);
+  border-radius:10px;padding:10px 12px;margin-bottom:6px;
+}
+.test-list-name{flex:1;font-size:0.82rem;}
+.test-list-date{font-size:0.75rem;color:var(--text2);}
+.test-list-del{color:var(--red);cursor:pointer;font-size:1rem;padding:2px 6px;}
+
 /* ===== INSTALL BANNER ===== */
 .install-banner{
   display:none;margin:8px 16px;background:linear-gradient(135deg,#0d2044,#152030);
@@ -539,6 +616,28 @@ body.parent-mode .nav-item.active{color:#ce93d8;}
   </div>
 </div>
 
+<!-- ==================== REWARD SCREEN ==================== -->
+<div id="screen-reward" class="screen">
+  <div style="padding:14px 16px 6px;">
+    <div style="font-family:'Zen Kaku Gothic New';font-size:1.05rem;font-weight:700;">🎁 報酬交換</div>
+    <div style="font-size:0.75rem;color:var(--text2);margin-top:3px;">ポイントを使って報酬と交換しよう！</div>
+  </div>
+  <div style="margin:0 16px 12px;background:var(--card);border:1.5px solid var(--border);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:12px;">
+    <div style="font-size:1.8rem;">🪙</div>
+    <div>
+      <div style="font-size:0.75rem;color:var(--text2);">現在のポイント</div>
+      <div style="font-family:'Zen Kaku Gothic New';font-size:1.8rem;font-weight:900;color:var(--gold);" id="reward-cur-pts">0pt</div>
+    </div>
+  </div>
+  <div id="test-alert-home"></div>
+  <div class="sec-title">🎁 報酬一覧</div>
+  <div class="reward-list" id="reward-list"></div>
+  <div class="sec-title">📋 交換履歴</div>
+  <div class="exchange-history" id="exchange-history" style="margin-bottom:80px;">
+    <div style="text-align:center;color:var(--text2);font-size:0.8rem;padding:12px 0;">まだ交換履歴がありません</div>
+  </div>
+</div>
+
 <!-- ==================== SETTINGS SCREEN ==================== -->
 <div id="screen-settings" class="screen">
   <div style="padding:14px 16px 6px;">
@@ -568,7 +667,7 @@ body.parent-mode .nav-item.active{color:#ce93d8;}
     </div>
   </div>
   <div style="text-align:center;color:var(--text2);font-size:0.72rem;padding:16px 0 80px;">
-    StudyTown v2.0 — フェーズ2実装中<br>
+    StudyTown v3.0 — フェーズ3実装済み<br>
     スマホのブラウザで「ホーム画面に追加」するとアプリとして使えるよ！
   </div>
 </div>
@@ -604,6 +703,22 @@ body.parent-mode .nav-item.active{color:#ce93d8;}
     <div id="p-alert-body"></div>
   </div>
 
+  <div class="sec-title" style="color:#ce93d8;border-color:#ce93d8;">🎁 報酬交換申請</div>
+  <div class="request-card" id="p-requests">
+    <div style="text-align:center;color:var(--text2);font-size:0.8rem;padding:8px 0;">申請はありません</div>
+  </div>
+
+  <div class="sec-title" style="color:#ce93d8;border-color:#ce93d8;">📅 テスト日程管理</div>
+  <div class="card" style="margin-bottom:10px;">
+    <div style="font-size:0.8rem;color:var(--text2);margin-bottom:10px;">テスト日を登録すると子どもの画面にカウントダウンが表示されます</div>
+    <div class="test-list" id="p-test-list"></div>
+    <div style="display:flex;gap:8px;">
+      <input class="test-input" id="p-test-name" placeholder="テスト名（例：期末テスト）" style="margin:0;flex:1;">
+      <input class="test-input" id="p-test-date" type="date" style="margin:0;width:130px;">
+    </div>
+    <button class="btn-main" style="width:100%;margin:10px 0 0;" onclick="addTest()">テストを追加</button>
+  </div>
+
   <div class="sec-title" style="color:#ce93d8;border-color:#ce93d8;">📊 今週の科目バランス</div>
   <div class="card">
     <div id="p-bar-chart"></div>
@@ -625,11 +740,11 @@ body.parent-mode .nav-item.active{color:#ce93d8;}
 
 <!-- BOTTOM NAV -->
 <nav class="bottom-nav" id="bottom-nav">
-  <div class="nav-item active" onclick="switchScreen('home',this)" id="nav-home"><span class="nav-icon">🏠</span>ホーム</div>
-  <div class="nav-item" onclick="switchScreen('pdf',this)"      id="nav-pdf"><span class="nav-icon">📂</span>教材</div>
-  <div class="nav-item" onclick="openModal(null)"               id="nav-rec"><span class="nav-icon">✏️</span>記録</div>
-  <div class="nav-item" onclick="switchScreen('point',this)"    id="nav-pt"><span class="nav-icon">🪙</span>ポイント</div>
-  <div class="nav-item" onclick="switchScreen('settings',this)" id="nav-set"><span class="nav-icon">⚙️</span>設定</div>
+  <div class="nav-item active" onclick="switchScreen('home',this)"   id="nav-home"><span class="nav-icon">🏠</span>ホーム</div>
+  <div class="nav-item" onclick="switchScreen('pdf',this)"           id="nav-pdf"><span class="nav-icon">📂</span>教材</div>
+  <div class="nav-item" onclick="openModal(null)"                    id="nav-rec"><span class="nav-icon">✏️</span>記録</div>
+  <div class="nav-item" onclick="switchScreen('reward',this)"        id="nav-reward"><span class="nav-icon">🎁</span>報酬</div>
+  <div class="nav-item" onclick="switchScreen('settings',this)"      id="nav-set"><span class="nav-icon">⚙️</span>設定</div>
 </nav>
 
 <!-- RECORD MODAL -->
@@ -698,8 +813,16 @@ function defaultState() {
     records:[], weeklyMinutes:{月:0,火:0,水:0,木:0,金:0,土:0,日:0},
     dailyBonusClaimed:null, goalMinutes:60,
     passcode:'1234',
-    pdfs:[], // {id,name,subject,date,size}
-    calMonth: null,
+    pdfs:[],
+    rewards:[
+      {id:'r1',emoji:'📱',name:'スマホ使用時間 +30分',pts:500},
+      {id:'r2',emoji:'💰',name:'お小遣い +500円',pts:1000},
+      {id:'r3',emoji:'🍜',name:'好きなご飯リクエスト',pts:800},
+      {id:'r4',emoji:'🏙️',name:'街に新しい建物追加',pts:300},
+      {id:'r5',emoji:'🎮',name:'ゲーム時間 +1時間',pts:600},
+    ],
+    exchangeRequests:[], // {id,rewardId,rewardName,pts,date,status:'pending'|'approved'|'denied'}
+    tests:[], // {id,name,date}
   };
 }
 let S = (() => { try { const s=localStorage.getItem(KEY); return s?JSON.parse(s):defaultState(); } catch{return defaultState();} })();
@@ -754,7 +877,25 @@ function renderAll() {
   renderPointScreen();
   renderPdfList();
   renderCalendar();
+  renderRewardScreen();
+  renderTestAlertHome();
   document.getElementById('goal-val').textContent = S.goalMinutes+'分';
+}
+
+function renderTestAlertHome(){
+  // ホーム画面の今日の記録の上にテストアラートを表示
+  const upcoming = getUpcomingTests();
+  const existing = document.getElementById('test-alert-inline');
+  if(existing) existing.remove();
+  if(!upcoming.length) return;
+  const el = document.createElement('div');
+  el.id = 'test-alert-inline';
+  el.innerHTML = `<div class="test-alert-card" style="margin:0 16px 12px;">
+    <div class="test-alert-title">📝 テストまで残りわずか！</div>
+    ${upcoming.map(t=>`<div class="test-item"><span>${t.name}</span><span class="test-days-left ${t.days<=3?'urgent':''}">${t.days<=0?'今日！':t.days+'日後'}</span></div>`).join('')}
+  </div>`;
+  const secTitle = document.querySelector('#screen-home .sec-title');
+  if(secTitle) secTitle.parentNode.insertBefore(el, secTitle);
 }
 
 function renderTodayRecords() {
@@ -989,6 +1130,34 @@ function renderParent(){
   document.getElementById('p-week-min').textContent=weekMin+'分';
   document.getElementById('p-pdf-count').textContent=S.pdfs.length+'冊';
 
+  // 交換申請
+  const pending = S.exchangeRequests.filter(r=>r.status==='pending');
+  const reqEl = document.getElementById('p-requests');
+  if(!pending.length){
+    reqEl.innerHTML='<div style="text-align:center;color:var(--text2);font-size:0.8rem;padding:8px 0;">申請はありません</div>';
+  } else {
+    reqEl.innerHTML=`<div class="request-title">⏳ 承認待ちの申請 ${pending.length}件</div>`+pending.map(r=>`
+      <div class="request-row">
+        <div class="request-info">
+          <div>${r.rewardName}</div>
+          <div class="request-pts">${r.pts}pt · ${r.date}</div>
+        </div>
+        <button class="req-btn req-approve" onclick="approveRequest('${r.id}')">✅ 承認</button>
+        <button class="req-btn req-deny" onclick="denyRequest('${r.id}')">✕</button>
+      </div>
+    `).join('');
+  }
+
+  // テスト一覧
+  const testEl=document.getElementById('p-test-list');
+  testEl.innerHTML=S.tests.length?S.tests.map(t=>`
+    <div class="test-list-item">
+      <span class="test-list-name">${t.name}</span>
+      <span class="test-list-date">${t.date}</span>
+      <span class="test-list-del" onclick="deleteTest('${t.id}')">🗑️</span>
+    </div>
+  `).join(''):'<div style="color:var(--text2);font-size:0.8rem;margin-bottom:8px;">まだテストが登録されていません</div>';
+
   // alert low subjects
   const lowSubs=Object.entries(S.subjectPoints).filter(([,v])=>v===0).map(([k])=>k);
   if(lowSubs.length){
@@ -1028,6 +1197,108 @@ function renderParent(){
   `).join(''):'<div style="text-align:center;color:var(--text2);font-size:0.8rem;padding:8px">教材がありません</div>';
 }
 
+// ==================== REWARD SCREEN ====================
+function renderRewardScreen(){
+  document.getElementById('reward-cur-pts').textContent = S.totalPoints.toLocaleString()+'pt';
+
+  // テスト前アラート
+  const alertEl = document.getElementById('test-alert-home');
+  const upcoming = getUpcomingTests();
+  if(upcoming.length){
+    alertEl.innerHTML = `<div class="test-alert-card"><div class="test-alert-title">📝 テストが近づいています！</div>${upcoming.map(t=>`<div class="test-item"><span>${t.name}</span><span class="test-days-left ${t.days<=3?'urgent':''}">${t.days<=0?'今日！':t.days+'日後'}</span></div>`).join('')}</div>`;
+  } else {
+    alertEl.innerHTML='';
+  }
+
+  // 報酬リスト
+  const list = document.getElementById('reward-list');
+  list.innerHTML = S.rewards.map(r=>{
+    const canRedeem = S.totalPoints >= r.pts;
+    return `<div class="reward-item ${canRedeem?'can-redeem':''}">
+      <span class="reward-emoji">${r.emoji}</span>
+      <div class="reward-info">
+        <div class="reward-item-name">${r.name}</div>
+        <div class="reward-item-pts">${r.pts.toLocaleString()}pt 必要 / 現在 ${S.totalPoints.toLocaleString()}pt</div>
+      </div>
+      <button class="reward-redeem-btn" ${canRedeem?'':'disabled'} onclick="requestReward('${r.id}')">
+        ${canRedeem?'交換する':'不足'}
+      </button>
+    </div>`;
+  }).join('');
+
+  // 交換履歴
+  const hist = document.getElementById('exchange-history');
+  if(!S.exchangeRequests.length){
+    hist.innerHTML='<div style="text-align:center;color:var(--text2);font-size:0.8rem;padding:12px 0;">まだ交換履歴がありません</div>';
+    return;
+  }
+  hist.innerHTML=[...S.exchangeRequests].reverse().map(r=>`
+    <div class="exchange-row">
+      <span class="exchange-status ${r.status==='approved'?'approved':'pending'}">${r.status==='approved'?'✅ 承認':'⏳ 申請中'}</span>
+      <span style="flex:1">${r.rewardName}</span>
+      <span style="color:var(--red);font-weight:700;font-size:0.76rem">-${r.pts}pt</span>
+      <span style="color:var(--text2);font-size:0.7rem;margin-left:8px">${r.date}</span>
+    </div>
+  `).join('');
+}
+
+function requestReward(rewardId){
+  const reward = S.rewards.find(r=>r.id===rewardId);
+  if(!reward||S.totalPoints<reward.pts)return;
+  if(!confirm(`「${reward.name}」と交換しますか？\n${reward.pts}ptが使われます。`))return;
+  S.totalPoints -= reward.pts;
+  S.exchangeRequests.push({
+    id:Date.now().toString(),
+    rewardId, rewardName:reward.name, pts:reward.pts,
+    date:todayStr(), status:'pending'
+  });
+  save(); renderAll();
+  showToast(`🎁 ${reward.name}を申請しました！お母さんが確認します`);
+}
+
+// ==================== TEST MANAGEMENT ====================
+function getUpcomingTests(){
+  const today=new Date(); today.setHours(0,0,0,0);
+  return S.tests.map(t=>{
+    const d=new Date(t.date); d.setHours(0,0,0,0);
+    const days=Math.round((d-today)/(1000*60*60*24));
+    return{...t,days};
+  }).filter(t=>t.days>=0&&t.days<=7).sort((a,b)=>a.days-b.days);
+}
+
+function addTest(){
+  const name=document.getElementById('p-test-name').value.trim();
+  const date=document.getElementById('p-test-date').value;
+  if(!name||!date){showToast('テスト名と日付を入力してください');return;}
+  S.tests.push({id:Date.now().toString(),name,date});
+  save(); renderParent(); renderRewardScreen();
+  document.getElementById('p-test-name').value='';
+  document.getElementById('p-test-date').value='';
+  showToast(`📅 ${name}を登録しました`);
+}
+
+function deleteTest(id){
+  S.tests=S.tests.filter(t=>t.id!==id);
+  save(); renderParent(); renderRewardScreen();
+}
+
+function approveRequest(id){
+  const req=S.exchangeRequests.find(r=>r.id===id);
+  if(!req)return;
+  req.status='approved';
+  save(); renderParent(); renderRewardScreen();
+  showToast(`✅ 「${req.rewardName}」を承認しました`);
+}
+function denyRequest(id){
+  const req=S.exchangeRequests.find(r=>r.id===id);
+  if(!req)return;
+  // ポイント返還
+  S.totalPoints+=req.pts;
+  req.status='denied';
+  save(); renderParent(); renderRewardScreen();
+  showToast(`✕ 申請を却下しました（ポイント返還済み）`);
+}
+
 // ==================== SETTINGS ====================
 function openGoalSetting(){
   const v=prompt('1日の目標学習時間（分）を入力してください',S.goalMinutes);
@@ -1050,6 +1321,7 @@ function switchScreen(name,navEl){
   if(name==='calendar')renderCalendar();
   if(name==='parent')renderParent();
   if(name==='pdf')renderPdfList();
+  if(name==='reward')renderRewardScreen();
 }
 
 // ==================== TOAST ====================
