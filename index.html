@@ -539,13 +539,6 @@ body.parent-mode .nav-item.active{color:#ce93d8;}
   </div>
 
   <button class="btn-main" onclick="openModal(null)">✏️ 勉強を記録する</button>
-
-  <div class="sec-title">🏆 今週のランキング</div>
-  <div class="card">
-    <div class="rank-row"><div class="rank-num gold">#1</div><div class="rank-avatar">🦊</div><div class="rank-name">たくみ</div><div class="rank-pt">8,200pt</div></div>
-    <div class="rank-row" style="background:rgba(245,200,66,0.05);border-radius:8px;"><div class="rank-num silver">#2</div><div class="rank-avatar">😎</div><div class="rank-name">あなた<span class="rank-you">（自分）</span></div><div class="rank-pt" id="rank-mypt">0pt</div></div>
-    <div class="rank-row"><div class="rank-num">#3</div><div class="rank-avatar">🐱</div><div class="rank-name">ゆうき</div><div class="rank-pt">4,100pt</div></div>
-  </div>
 </div>
 
 <!-- ==================== POINT SCREEN ==================== -->
@@ -800,6 +793,37 @@ body.parent-mode .nav-item.active{color:#ce93d8;}
   <div class="passcode-cancel" onclick="closePasscode()">キャンセル</div>
 </div>
 
+<!-- CONFIRM MODAL -->
+<div class="modal-overlay" id="confirm-modal">
+  <div class="modal-sheet" style="padding-bottom:calc(20px + var(--safe-bot));">
+    <div class="modal-handle"></div>
+    <div style="text-align:center;padding:8px 0 16px;">
+      <div style="font-size:1rem;font-weight:700;margin-bottom:6px;" id="confirm-title"></div>
+      <div style="font-size:0.82rem;color:var(--text2);" id="confirm-sub"></div>
+    </div>
+    <div style="display:flex;gap:10px;">
+      <button onclick="closeConfirm(false)" style="flex:1;padding:14px;background:var(--card);border:1.5px solid var(--border);border-radius:14px;color:var(--text2);font-size:0.9rem;font-weight:700;cursor:pointer;">キャンセル</button>
+      <button onclick="closeConfirm(true)" style="flex:1;padding:14px;background:linear-gradient(135deg,var(--gold2),var(--gold));border:none;border-radius:14px;color:#0a0f1e;font-size:0.9rem;font-weight:700;cursor:pointer;">OK</button>
+    </div>
+  </div>
+</div>
+
+<!-- PDF SUBJECT SELECT MODAL -->
+<div class="modal-overlay" id="pdf-sub-modal">
+  <div class="modal-sheet" style="padding-bottom:calc(20px + var(--safe-bot));">
+    <div class="modal-handle"></div>
+    <div class="modal-title">📄 科目を選んでください</div>
+    <div class="sub-grid">
+      <button class="sub-btn" onclick="confirmPdfSubject('国語')"><span class="sub-btn-icon">📖</span><span class="sub-btn-name">国語</span></button>
+      <button class="sub-btn" onclick="confirmPdfSubject('英語')"><span class="sub-btn-icon">🔤</span><span class="sub-btn-name">英語</span></button>
+      <button class="sub-btn" onclick="confirmPdfSubject('数学')"><span class="sub-btn-icon">📐</span><span class="sub-btn-name">数学</span></button>
+      <button class="sub-btn" onclick="confirmPdfSubject('理科')"><span class="sub-btn-icon">⚗️</span><span class="sub-btn-name">理科</span></button>
+      <button class="sub-btn" onclick="confirmPdfSubject('社会')"><span class="sub-btn-icon">🌍</span><span class="sub-btn-name">社会</span></button>
+    </div>
+    <button onclick="document.getElementById('pdf-sub-modal').classList.remove('open')" style="width:100%;padding:12px;background:var(--card);border:1.5px solid var(--border);border-radius:14px;color:var(--text2);font-size:0.88rem;font-weight:700;cursor:pointer;margin-top:4px;">キャンセル</button>
+  </div>
+</div>
+
 <!-- TOAST -->
 <div class="toast" id="toast">🎉 <span id="toast-msg"></span></div>
 
@@ -867,7 +891,6 @@ function renderTown() {
 // ==================== RENDER ALL ====================
 function renderAll() {
   document.getElementById('streak-count').textContent = S.streak;
-  document.getElementById('rank-mypt').textContent = S.totalPoints.toLocaleString()+'pt';
   ['国語','英語','数学','理科','社会'].forEach(s => {
     const el=document.getElementById('pt-'+s);
     if(el) el.textContent=(S.subjectPoints[s]||0)+'pt';
@@ -996,15 +1019,21 @@ function renderPointScreen(){
 let pdfFilter='all';
 function handlePdfUpload(e) {
   const file=e.target.files[0]; if(!file)return;
-  // Ask subject via simple prompt (could be improved with modal)
-  const sub=prompt('科目を選択してください\n1:国語 2:英語 3:数学 4:理科 5:社会','3');
-  const subMap={'1':'国語','2':'英語','3':'数学','4':'理科','5':'社会'};
-  const subject=subMap[sub]||'数学';
+  pendingPdfFile = file;
+  e.target.value='';
+  // 科目選択モーダルを表示
+  document.getElementById('pdf-sub-modal').classList.add('open');
+}
+let pendingPdfFile = null;
+function confirmPdfSubject(sub){
+  document.getElementById('pdf-sub-modal').classList.remove('open');
+  if(!pendingPdfFile||!sub)return;
+  const file=pendingPdfFile; pendingPdfFile=null;
   const id=Date.now().toString();
   const kb=Math.round(file.size/1024);
-  S.pdfs.push({id,name:file.name,subject,date:todayStr(),size:kb+'KB'});
-  S.totalPoints+=50; S.subjectPoints[subject]=(S.subjectPoints[subject]||0)+50;
-  save(); renderAll(); e.target.value='';
+  S.pdfs.push({id,name:file.name,subject:sub,date:todayStr(),size:kb+'KB'});
+  S.totalPoints+=50; S.subjectPoints[sub]=(S.subjectPoints[sub]||0)+50;
+  save(); renderAll();
   showToast(`📄 ${file.name} を追加 +50pt`);
 }
 function filterPdf(f,el){
@@ -1063,14 +1092,14 @@ function renderCalendar(){
     const ds=`${calYear}-${String(calMon+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     const has=recordDates.has(ds);
     const isToday=ds===today;
-    html+=`<div class="cal-day ${has?'has-record':''} ${isToday?'today':''}" onclick="showCalDay('${ds}')">${d}${has?'<div class="cal-dot"></div>':''}</div>`;
+    html+=`<div class="cal-day ${has?'has-record':''} ${isToday?'today':''}" onclick="showCalDay('${ds}',this)">${d}${has?'<div class="cal-dot"></div>':''}</div>`;
   }
   document.getElementById('cal-grid').innerHTML=html;
   document.getElementById('cal-detail').innerHTML='<div style="text-align:center;color:var(--text2);font-size:0.8rem;">日付を選ぶと記録が見られるよ</div>';
 }
-function showCalDay(ds){
-  document.querySelectorAll('.cal-day').forEach(el=>el.classList.remove('selected'));
-  event.currentTarget.classList.add('selected');
+function showCalDay(ds, el){
+  document.querySelectorAll('.cal-day').forEach(e=>e.classList.remove('selected'));
+  if(el) el.classList.add('selected');
   const recs=S.records.filter(r=>r.date===ds);
   const pdfs=S.pdfs.filter(p=>p.date===ds);
   const detail=document.getElementById('cal-detail');
@@ -1245,15 +1274,20 @@ function renderRewardScreen(){
 function requestReward(rewardId){
   const reward = S.rewards.find(r=>r.id===rewardId);
   if(!reward||S.totalPoints<reward.pts)return;
-  if(!confirm(`「${reward.name}」と交換しますか？\n${reward.pts}ptが使われます。`))return;
-  S.totalPoints -= reward.pts;
-  S.exchangeRequests.push({
-    id:Date.now().toString(),
-    rewardId, rewardName:reward.name, pts:reward.pts,
-    date:todayStr(), status:'pending'
-  });
-  save(); renderAll();
-  showToast(`🎁 ${reward.name}を申請しました！お母さんが確認します`);
+  showConfirm(
+    `「${reward.name}」と交換しますか？`,
+    `${reward.pts}ptが消費されます`,
+    ()=>{
+      S.totalPoints -= reward.pts;
+      S.exchangeRequests.push({
+        id:Date.now().toString(),
+        rewardId, rewardName:reward.name, pts:reward.pts,
+        date:todayStr(), status:'pending'
+      });
+      save(); renderAll();
+      showToast(`🎁 ${reward.name}を申請しました！お母さんが確認します`);
+    }
+  );
 }
 
 // ==================== TEST MANAGEMENT ====================
@@ -1305,9 +1339,10 @@ function openGoalSetting(){
   if(v&&!isNaN(v)&&+v>0){S.goalMinutes=+v;save();renderAll();showToast(`🎯 目標を${v}分に設定しました`);}
 }
 function resetData(){
-  if(!confirm('本当にリセットしますか？'))return;
-  localStorage.removeItem(KEY);
-  S=defaultState();save();renderAll();showToast('リセットしました');
+  showConfirm('本当にリセットしますか？','この操作は元に戻せません',()=>{
+    localStorage.removeItem(KEY);
+    S=defaultState();save();renderAll();showToast('リセットしました');
+  });
 }
 
 // ==================== SCREEN SWITCH ====================
@@ -1322,6 +1357,20 @@ function switchScreen(name,navEl){
   if(name==='parent')renderParent();
   if(name==='pdf')renderPdfList();
   if(name==='reward')renderRewardScreen();
+}
+
+// ==================== CONFIRM MODAL ====================
+let confirmCallback = null;
+function showConfirm(title, sub, cb){
+  document.getElementById('confirm-title').textContent = title;
+  document.getElementById('confirm-sub').textContent = sub;
+  confirmCallback = cb;
+  document.getElementById('confirm-modal').classList.add('open');
+}
+function closeConfirm(ok){
+  document.getElementById('confirm-modal').classList.remove('open');
+  if(ok && confirmCallback) confirmCallback();
+  confirmCallback = null;
 }
 
 // ==================== TOAST ====================
@@ -1355,10 +1404,11 @@ if(isIOS){
 }
 
 // ==================== INIT ====================
+// マイグレーション：古いデータに新フィールドがなければ補完
+if(!S.rewards) S.rewards = defaultState().rewards;
+if(!S.exchangeRequests) S.exchangeRequests = [];
+if(!S.tests) S.tests = [];
 checkStreak(); renderAll();
-// Init calendar nav nav
-const calScreen=document.getElementById('screen-calendar');
-// Add calendar to nav dynamically — actually it's on PDF nav, swap it
 </script>
 
 <!-- PWA Manifest inline -->
