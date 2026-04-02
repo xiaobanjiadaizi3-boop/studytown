@@ -506,6 +506,48 @@ body.parent-mode .nav-item.active{color:#ce93d8;}
 }
 @keyframes fadeInDown{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
 
+/* ===== TOWN HEX GRID ===== */
+#screen-town.active {
+  display: flex !important;
+  flex-direction: column;
+  height: calc(100dvh - 64px - var(--safe-bot) - var(--safe-top));
+  overflow: hidden;
+}
+#town-hex-container {
+  flex: 1;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  background: radial-gradient(ellipse at 50% 40%, #070f20 0%, #030810 100%);
+  scrollbar-width: none;
+  cursor: grab;
+  position: relative;
+}
+#town-hex-container::-webkit-scrollbar { display: none; }
+#town-hex-container:active { cursor: grabbing; }
+.town-tile-btn {
+  display: inline-flex; flex-direction: column; align-items: center; gap: 2px;
+  background: var(--card); border: 1.5px solid var(--border);
+  border-radius: 12px; padding: 7px 10px; margin: 0 3px; cursor: pointer;
+  min-width: 60px; transition: all 0.15s; vertical-align: top;
+}
+.town-tile-btn.selected {
+  border-color: var(--gold); background: rgba(245,200,66,0.12);
+  box-shadow: 0 0 12px rgba(245,200,66,0.35);
+}
+.town-tile-btn.cant-afford { opacity: 0.35; }
+.town-tile-btn:active { transform: scale(0.92); }
+#town-palette {
+  padding: 8px 12px 10px; overflow-x: auto; white-space: nowrap;
+  border-top: 1px solid var(--border); background: var(--bg2);
+  scrollbar-width: none; flex-shrink: 0;
+}
+#town-palette::-webkit-scrollbar { display: none; }
+.hex-avail-glow { animation: hexGlow 1.4s ease-in-out infinite alternate; }
+@keyframes hexGlow {
+  from { opacity: 0.45; }
+  to   { opacity: 1; }
+}
+
 /* ===== INSTALL BANNER ===== */
 .install-banner{
   display:none;margin:8px 16px;background:linear-gradient(135deg,#0d2044,#152030);
@@ -776,13 +818,33 @@ body.parent-mode .nav-item.active{color:#ce93d8;}
 
   <button class="btn-secondary" style="margin-bottom:80px;" onclick="exitParentMode()">← 子どもモードに戻る</button>
 </div>
+
+<!-- ==================== TOWN SCREEN ==================== -->
+<div id="screen-town" class="screen">
+  <div style="padding:10px 16px 8px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;border-bottom:1px solid var(--border);">
+    <div>
+      <div style="font-family:'Zen Kaku Gothic New';font-size:1.05rem;font-weight:700;">🏙️ マイタウン</div>
+      <div style="font-size:0.7rem;color:var(--text2);margin-top:1px;" id="town-tile-count">タイル 1枚配置済み</div>
+    </div>
+    <div style="text-align:right;">
+      <div style="font-size:0.7rem;color:var(--text2);">使えるポイント</div>
+      <div style="font-family:'Zen Kaku Gothic New';font-size:1.2rem;font-weight:900;color:var(--gold);" id="town-pts">0pt</div>
+    </div>
+  </div>
+  <div id="town-hex-container"><svg id="town-svg-grid" style="display:block;"></svg></div>
+  <div style="text-align:center;font-size:0.72rem;color:var(--text2);padding:5px 8px;flex-shrink:0;background:var(--bg2);" id="town-hint">
+    ⬇ タイルを選んで、光っているマスをタップして配置しよう
+  </div>
+  <div id="town-palette"></div>
+</div>
+
 </div><!-- /main-scroll -->
 
 <!-- BOTTOM NAV -->
 <nav class="bottom-nav" id="bottom-nav">
   <div class="nav-item active" onclick="switchScreen('home',this)"   id="nav-home"><span class="nav-icon">🏠</span>ホーム</div>
   <div class="nav-item" onclick="switchScreen('pdf',this)"           id="nav-pdf"><span class="nav-icon">📂</span>教材</div>
-  <div class="nav-item" onclick="openModal(null)"                    id="nav-rec"><span class="nav-icon">✏️</span>記録</div>
+  <div class="nav-item" onclick="switchScreen('town',this)"          id="nav-town"><span class="nav-icon">🏙️</span>タウン</div>
   <div class="nav-item" onclick="switchScreen('reward',this)"        id="nav-reward"><span class="nav-icon">🎁</span>報酬</div>
   <div class="nav-item" onclick="switchScreen('settings',this)"      id="nav-set"><span class="nav-icon">⚙️</span>設定</div>
 </nav>
@@ -892,12 +954,12 @@ function defaultState() {
       {id:'r1',emoji:'📱',name:'スマホ使用時間 +30分',pts:500},
       {id:'r2',emoji:'💰',name:'お小遣い +500円',pts:1000},
       {id:'r3',emoji:'🍜',name:'好きなご飯リクエスト',pts:800},
-      {id:'r4',emoji:'🏙️',name:'街に新しい建物追加',pts:300},
       {id:'r5',emoji:'🎮',name:'ゲーム時間 +1時間',pts:600},
     ],
     exchangeRequests:[], // {id,rewardId,rewardName,pts,date,status:'pending'|'approved'|'denied'}
     tests:[], // {id,name,date}
     missionsDate:null, missionIds:[], missionsClaimed:[],
+    townTiles: null,
   };
 }
 let S = (() => { try { const s=localStorage.getItem(KEY); return s?JSON.parse(s):defaultState(); } catch{return defaultState();} })();
@@ -1199,7 +1261,7 @@ const BADGES=[
   {icon:'💎',name:'1000pt達成',check:s=>s.totalPoints>=1000},
   {icon:'📚',name:'5日勉強',check:s=>new Set(s.records.map(r=>r.date)).size>=5},
 ];
-const REWARDS=[{name:'📱 スマホ+30分',pts:500},{name:'💰 お小遣い+500円',pts:1000},{name:'🍜 ご飯リクエスト',pts:800},{name:'🏙️ 街に新建物',pts:300}];
+const REWARDS=[{name:'📱 スマホ+30分',pts:500},{name:'💰 お小遣い+500円',pts:1000},{name:'🍜 ご飯リクエスト',pts:800},{name:'🎮 ゲーム+1時間',pts:600}];
 const BAR_COLORS=['#3a86ff','#2ecc71','#e67e22','#9b59b6','#e74c3c','#f5c842','#ff6b35'];
 
 function renderPointScreen(){
@@ -1538,6 +1600,183 @@ function denyRequest(id){
   showToast(`✕ 申請を却下しました（ポイント返還済み）`);
 }
 
+// ==================== TOWN HEX GRID ====================
+const HEX_R = 42;
+const SQ3 = Math.sqrt(3);
+const HEX_DIRS = [[1,0],[-1,0],[0,1],[0,-1],[1,-1],[-1,1]];
+
+const TOWN_TILES_DEF = [
+  {type:'house',   icon:'🏠', name:'家',     pts:50,  fill:'#3e2723', stroke:'#e67e22'},
+  {type:'forest',  icon:'🌲', name:'森',     pts:30,  fill:'#1b5e20', stroke:'#4caf50'},
+  {type:'farm',    icon:'🌾', name:'農地',   pts:45,  fill:'#33691e', stroke:'#cddc39'},
+  {type:'river',   icon:'💧', name:'川',     pts:25,  fill:'#004d61', stroke:'#80deea'},
+  {type:'park',    icon:'🌸', name:'公園',   pts:70,  fill:'#4a148c', stroke:'#ce93d8'},
+  {type:'school',  icon:'🏫', name:'学校',  pts:120,  fill:'#1a237e', stroke:'#5c8eff'},
+  {type:'library', icon:'📚', name:'図書館', pts:100, fill:'#7b1fa2', stroke:'#f48fb1'},
+  {type:'tower',   icon:'🗼', name:'タワー', pts:200, fill:'#263238', stroke:'#90caf9'},
+];
+
+let selTileType = null;
+let townFirstRender = true;
+
+function hex2px(q, r) {
+  return { x: HEX_R * SQ3 * (q + r/2), y: HEX_R * 1.5 * r };
+}
+
+function hexCorners(cx, cy) {
+  let s = [];
+  for(let i = 0; i < 6; i++) {
+    const a = Math.PI / 180 * (60*i - 30);
+    s.push(`${cx + HEX_R * Math.cos(a)},${cy + HEX_R * Math.sin(a)}`);
+  }
+  return s.join(' ');
+}
+
+function getAvailableHexes() {
+  const tiles = S.townTiles || {};
+  const placed = new Set(Object.keys(tiles));
+  const avail = new Set();
+  placed.forEach(key => {
+    const [q, r] = key.split(',').map(Number);
+    HEX_DIRS.forEach(([dq, dr]) => {
+      const nk = `${q+dq},${r+dr}`;
+      if(!placed.has(nk)) avail.add(nk);
+    });
+  });
+  return avail;
+}
+
+function renderTownScreen(scrollCenter) {
+  if(!S.townTiles) {
+    S.townTiles = {'0,0': {type:'start', icon:'⭐', name:'学習の街'}};
+    save();
+    scrollCenter = true;
+  }
+  const tiles = S.townTiles;
+  const avail = getAvailableHexes();
+  const allKeys = [...Object.keys(tiles), ...avail];
+
+  // bounds
+  let minX=Infinity, maxX=-Infinity, minY=Infinity, maxY=-Infinity;
+  allKeys.forEach(k => {
+    const [q,r] = k.split(',').map(Number);
+    const {x,y} = hex2px(q,r);
+    if(x<minX)minX=x; if(x>maxX)maxX=x;
+    if(y<minY)minY=y; if(y>maxY)maxY=y;
+  });
+  const pad = HEX_R * 2.2;
+  const svgW = (maxX - minX) + HEX_R*2 + pad*2;
+  const svgH = (maxY - minY) + HEX_R*2 + pad*2;
+  const ox = -minX + HEX_R + pad;
+  const oy = -minY + HEX_R + pad;
+
+  const svg = document.getElementById('town-svg-grid');
+  const container = document.getElementById('town-hex-container');
+  const prevSL = container.scrollLeft, prevST = container.scrollTop;
+  svg.setAttribute('width', svgW);
+  svg.setAttribute('height', svgH);
+
+  let html = '<defs><filter id="glow"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>';
+
+  // Available hexes
+  avail.forEach(key => {
+    const [q,r] = key.split(',').map(Number);
+    const {x,y} = hex2px(q,r);
+    const cx = x+ox, cy = y+oy;
+    const glowClass = selTileType ? 'hex-avail-glow' : '';
+    const fill = selTileType ? 'rgba(245,200,66,0.07)' : 'rgba(255,255,255,0.02)';
+    const stroke = selTileType ? 'rgba(245,200,66,0.7)' : 'rgba(245,200,66,0.25)';
+    const sw = selTileType ? '2' : '1.5';
+    html += `<polygon class="${glowClass}" data-key="${key}"
+      points="${hexCorners(cx,cy)}"
+      fill="${fill}" stroke="${stroke}" stroke-width="${sw}" stroke-dasharray="5,3"
+      style="cursor:pointer;"/>`;
+  });
+
+  // Placed tiles
+  Object.entries(tiles).forEach(([key, tile]) => {
+    const [q,r] = key.split(',').map(Number);
+    const {x,y} = hex2px(q,r);
+    const cx = x+ox, cy = y+oy;
+    const def = TOWN_TILES_DEF.find(d=>d.type===tile.type);
+    const fill   = def ? def.fill   : '#0d2044';
+    const stroke = def ? def.stroke : '#f5c842';
+    html += `<polygon points="${hexCorners(cx,cy)}" fill="${fill}" stroke="${stroke}" stroke-width="2.5"/>`;
+    // subtle inner highlight
+    html += `<text x="${cx}" y="${cy+1}" text-anchor="middle" dominant-baseline="middle" font-size="26" style="pointer-events:none;user-select:none;">${tile.icon}</text>`;
+  });
+
+  svg.innerHTML = html;
+
+  // Attach click events to available hexes
+  svg.querySelectorAll('[data-key]').forEach(el => {
+    el.addEventListener('click', () => {
+      if(!selTileType) { showToast('下からタイルを選んでね'); return; }
+      placeTownTile(el.getAttribute('data-key'));
+    });
+  });
+
+  // Update header
+  const count = Object.keys(tiles).length;
+  const el = document.getElementById('town-tile-count');
+  if(el) el.textContent = `タイル ${count}枚配置済み`;
+  const ptEl = document.getElementById('town-pts');
+  if(ptEl) ptEl.textContent = S.totalPoints.toLocaleString()+'pt';
+
+  renderTownPalette();
+
+  // Scroll
+  if(scrollCenter || townFirstRender) {
+    townFirstRender = false;
+    setTimeout(() => {
+      container.scrollLeft = (svgW - container.clientWidth) / 2;
+      container.scrollTop  = (svgH - container.clientHeight) / 2;
+    }, 60);
+  } else {
+    container.scrollLeft = prevSL;
+    container.scrollTop  = prevST;
+  }
+}
+
+function placeTownTile(key) {
+  const def = TOWN_TILES_DEF.find(d=>d.type===selTileType);
+  if(!def) return;
+  // validate adjacency
+  const avail = getAvailableHexes();
+  if(!avail.has(key)) return;
+  if(S.totalPoints < def.pts) { showToast(`ポイントが足りないよ！ ${def.pts}pt必要`); return; }
+  S.totalPoints -= def.pts;
+  S.townTiles[key] = {type:def.type, icon:def.icon, name:def.name};
+  save();
+  showFloatPt(def.pts, true);
+  showToast(`${def.icon} ${def.name}を配置！ -${def.pts}pt`);
+  renderTownScreen(false);
+  // sync pts elsewhere
+  const ptTotal = document.getElementById('pt-total-display');
+  if(ptTotal) ptTotal.textContent = S.totalPoints.toLocaleString();
+  const rewardPts = document.getElementById('reward-cur-pts');
+  if(rewardPts) rewardPts.textContent = S.totalPoints.toLocaleString()+'pt';
+}
+
+function renderTownPalette() {
+  const el = document.getElementById('town-palette');
+  if(!el) return;
+  el.innerHTML = TOWN_TILES_DEF.map(d => {
+    const canAfford = S.totalPoints >= d.pts;
+    const isSel = selTileType === d.type;
+    return `<div class="town-tile-btn ${isSel?'selected':''} ${canAfford?'':'cant-afford'}" onclick="selectTownTile('${d.type}')">
+      <span style="font-size:1.4rem">${d.icon}</span>
+      <div style="font-size:0.66rem;font-weight:700;color:${canAfford?'var(--text)':'var(--text2)'};">${d.name}</div>
+      <div style="font-size:0.64rem;color:${isSel?'var(--gold)':canAfford?'rgba(245,200,66,0.7)':'var(--text2)'};">-${d.pts}pt</div>
+    </div>`;
+  }).join('');
+}
+
+function selectTownTile(type) {
+  selTileType = (selTileType === type) ? null : type;
+  renderTownScreen(false);
+}
+
 // ==================== SETTINGS ====================
 function openGoalSetting(){
   const v=prompt('1日の目標学習時間（分）を入力してください',S.goalMinutes);
@@ -1556,12 +1795,15 @@ function switchScreen(name,navEl){
   document.getElementById('screen-'+name).classList.add('active');
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   if(navEl)navEl.classList.add('active');
-  document.querySelector('.main-scroll').scrollTop=0;
+  const ms = document.querySelector('.main-scroll');
+  ms.style.overflowY = (name==='town') ? 'hidden' : '';
+  ms.scrollTop=0;
   if(name==='point')renderPointScreen();
   if(name==='calendar')renderCalendar();
   if(name==='parent')renderParent();
   if(name==='pdf')renderPdfList();
   if(name==='reward')renderRewardScreen();
+  if(name==='town')renderTownScreen(false);
 }
 
 // ==================== CONFIRM MODAL ====================
@@ -1614,6 +1856,8 @@ if(!S.rewards) S.rewards = defaultState().rewards;
 if(!S.exchangeRequests) S.exchangeRequests = [];
 if(!S.tests) S.tests = [];
 if(!S.missionIds) { S.missionsDate=null; S.missionIds=[]; S.missionsClaimed=[]; }
+if(S.townTiles === undefined) S.townTiles = null;
+if(S.rewards) S.rewards = S.rewards.filter(r=>r.id!=='r4');
 checkStreak(); renderAll();
 </script>
 
