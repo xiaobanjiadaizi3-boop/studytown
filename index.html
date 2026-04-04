@@ -2500,30 +2500,67 @@ function saveGeoApiKey() {
 }
 
 // ==================== PDF → AI QUESTIONS ====================
+async function geoRenderPagesToImages(pdf, maxPages) {
+  const images = [];
+  const count = Math.min(pdf.numPages, maxPages);
+  for(let i=1; i<=count; i++){
+    const page = await pdf.getPage(i);
+    const viewport = page.getViewport({scale: 1.5});
+    const canvas = document.createElement('canvas');
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    const ctx = canvas.getContext('2d');
+    await page.render({canvasContext: ctx, viewport}).promise;
+    const base64 = canvas.toDataURL('image/jpeg', 0.85).replace(/^data:image\/jpeg;base64,/, '');
+    images.push(base64);
+  }
+  return images;
+}
+
 async function geoProcessPdfFile(file, unit) {
   if(!window.pdfjsLib) { showToast('⚠️ PDF処理モジュールを読み込み中です。しばらくしてから再試行してください'); return; }
   try {
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     const arrayBuffer = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({data: arrayBuffer}).promise;
+
+    // まずテキスト抽出を試みる
     let text = '';
-    const maxPages = Math.min(pdf.numPages, 20);
-    for(let i=1; i<=maxPages; i++){
+    const maxTextPages = Math.min(pdf.numPages, 20);
+    for(let i=1; i<=maxTextPages; i++){
       const page = await pdf.getPage(i);
       const content = await page.getTextContent();
       text += content.items.map(it=>it.str).join(' ') + '\n';
     }
     text = text.trim();
-    if(text.length < 50){
-      showToast('⚠️ PDFからテキストを読み取れませんでした（スキャンPDFは非対応）');
-      return;
-    }
+
     const apiKey = S.geoApiKey;
     if(!apiKey||!apiKey.startsWith('sk-ant')){ showToast('⚠️ APIキーが設定されていません'); return; }
+
+    let messageContent;
+
+    if(text.length >= 50) {
+      // テキストPDF: テキストをそのまま送る
+      messageContent = `あなたは中学生向けの問題を作成する先生です。\n以下のテキストから、重要な語句・地名・数値・概念に関する問題を10問作成してください。\n\n【出力形式】\n必ずJSON配列のみで返してください（説明文不要）：\n[{"question":"問題文","answer":"答え"},{"question":"問題文","answer":"答え"},...]\n\n【テキスト】\n${text.slice(0,8000)}`;
+      messageContent = [{role:'user', content: messageContent}];
+    } else {
+      // スキャンPDF: 画像として送る（最大5ページ）
+      showToast('🔍 スキャンPDFを画像として読み取り中...');
+      const images = await geoRenderPagesToImages(pdf, 5);
+      if(!images.length){ showToast('⚠️ PDFページの読み取りに失敗しました'); return; }
+      const contentBlocks = [];
+      images.forEach((b64, idx) => {
+        contentBlocks.push({type:'text', text:`【ページ ${idx+1}】`});
+        contentBlocks.push({type:'image', source:{type:'base64', media_type:'image/jpeg', data: b64}});
+      });
+      contentBlocks.push({type:'text', text:'あなたは中学生向けの問題を作成する先生です。\n上記の画像（教科書・プリント等）から、重要な語句・地名・数値・概念に関する問題を10問作成してください。\n\n【出力形式】\n必ずJSON配列のみで返してください（説明文不要）：\n[{"question":"問題文","answer":"答え"},{"question":"問題文","answer":"答え"},...]'});
+      messageContent = [{role:'user', content: contentBlocks}];
+    }
+
     const res = await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-haiku-4-5',max_tokens:3000,messages:[{role:'user',content:`あなたは中学生向けの問題を作成する先生です。\n以下のテキストから、重要な語句・地名・数値・概念に関する問題を10問作成してください。\n\n【出力形式】\n必ずJSON配列のみで返してください（説明文不要）：\n[{"question":"問題文","answer":"答え"},{"question":"問題文","answer":"答え"},...]\n\n【テキスト】\n${text.slice(0,8000)}`}]})
+      body:JSON.stringify({model:'claude-haiku-4-5',max_tokens:3000,messages: messageContent})
     });
     if(!res.ok){const err=await res.json().catch(()=>({}));throw new Error(err.error?.message||`APIエラー (${res.status})`);}
     const data = await res.json();
