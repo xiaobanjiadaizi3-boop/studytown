@@ -2380,10 +2380,12 @@ function speakEnglish(text) {
   if(!window.speechSynthesis) { showToast('このブラウザは音声読み上げに対応していません'); return; }
   speechSynthesis.cancel();
   const clean = text.replace(/[~〜～]/g,'').replace(/\s+/g,' ').trim();
-  const utt = new SpeechSynthesisUtterance(clean);
-  utt.lang = 'en-US';
-  utt.rate = 0.82;
-  speechSynthesis.speak(utt);
+  setTimeout(() => {
+    const utt = new SpeechSynthesisUtterance(clean);
+    utt.lang = 'en-US';
+    utt.rate = 0.82;
+    speechSynthesis.speak(utt);
+  }, 150);
 }
 
 // ==================== GEO STUDY SESSION ====================
