@@ -137,7 +137,9 @@ body{
 .subject-badge.s-eigo{border-color:rgba(46,204,113,0.5);}
 .subject-badge.s-math{border-color:rgba(230,126,34,0.5);}
 .subject-badge.s-rika{border-color:rgba(155,89,182,0.5);}
-.subject-badge.s-shakai{border-color:rgba(231,76,60,0.5);}
+.subject-badge.s-rekishi{border-color:rgba(192,57,43,0.5);}
+.subject-badge.s-chiri{border-color:rgba(231,76,60,0.5);}
+.subject-badge.s-koumin{border-color:rgba(22,160,133,0.5);}
 .sub-icon{font-size:1.4rem;}
 .sub-name{font-size:0.68rem;font-weight:700;color:var(--text2);}
 .sub-pt{font-size:0.72rem;font-weight:900;color:var(--gold);}
@@ -237,7 +239,9 @@ body{
 .pdf-tag.active-eigo{border-color:var(--green);background:rgba(46,204,113,0.15);color:#7ae8a8;}
 .pdf-tag.active-math{border-color:var(--orange);background:rgba(230,126,34,0.15);color:#f0a060;}
 .pdf-tag.active-rika{border-color:var(--purple);background:rgba(155,89,182,0.15);color:#c8a0e0;}
-.pdf-tag.active-shakai{border-color:var(--red);background:rgba(231,76,60,0.15);color:#f0a0a0;}
+.pdf-tag.active-rekishi{border-color:#c0392b;background:rgba(192,57,43,0.15);color:#f08878;}
+.pdf-tag.active-chiri{border-color:var(--red);background:rgba(231,76,60,0.15);color:#f0a0a0;}
+.pdf-tag.active-koumin{border-color:#16a085;background:rgba(22,160,133,0.15);color:#70e0c0;}
 .pdf-list{padding:0 16px 80px;}
 .pdf-item{
   display:flex;align-items:center;gap:12px;
@@ -296,7 +300,9 @@ body{
 .sub-btn.sel-eigo{border-color:var(--green);background:rgba(46,204,113,0.15);}
 .sub-btn.sel-math{border-color:var(--orange);background:rgba(230,126,34,0.15);}
 .sub-btn.sel-rika{border-color:var(--purple);background:rgba(155,89,182,0.15);}
-.sub-btn.sel-shakai{border-color:var(--red);background:rgba(231,76,60,0.15);}
+.sub-btn.sel-rekishi{border-color:#c0392b;background:rgba(192,57,43,0.15);}
+.sub-btn.sel-chiri{border-color:var(--red);background:rgba(231,76,60,0.15);}
+.sub-btn.sel-koumin{border-color:#16a085;background:rgba(22,160,133,0.15);}
 .sub-btn:active{transform:scale(0.95);}
 .sub-btn-icon{font-size:1.5rem;}
 .sub-btn-name{font-size:0.72rem;font-weight:700;}
@@ -690,11 +696,13 @@ body.parent-mode .nav-item.active{color:#ce93d8;}
   <div id="mission-section"></div>
 
   <div class="subjects-wrap">
-    <div class="subject-badge s-kokugo" onclick="openModal('国語')"><span class="sub-icon">📖</span><span class="sub-name">国語</span><span class="sub-pt" id="pt-国語">0pt</span></div>
-    <div class="subject-badge s-eigo"   onclick="openModal('英語')"><span class="sub-icon">🔤</span><span class="sub-name">英語</span><span class="sub-pt" id="pt-英語">0pt</span></div>
-    <div class="subject-badge s-math"   onclick="openModal('数学')"><span class="sub-icon">📐</span><span class="sub-name">数学</span><span class="sub-pt" id="pt-数学">0pt</span></div>
-    <div class="subject-badge s-rika"   onclick="openModal('理科')"><span class="sub-icon">⚗️</span><span class="sub-name">理科</span><span class="sub-pt" id="pt-理科">0pt</span></div>
-    <div class="subject-badge s-shakai" onclick="openModal('社会')"><span class="sub-icon">🌍</span><span class="sub-name">社会</span><span class="sub-pt" id="pt-社会">0pt</span></div>
+    <div class="subject-badge s-kokugo"  onclick="openModal('国語')"><span class="sub-icon">📖</span><span class="sub-name">国語</span><span class="sub-pt" id="pt-国語">0pt</span></div>
+    <div class="subject-badge s-eigo"    onclick="openModal('英語')"><span class="sub-icon">🔤</span><span class="sub-name">英語</span><span class="sub-pt" id="pt-英語">0pt</span></div>
+    <div class="subject-badge s-math"    onclick="openModal('数学')"><span class="sub-icon">📐</span><span class="sub-name">数学</span><span class="sub-pt" id="pt-数学">0pt</span></div>
+    <div class="subject-badge s-rika"    onclick="openModal('理科')"><span class="sub-icon">⚗️</span><span class="sub-name">理科</span><span class="sub-pt" id="pt-理科">0pt</span></div>
+    <div class="subject-badge s-rekishi" onclick="openModal('歴史')"><span class="sub-icon">🏛️</span><span class="sub-name">歴史</span><span class="sub-pt" id="pt-歴史">0pt</span></div>
+    <div class="subject-badge s-chiri"   onclick="openModal('地理')"><span class="sub-icon">🗺️</span><span class="sub-name">地理</span><span class="sub-pt" id="pt-地理">0pt</span></div>
+    <div class="subject-badge s-koumin"  onclick="openModal('公民')"><span class="sub-icon">⚖️</span><span class="sub-name">公民</span><span class="sub-pt" id="pt-公民">0pt</span></div>
   </div>
 
   <div class="sec-title">📝 今日の記録</div>
@@ -754,7 +762,9 @@ body.parent-mode .nav-item.active{color:#ce93d8;}
     <div class="pdf-tag" onclick="filterPdf('英語',this)">🔤 英語</div>
     <div class="pdf-tag" onclick="filterPdf('数学',this)">📐 数学</div>
     <div class="pdf-tag" onclick="filterPdf('理科',this)">⚗️ 理科</div>
-    <div class="pdf-tag" onclick="filterPdf('社会',this)">🌍 社会</div>
+    <div class="pdf-tag" onclick="filterPdf('歴史',this)">🏛️ 歴史</div>
+    <div class="pdf-tag" onclick="filterPdf('地理',this)">🗺️ 地理</div>
+    <div class="pdf-tag" onclick="filterPdf('公民',this)">⚖️ 公民</div>
   </div>
 
   <div class="pdf-list" id="pdf-list"></div>
@@ -961,7 +971,9 @@ body.parent-mode .nav-item.active{color:#ce93d8;}
       <button class="sub-btn" id="sub-英語" onclick="selectSub('英語')"><span class="sub-btn-icon">🔤</span><span class="sub-btn-name">英語</span></button>
       <button class="sub-btn" id="sub-数学" onclick="selectSub('数学')"><span class="sub-btn-icon">📐</span><span class="sub-btn-name">数学</span></button>
       <button class="sub-btn" id="sub-理科" onclick="selectSub('理科')"><span class="sub-btn-icon">⚗️</span><span class="sub-btn-name">理科</span></button>
-      <button class="sub-btn" id="sub-社会" onclick="selectSub('社会')"><span class="sub-btn-icon">🌍</span><span class="sub-btn-name">社会</span></button>
+      <button class="sub-btn" id="sub-歴史" onclick="selectSub('歴史')"><span class="sub-btn-icon">🏛️</span><span class="sub-btn-name">歴史</span></button>
+      <button class="sub-btn" id="sub-地理" onclick="selectSub('地理')"><span class="sub-btn-icon">🗺️</span><span class="sub-btn-name">地理</span></button>
+      <button class="sub-btn" id="sub-公民" onclick="selectSub('公民')"><span class="sub-btn-icon">⚖️</span><span class="sub-btn-name">公民</span></button>
     </div>
     <div class="input-label">勉強時間</div>
     <div class="time-row">
@@ -1022,13 +1034,16 @@ body.parent-mode .nav-item.active{color:#ce93d8;}
 <div class="modal-overlay" id="pdf-sub-modal">
   <div class="modal-sheet" style="padding-bottom:calc(20px + var(--safe-bot));">
     <div class="modal-handle"></div>
-    <div class="modal-title">📄 科目を選んでください</div>
+    <div class="modal-title">📄 教科を選んでください</div>
+    <div style="font-size:0.75rem;color:var(--text2);margin-bottom:10px;">AIが選んだ教科に合わせて問題を生成します</div>
     <div class="sub-grid">
       <button class="sub-btn" onclick="confirmPdfSubject('国語')"><span class="sub-btn-icon">📖</span><span class="sub-btn-name">国語</span></button>
       <button class="sub-btn" onclick="confirmPdfSubject('英語')"><span class="sub-btn-icon">🔤</span><span class="sub-btn-name">英語</span></button>
       <button class="sub-btn" onclick="confirmPdfSubject('数学')"><span class="sub-btn-icon">📐</span><span class="sub-btn-name">数学</span></button>
       <button class="sub-btn" onclick="confirmPdfSubject('理科')"><span class="sub-btn-icon">⚗️</span><span class="sub-btn-name">理科</span></button>
-      <button class="sub-btn" onclick="confirmPdfSubject('社会')"><span class="sub-btn-icon">🌍</span><span class="sub-btn-name">社会</span></button>
+      <button class="sub-btn" onclick="confirmPdfSubject('歴史')"><span class="sub-btn-icon">🏛️</span><span class="sub-btn-name">歴史</span></button>
+      <button class="sub-btn" onclick="confirmPdfSubject('地理')"><span class="sub-btn-icon">🗺️</span><span class="sub-btn-name">地理</span></button>
+      <button class="sub-btn" onclick="confirmPdfSubject('公民')"><span class="sub-btn-icon">⚖️</span><span class="sub-btn-name">公民</span></button>
     </div>
     <button onclick="document.getElementById('pdf-sub-modal').classList.remove('open')" style="width:100%;padding:12px;background:var(--card);border:1.5px solid var(--border);border-radius:14px;color:var(--text2);font-size:0.88rem;font-weight:700;cursor:pointer;margin-top:4px;">キャンセル</button>
   </div>
@@ -1079,7 +1094,7 @@ const KEY = 'studytown_v2';
 function defaultState() {
   return {
     streak:0, lastStudyDate:null, totalPoints:0,
-    subjectPoints:{国語:0,英語:0,数学:0,理科:0,社会:0},
+    subjectPoints:{国語:0,英語:0,数学:0,理科:0,歴史:0,地理:0,公民:0},
     records:[], weeklyMinutes:{月:0,火:0,水:0,木:0,金:0,土:0,日:0},
     dailyBonusClaimed:null, goalMinutes:60,
     passcode:'1234',
@@ -1104,7 +1119,7 @@ const save = () => localStorage.setItem(KEY, JSON.stringify(S));
 const todayStr = () => new Date().toISOString().slice(0,10);
 const dow = () => ['日','月','火','水','木','金','土'][new Date().getDay()];
 const calcPts = m => Math.floor(m/15)*10 + (m>=60?5:0);
-const subColors = {国語:'var(--blue)',英語:'var(--green)',数学:'var(--orange)',理科:'var(--purple)',社会:'var(--red)'};
+const subColors = {国語:'var(--blue)',英語:'var(--green)',数学:'var(--orange)',理科:'var(--purple)',歴史:'#c0392b',地理:'var(--red)',公民:'#16a085'};
 const DAYS = ['月','火','水','木','金','土','日'];
 
 // ==================== DAILY MISSIONS ====================
@@ -1118,7 +1133,9 @@ const MISSION_POOL = [
   {id:'m_eigo',   icon:'🔤', text:'英語を勉強する',                pts:20},
   {id:'m_kokugo', icon:'📖', text:'国語を勉強する',                pts:20},
   {id:'m_rika',   icon:'⚗️', text:'理科を勉強する',               pts:20},
-  {id:'m_shakai', icon:'🌍', text:'社会を勉強する',                pts:20},
+  {id:'m_rekishi',icon:'🏛️', text:'歴史を勉強する',               pts:20},
+  {id:'m_chiri',  icon:'🗺️', text:'地理を勉強する',               pts:20},
+  {id:'m_koumin', icon:'⚖️', text:'公民を勉強する',               pts:20},
 ];
 
 function checkMissionCondition(id) {
@@ -1136,7 +1153,9 @@ function checkMissionCondition(id) {
     case 'm_eigo':   return subs.has('英語');
     case 'm_kokugo': return subs.has('国語');
     case 'm_rika':   return subs.has('理科');
-    case 'm_shakai': return subs.has('社会');
+    case 'm_rekishi': return subs.has('歴史');
+    case 'm_chiri':   return subs.has('地理');
+    case 'm_koumin':  return subs.has('公民');
     default: return false;
   }
 }
@@ -1240,7 +1259,7 @@ function renderEncouragement() {
     const subPts = Object.entries(S.subjectPoints);
     const zeroSubs = subPts.filter(([,v])=>v===0);
     if(zeroSubs.length > 0) {
-      const subIcons = {国語:'📖',英語:'🔤',数学:'📐',理科:'⚗️',社会:'🌍'};
+      const subIcons = {国語:'📖',英語:'🔤',数学:'📐',理科:'⚗️',歴史:'🏛️',地理:'🗺️',公民:'⚖️'};
       const [sub] = zeroSubs[Math.floor(Date.now()/86400000) % zeroSubs.length];
       msg = {icon:subIcons[sub]||'📚', text:`${sub}がまだゼロ！少し触れてみよう`, color:'var(--red)'};
     }
@@ -1285,7 +1304,7 @@ function renderTown() {
 // ==================== RENDER ALL ====================
 function renderAll() {
   document.getElementById('streak-count').textContent = S.streak;
-  ['国語','英語','数学','理科','社会'].forEach(s => {
+  ['国語','英語','数学','理科','歴史','地理','公民'].forEach(s => {
     const el=document.getElementById('pt-'+s);
     if(el) el.textContent=(S.subjectPoints[s]||0)+'pt';
   });
@@ -1332,13 +1351,13 @@ function renderTodayRecords() {
 
 // ==================== RECORD MODAL ====================
 let selSub=null, selTime=30;
-const subSelClass={国語:'sel-kokugo',英語:'sel-eigo',数学:'sel-math',理科:'sel-rika',社会:'sel-shakai'};
+const subSelClass={国語:'sel-kokugo',英語:'sel-eigo',数学:'sel-math',理科:'sel-rika',歴史:'sel-rekishi',地理:'sel-chiri',公民:'sel-koumin'};
 
 function openModal(sub) {
   selSub=sub; selTime=30;
   document.getElementById('time-val').textContent=30;
   document.getElementById('memo-input').value='';
-  ['国語','英語','数学','理科','社会'].forEach(s=>document.getElementById('sub-'+s).className='sub-btn');
+  ['国語','英語','数学','理科','歴史','地理','公民'].forEach(s=>document.getElementById('sub-'+s).className='sub-btn');
   if(sub) selectSub(sub);
   updateSubmitBtn();
   document.getElementById('modal').classList.add('open');
@@ -1346,7 +1365,7 @@ function openModal(sub) {
 function closeModal(){document.getElementById('modal').classList.remove('open');}
 function closeModalOut(e){if(e.target===document.getElementById('modal'))closeModal();}
 function selectSub(s){
-  ['国語','英語','数学','理科','社会'].forEach(x=>document.getElementById('sub-'+x).className='sub-btn');
+  ['国語','英語','数学','理科','歴史','地理','公民'].forEach(x=>document.getElementById('sub-'+x).className='sub-btn');
   selSub=s;
   document.getElementById('sub-'+s).className='sub-btn '+subSelClass[s];
   updateSubmitBtn();
@@ -1445,15 +1464,15 @@ function confirmPdfSubject(sub){
 function filterPdf(f,el){
   pdfFilter=f;
   document.querySelectorAll('.pdf-tag').forEach(t=>t.className='pdf-tag');
-  const colorMap={国語:'active-kokugo',英語:'active-eigo',数学:'active-math',理科:'active-rika',社会:'active-shakai'};
+  const colorMap={国語:'active-kokugo',英語:'active-eigo',数学:'active-math',理科:'active-rika',歴史:'active-rekishi',地理:'active-chiri',公民:'active-koumin'};
   if(el) el.className='pdf-tag '+(colorMap[f]||'active-kokugo');
   renderPdfList();
 }
 function renderPdfList(){
   const list=S.pdfs.filter(p=>pdfFilter==='all'||p.subject===pdfFilter);
-  const tagClass={国語:'active-kokugo',英語:'active-eigo',数学:'active-math',理科:'active-rika',社会:'active-shakai'};
-  const tagBg={国語:'rgba(58,134,255,0.2)',英語:'rgba(46,204,113,0.2)',数学:'rgba(230,126,34,0.2)',理科:'rgba(155,89,182,0.2)',社会:'rgba(231,76,60,0.2)'};
-  const tagColor={国語:'#7ab8ff',英語:'#7ae8a8',数学:'#f0a060',理科:'#c8a0e0',社会:'#f0a0a0'};
+  const tagClass={国語:'active-kokugo',英語:'active-eigo',数学:'active-math',理科:'active-rika',歴史:'active-rekishi',地理:'active-chiri',公民:'active-koumin'};
+  const tagBg={国語:'rgba(58,134,255,0.2)',英語:'rgba(46,204,113,0.2)',数学:'rgba(230,126,34,0.2)',理科:'rgba(155,89,182,0.2)',歴史:'rgba(192,57,43,0.2)',地理:'rgba(231,76,60,0.2)',公民:'rgba(22,160,133,0.2)'};
+  const tagColor={国語:'#7ab8ff',英語:'#7ae8a8',数学:'#f0a060',理科:'#c8a0e0',歴史:'#f08878',地理:'#f0a0a0',公民:'#70e0c0'};
   const el=document.getElementById('pdf-list');
   if(!list.length){el.innerHTML='<div style="text-align:center;color:var(--text2);font-size:0.82rem;padding:24px 0;">まだ教材がありません<br>PDFを追加してポイントをゲット！</div>';return;}
   el.innerHTML=list.map(p=>`
@@ -1471,14 +1490,20 @@ function renderPdfList(){
 
 // drag & drop
 const dz=document.getElementById('drop-zone');
-dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag-over');});
-dz.addEventListener('dragleave',()=>dz.classList.remove('drag-over'));
+dz.addEventListener('dragenter',e=>{e.preventDefault();e.stopPropagation();dz.classList.add('drag-over');});
+dz.addEventListener('dragover',e=>{e.preventDefault();e.stopPropagation();dz.classList.add('drag-over');});
+dz.addEventListener('dragleave',e=>{
+  // only remove if leaving the drop zone itself
+  if(!dz.contains(e.relatedTarget)) dz.classList.remove('drag-over');
+});
 dz.addEventListener('drop',e=>{
-  e.preventDefault();dz.classList.remove('drag-over');
+  e.preventDefault();e.stopPropagation();dz.classList.remove('drag-over');
   const file=e.dataTransfer.files[0];
-  if(file&&file.type==='application/pdf'){
-    const ev={target:{files:[file],value:''}};
-    handlePdfUpload(ev);
+  if(file&&(file.type==='application/pdf'||file.name.toLowerCase().endsWith('.pdf'))){
+    pendingPdfFile=file;
+    document.getElementById('pdf-sub-modal').classList.add('open');
+  } else if(file) {
+    showToast('PDFファイルをドロップしてください');
   }
 });
 
@@ -1511,7 +1536,7 @@ function showCalDay(ds, el){
   const detail=document.getElementById('cal-detail');
   if(!recs.length&&!pdfs.length){detail.innerHTML=`<div class="cal-detail-date">${ds}</div><div style="text-align:center;color:var(--text2);font-size:0.8rem;">この日の記録はありません</div>`;return;}
   let html=`<div class="cal-detail-date">📅 ${ds}</div>`;
-  recs.forEach(r=>{html+=`<div class="cal-detail-row"><span style="font-size:1rem">${r.subject==='国語'?'📖':r.subject==='英語'?'🔤':r.subject==='数学'?'📐':r.subject==='理科'?'⚗️':'🌍'}</span><span style="flex:1;font-size:0.8rem">${r.subject}${r.memo?' — '+r.memo:''}</span><span style="font-size:0.76rem;color:var(--text2)">${r.minutes}分</span><span style="font-size:0.76rem;font-weight:700;color:var(--gold);margin-left:6px">+${r.points}pt</span></div>`;});
+  recs.forEach(r=>{html+=`<div class="cal-detail-row"><span style="font-size:1rem">${r.subject==='国語'?'📖':r.subject==='英語'?'🔤':r.subject==='数学'?'📐':r.subject==='理科'?'⚗️':r.subject==='歴史'?'🏛️':r.subject==='地理'?'🗺️':r.subject==='公民'?'⚖️':'📚'}</span><span style="flex:1;font-size:0.8rem">${r.subject}${r.memo?' — '+r.memo:''}</span><span style="font-size:0.76rem;color:var(--text2)">${r.minutes}分</span><span style="font-size:0.76rem;font-weight:700;color:var(--gold);margin-left:6px">+${r.points}pt</span></div>`;});
   pdfs.forEach(p=>{html+=`<div class="cal-detail-row"><span style="font-size:1rem">📄</span><span style="flex:1;font-size:0.8rem">${p.name}</span><span style="font-size:0.76rem;font-weight:700;color:var(--gold)">+50pt</span></div>`;});
   detail.innerHTML=html;
 }
@@ -1616,7 +1641,7 @@ function renderParent(){
   const recent=[...S.records].reverse().slice(0,10);
   document.getElementById('p-recent-records').innerHTML=recent.length?recent.map(r=>`
     <div class="cal-detail-row">
-      <span style="font-size:0.9rem">${r.subject==='国語'?'📖':r.subject==='英語'?'🔤':r.subject==='数学'?'📐':r.subject==='理科'?'⚗️':'🌍'}</span>
+      <span style="font-size:0.9rem">${r.subject==='国語'?'📖':r.subject==='英語'?'🔤':r.subject==='数学'?'📐':r.subject==='理科'?'⚗️':r.subject==='歴史'?'🏛️':r.subject==='地理'?'🗺️':r.subject==='公民'?'⚖️':'📚'}</span>
       <span style="flex:1;font-size:0.78rem">${r.date} ${r.subject}${r.memo?' — '+r.memo:''}</span>
       <span style="font-size:0.74rem;color:var(--text2)">${r.minutes}分</span>
       <span style="font-size:0.74rem;font-weight:700;color:var(--gold);margin-left:6px">+${r.points}pt</span>
@@ -2550,9 +2575,20 @@ if(!S.tests) S.tests = [];
 if(!S.missionIds) { S.missionsDate=null; S.missionIds=[]; S.missionsClaimed=[]; }
 if(S.townTiles === undefined) S.townTiles = null;
 if(S.rewards) S.rewards = S.rewards.filter(r=>r.id!=='r4');
+// 社会→歴史・地理・公民 マイグレーション
+if('社会' in (S.subjectPoints||{})) {
+  const shakai = S.subjectPoints['社会']||0;
+  if(!S.subjectPoints['歴史']) S.subjectPoints['歴史'] = 0;
+  if(!S.subjectPoints['地理']) S.subjectPoints['地理'] = shakai;
+  if(!S.subjectPoints['公民']) S.subjectPoints['公民'] = 0;
+  delete S.subjectPoints['社会'];
+}
+if(!S.subjectPoints['歴史']) S.subjectPoints['歴史'] = 0;
+if(!S.subjectPoints['地理']) S.subjectPoints['地理'] = 0;
+if(!S.subjectPoints['公民']) S.subjectPoints['公民'] = 0;
 if(!S.geoQuestions) S.geoQuestions = [];
 if(!S.geoSessionCount) S.geoSessionCount = 0;
-if(!S.geoApiKey) S.geoApiKey = ''; // APIキーは設定画面で入力してください
+if(!S.geoApiKey) S.geoApiKey = ''; // 8a2d5b9a753b97623067API30ad30fc30925165529b30573066304f306030553044
 checkStreak(); renderAll();
 </script>
 
