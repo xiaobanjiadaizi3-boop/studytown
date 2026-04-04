@@ -2297,7 +2297,7 @@ function geoStartSession(mode) {
   if(!queue.length){showToast('該当する問題がありません');return;}
   geoCloseStart();
   queue=[...queue].sort(()=>Math.random()-0.5);
-  geoSess={queue,idx:0,revealed:false,judged:false,result:null,results:[],mode};
+  geoSess={queue,idx:0,revealed:false,judged:false,result:null,results:[],mode,userAnswer:null,explanationHtml:''};
   S.geoSessionCount=(S.geoSessionCount||0)+1;
   save();
   const subnav=document.getElementById('geo-subnav');
@@ -2325,32 +2325,65 @@ function geoRenderStudy() {
       <span class="q-unit-badge">${geoEsc(q.unit)}</span>
       <div class="q-text">${geoEsc(q.question)}</div>
     </div>`;
+
   if(!geoSess.revealed){
-    html+=`<button class="btn-reveal" onclick="geoReveal()">👁 答えを確認する</button>`;
+    html+=`<div style="padding:0 16px 12px;">
+      <input type="text" id="geo-user-answer-input" placeholder="答えを入力してください..." autocomplete="off"
+        style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;color:var(--text);font-size:0.9rem;font-family:'Noto Sans JP',sans-serif;padding:10px 14px;outline:none;box-sizing:border-box;"
+        onkeydown="if(event.key==='Enter')geoSubmitAnswer()">
+      <button onclick="geoSubmitAnswer()"
+        style="width:100%;margin-top:8px;background:var(--green);color:#fff;border:none;border-radius:12px;padding:12px;font-size:0.9rem;font-weight:700;cursor:pointer;font-family:'Noto Sans JP',sans-serif;">
+        答えを送信 →
+      </button>
+    </div>`;
   } else {
+    if(geoSess.userAnswer!==null){
+      html+=`<div style="padding:0 16px 4px;">
+        <div style="font-size:0.72rem;color:var(--text2);margin-bottom:4px;">あなたの答え</div>
+        <div style="background:var(--card);border:1.5px solid var(--border);border-radius:10px;padding:9px 14px;font-size:0.88rem;color:var(--text);">${geoEsc(geoSess.userAnswer)||'（未入力）'}</div>
+      </div>`;
+    }
     html+=`<div class="answer-section"><div class="answer-label">✅ 正解</div><div class="answer-text">${geoEsc(q.answer)}</div></div>`;
+
     if(!geoSess.judged){
-      html+=`<div style="text-align:center;font-size:0.8rem;color:var(--text2);margin:8px 16px;">あなたの答えは合っていましたか？</div>
-        <div class="judge-row">
-          <button class="btn-maru" onclick="geoJudge('○')">○ 正解</button>
-          <button class="btn-batsu" onclick="geoJudge('×')">× 不正解</button>
-        </div>`;
+      const hasApiKey=S.geoApiKey&&S.geoApiKey.startsWith('sk-ant');
+      if(hasApiKey){
+        html+=`<div class="explanation-box"><div class="ai-loading"><div class="spinner"></div><span>Claudeが判定中...</span></div></div>
+          <button class="btn-next" id="geo-btn-next" onclick="geoNextQ()" disabled style="opacity:0.5;">次の問題 →</button>`;
+      } else {
+        html+=`<div style="text-align:center;font-size:0.8rem;color:var(--text2);margin:8px 16px;">あなたの答えは合っていましたか？</div>
+          <div class="judge-row">
+            <button class="btn-maru" onclick="geoJudge('○')">○ 正解</button>
+            <button class="btn-batsu" onclick="geoJudge('×')">× 不正解</button>
+          </div>`;
+      }
     } else {
       const isMaru=geoSess.result==='○';
-      html+=`<div class="judge-row">
-          <button class="btn-maru ${isMaru?'selected':''}" disabled>○ 正解</button>
-          <button class="btn-batsu ${!isMaru?'selected':''}" disabled>× 不正解</button>
-        </div>
-        <div id="geo-explanation-area"></div>
-        <button class="btn-next" id="geo-btn-next" onclick="geoNextQ()">次の問題 →</button>`;
+      html+=`<div style="text-align:center;margin:10px 0 4px;">
+        <span style="font-size:1.5rem;font-weight:900;color:${isMaru?'var(--green)':'var(--red)'};">${isMaru?'○ 正解！':'× 不正解'}</span>
+      </div>
+      ${geoSess.explanationHtml||''}
+      <button class="btn-next" id="geo-btn-next" onclick="geoNextQ()">次の問題 →</button>`;
     }
   }
   html+=`</div>`;
   el.innerHTML=html;
-  if(geoSess.judged&&geoSess.result==='×') geoLoadExplanation(q);
+
+  if(!geoSess.revealed){
+    const inp=document.getElementById('geo-user-answer-input');
+    if(inp) setTimeout(()=>inp.focus(),80);
+  }
+  if(geoSess.revealed&&!geoSess.judged&&S.geoApiKey&&S.geoApiKey.startsWith('sk-ant')){
+    geoJudgeAndExplain(q, geoSess.userAnswer||'');
+  }
 }
 
-function geoReveal(){geoSess.revealed=true;geoRenderStudy();}
+function geoSubmitAnswer(){
+  const input=document.getElementById('geo-user-answer-input');
+  geoSess.userAnswer=(input?.value||'').trim();
+  geoSess.revealed=true;
+  geoRenderStudy();
+}
 
 function geoJudge(result){
   geoSess.result=result; geoSess.judged=true;
@@ -2362,34 +2395,59 @@ function geoJudge(result){
 }
 
 function geoNextQ(){
-  geoSess.idx++; geoSess.revealed=false; geoSess.judged=false; geoSess.result=null;
+  geoSess.idx++;
+  geoSess.revealed=false; geoSess.judged=false; geoSess.result=null;
+  geoSess.userAnswer=null; geoSess.explanationHtml='';
   const main=document.getElementById('geo-main');
   if(main) main.scrollTop=0;
   geoRenderStudy();
 }
 
-async function geoLoadExplanation(q) {
-  const el=document.getElementById('geo-explanation-area');
-  if(!el) return;
-  el.innerHTML=`<div class="explanation-box"><div class="explanation-label">🤖 AIによる解説</div><div class="ai-loading"><div class="spinner"></div><span>Claudeが解説を生成中...</span></div></div>`;
-  const btn=document.getElementById('geo-btn-next');
-  if(btn) btn.disabled=true;
+async function geoJudgeAndExplain(q, userAnswer) {
   try {
     const apiKey=S.geoApiKey;
-    if(!apiKey||!apiKey.startsWith('sk-ant')) throw new Error('APIキーが設定されていません。設定画面で入力してください。');
+    if(!apiKey||!apiKey.startsWith('sk-ant')) throw new Error('APIキーが設定されていません');
     const res=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-haiku-4-5',max_tokens:600,messages:[{role:'user',content:`あなたは中学生に地理を教えるベテランの先生です。\n以下の問題について、わかりやすい解説をしてください。\n\n単元：${q.unit}\n問題：${q.question}\n正解：${q.answer}\n\n【解説のポイント】\n・なぜその答えになるのかを説明する\n・関連する地理の知識（地名・地形・気候・産業など）を補足する\n・中学生がテストで思い出しやすいよう、キーワードを強調する\n・200字以内でまとめる`}]})
+      body:JSON.stringify({model:'claude-haiku-4-5',max_tokens:400,messages:[{role:'user',content:`あなたは中学生を教えるベテランの先生です。\n生徒の答えを採点し、簡潔な解説をJSON形式で返してください。\n\n単元：${q.unit}\n問題：${q.question}\n正解：${q.answer}\n生徒の答え：${userAnswer||'（未記入）'}\n\n採点基準：意味が合っていれば正解。表現が多少違っても内容が正しければ正解。\n\n必ずJSON形式のみで返してください（説明文・マークダウン不要）：\n{"correct":true,"explanation":"解説文"}\n\n解説は100字以内で、なぜその答えになるかを端的に説明してください。記号（*、#、**など）は使わないでください。`}]})
     });
     if(!res.ok){const err=await res.json().catch(()=>({}));throw new Error(err.error?.message||`APIエラー (${res.status})`);}
     const data=await res.json();
-    el.innerHTML=`<div class="explanation-box"><div class="explanation-label">🤖 <span style="color:var(--purple)">Claude</span> の解説</div><div class="explanation-text">${geoEsc(data.content[0].text)}</div></div>`;
+    const text=data.content[0].text;
+    const match=text.match(/\{[\s\S]*?\}/);
+    if(!match) throw new Error('判定結果の取得に失敗しました');
+    const parsed=JSON.parse(match[0]);
+    const result=parsed.correct?'○':'×';
+    geoSess.result=result;
+    geoSess.judged=true;
+    if(!q.history)q.history=[];
+    q.history.push({d:todayStr(),r:result});
+    geoSess.results.push({q,result});
+    if(parsed.explanation){
+      geoSess.explanationHtml=`<div class="explanation-box"><div class="explanation-label">🤖 <span style="color:var(--purple)">Claude</span> の解説</div><div class="explanation-text">${geoEsc(parsed.explanation)}</div></div>`;
+    } else {
+      geoSess.explanationHtml='';
+    }
+    save();
+    geoRenderStudy();
   } catch(e) {
-    el.innerHTML=`<div class="explanation-box" style="border-color:rgba(231,76,60,0.3);background:rgba(231,76,60,0.05);"><div class="explanation-label" style="color:var(--red);">⚠️ AI解説を取得できませんでした</div><div style="font-size:0.78rem;color:var(--text2);line-height:1.6;">${geoEsc(e.message)}</div></div>`;
+    // fallback to manual judgment on error
+    geoSess.judged=false;
+    geoSess.explanationHtml=`<div class="explanation-box" style="border-color:rgba(231,76,60,0.3);background:rgba(231,76,60,0.05);"><div style="font-size:0.78rem;color:var(--red);">⚠️ AI判定エラー: ${geoEsc(e.message)}</div></div>`;
+    const el=document.getElementById('geo-main');
+    if(!el) return;
+    const judgeArea=document.createElement('div');
+    judgeArea.innerHTML=`<div style="text-align:center;font-size:0.8rem;color:var(--text2);margin:8px 16px;">手動で判定してください</div>
+      <div class="judge-row">
+        <button class="btn-maru" onclick="geoJudge('○')">○ 正解</button>
+        <button class="btn-batsu" onclick="geoJudge('×')">× 不正解</button>
+      </div>`;
+    const box=el.querySelector('.explanation-box');
+    if(box) box.parentNode.insertBefore(judgeArea,box);
+    const nextBtn=document.getElementById('geo-btn-next');
+    if(nextBtn){nextBtn.disabled=false;nextBtn.style.opacity='1';}
   }
-  const btn2=document.getElementById('geo-btn-next');
-  if(btn2) btn2.disabled=false;
 }
 
 // ==================== GEO RESULT ====================
