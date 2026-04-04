@@ -2705,7 +2705,14 @@ async function geoProcessPdfFile(file, unit) {
         added++;
       }
     });
-    if(added>0){ save(); showToast(`✅ ${added}問を「学習」タブに追加しました！`); }
+    if(added>0){
+      save();
+      showToast(`✅ ${added}問を「学習」タブに追加しました！`);
+      if(!geoSess && document.getElementById('screen-geo')?.classList.contains('active')){
+        if(geoTab==='home') renderGeoHome();
+        else if(geoTab==='add') renderGeoAdd();
+      }
+    }
   } catch(e) {
     showToast('⚠️ 問題生成エラー: '+e.message);
   }
