@@ -750,10 +750,10 @@ body.parent-mode .nav-item.active{color:#ce93d8;}
 
   <div class="drop-zone" id="drop-zone" onclick="document.getElementById('pdf-input').click()">
     <div class="drop-icon">📄</div>
-    <div class="drop-text">タップしてPDFを追加</div>
-    <div class="drop-sub">またはドラッグ＆ドロップ</div>
+    <div class="drop-text">タップしてPDFを追加（複数可）</div>
+    <div class="drop-sub">またはドラッグ＆ドロップ（まとめてOK）</div>
   </div>
-  <input type="file" id="pdf-input" accept=".pdf,application/pdf" style="display:none" onchange="handlePdfUpload(event)">
+  <input type="file" id="pdf-input" accept=".pdf,application/pdf" multiple style="display:none" onchange="handlePdfUpload(event)">
 
   <div style="padding:0 16px 6px;font-size:0.78rem;color:var(--text2);">科目で絞り込み</div>
   <div class="pdf-tag-row" id="pdf-filter-tags">
@@ -1035,7 +1035,7 @@ body.parent-mode .nav-item.active{color:#ce93d8;}
   <div class="modal-sheet" style="padding-bottom:calc(20px + var(--safe-bot));">
     <div class="modal-handle"></div>
     <div class="modal-title">📄 教科を選んでください</div>
-    <div style="font-size:0.75rem;color:var(--text2);margin-bottom:10px;">AIが選んだ教科に合わせて問題を生成します</div>
+    <div id="pdf-sub-modal-sub" style="font-size:0.75rem;color:var(--text2);margin-bottom:10px;">AIが選んだ教科に合わせて問題を生成します</div>
     <div class="sub-grid">
       <button class="sub-btn" onclick="confirmPdfSubject('国語')"><span class="sub-btn-icon">📖</span><span class="sub-btn-name">国語</span></button>
       <button class="sub-btn" onclick="confirmPdfSubject('英語')"><span class="sub-btn-icon">🔤</span><span class="sub-btn-name">英語</span></button>
@@ -1436,30 +1436,92 @@ function renderPointScreen(){
   document.getElementById('reward-remaining').textContent=`${nr.pts}ptまで あと${rem}pt`;
 }
 
+// ==================== SE ====================
+function playSound(type){
+  try{
+    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    const t=ctx.currentTime;
+    const tone=(freq,start,dur,vol=0.28,wave='sine')=>{
+      const o=ctx.createOscillator(),g=ctx.createGain();
+      o.connect(g);g.connect(ctx.destination);
+      o.type=wave;o.frequency.value=freq;
+      g.gain.setValueAtTime(0,t+start);
+      g.gain.linearRampToValueAtTime(vol,t+start+0.015);
+      g.gain.linearRampToValueAtTime(0,t+start+dur);
+      o.start(t+start);o.stop(t+start+dur+0.05);
+    };
+    if(type==='correct'){
+      tone(523,0,0.18);tone(659,0.1,0.18);tone(784,0.2,0.28);
+    } else if(type==='wrong'){
+      const o=ctx.createOscillator(),g=ctx.createGain();
+      o.connect(g);g.connect(ctx.destination);
+      o.type='sawtooth';
+      o.frequency.setValueAtTime(280,t);o.frequency.linearRampToValueAtTime(140,t+0.3);
+      g.gain.setValueAtTime(0.18,t);g.gain.linearRampToValueAtTime(0,t+0.3);
+      o.start(t);o.stop(t+0.35);
+    } else if(type==='submit'){
+      tone(900,0,0.07,0.12);
+    } else if(type==='upload'){
+      tone(880,0,0.22);tone(1108,0.14,0.22);
+    } else if(type==='complete'){
+      tone(523,0,0.18);tone(659,0.1,0.18);tone(784,0.2,0.18);tone(1047,0.32,0.35,0.3);
+    }
+    setTimeout(()=>ctx.close(),2500);
+  }catch(e){}
+}
+
 // ==================== PDF ====================
 let pdfFilter='all';
-function handlePdfUpload(e) {
-  const file=e.target.files[0]; if(!file)return;
-  pendingPdfFile = file;
-  e.target.value='';
-  // 科目選択モーダルを表示
+let pendingPdfFiles=[];
+let pdfProcessQueue=[];
+let isPdfProcessing=false;
+
+function openPdfSubModal(files){
+  pendingPdfFiles=files;
+  const sub=document.getElementById('pdf-sub-modal-sub');
+  if(sub) sub.textContent=files.length>1?`${files.length}件のPDFを一括追加します`:'AIが選んだ教科に合わせて問題を生成します';
   document.getElementById('pdf-sub-modal').classList.add('open');
 }
-let pendingPdfFile = null;
+
+function handlePdfUpload(e){
+  const files=Array.from(e.target.files).filter(f=>f.type==='application/pdf'||f.name.toLowerCase().endsWith('.pdf'));
+  e.target.value='';
+  if(!files.length)return;
+  openPdfSubModal(files);
+}
+
 function confirmPdfSubject(sub){
   document.getElementById('pdf-sub-modal').classList.remove('open');
-  if(!pendingPdfFile||!sub)return;
-  const file=pendingPdfFile; pendingPdfFile=null;
-  const id=Date.now().toString();
-  const kb=Math.round(file.size/1024);
-  S.pdfs.push({id,name:file.name,subject:sub,date:todayStr(),size:kb+'KB'});
-  S.totalPoints+=50; S.subjectPoints[sub]=(S.subjectPoints[sub]||0)+50;
+  if(!pendingPdfFiles.length||!sub)return;
+  const files=[...pendingPdfFiles]; pendingPdfFiles=[];
+  files.forEach((file,i)=>{
+    const id=(Date.now()+i).toString();
+    const kb=Math.round(file.size/1024);
+    S.pdfs.push({id,name:file.name,subject:sub,date:todayStr(),size:kb+'KB'});
+    S.totalPoints+=50; S.subjectPoints[sub]=(S.subjectPoints[sub]||0)+50;
+    const unit=file.name.replace(/\.pdf$/i,'').slice(0,40)||sub;
+    pdfProcessQueue.push({file,unit});
+  });
   save(); renderAll();
-  showToast(`📄 ${file.name} を追加 +50pt`);
-  // AI question generation from PDF
-  const unit = file.name.replace(/\.pdf$/i,'').slice(0,40) || sub;
+  playSound('upload');
+  showToast(files.length>1?`📄 ${files.length}件のPDFを追加 +${files.length*50}pt`:`📄 ${files[0].name} を追加 +50pt`);
   showToast('🤖 AIが問題を自動生成中... しばらくお待ちください');
-  setTimeout(()=>geoProcessPdfFile(file, unit), 800);
+  setTimeout(drainPdfQueue,800);
+}
+
+async function drainPdfQueue(){
+  if(isPdfProcessing||!pdfProcessQueue.length)return;
+  isPdfProcessing=true;
+  const {file,unit}=pdfProcessQueue.shift();
+  await geoProcessPdfFile(file,unit);
+  isPdfProcessing=false;
+  if(pdfProcessQueue.length){
+    showToast(`🤖 残り${pdfProcessQueue.length}件を処理中...`);
+    setTimeout(drainPdfQueue,600);
+  } else {
+    playSound('upload');
+    showToast('✅ 全ての問題生成が完了しました！');
+  }
 }
 function filterPdf(f,el){
   pdfFilter=f;
@@ -1498,11 +1560,10 @@ dz.addEventListener('dragleave',e=>{
 });
 dz.addEventListener('drop',e=>{
   e.preventDefault();e.stopPropagation();dz.classList.remove('drag-over');
-  const file=e.dataTransfer.files[0];
-  if(file&&(file.type==='application/pdf'||file.name.toLowerCase().endsWith('.pdf'))){
-    pendingPdfFile=file;
-    document.getElementById('pdf-sub-modal').classList.add('open');
-  } else if(file) {
+  const files=Array.from(e.dataTransfer.files).filter(f=>f.type==='application/pdf'||f.name.toLowerCase().endsWith('.pdf'));
+  if(files.length){
+    openPdfSubModal(files);
+  } else {
     showToast('PDFファイルをドロップしてください');
   }
 });
@@ -2382,11 +2443,13 @@ function geoSubmitAnswer(){
   const input=document.getElementById('geo-user-answer-input');
   geoSess.userAnswer=(input?.value||'').trim();
   geoSess.revealed=true;
+  playSound('submit');
   geoRenderStudy();
 }
 
 function geoJudge(result){
   geoSess.result=result; geoSess.judged=true;
+  playSound(result==='○'?'correct':'wrong');
   const q=geoSess.queue[geoSess.idx];
   if(!q.history)q.history=[];
   q.history.push({d:todayStr(),r:result});
@@ -2435,6 +2498,7 @@ async function geoJudgeAndExplain(q, userAnswer) {
       </div>`;
     }
     geoSess.explanationHtml=html;
+    playSound(result==='○'?'correct':'wrong');
     save();
     geoRenderStudy();
   } catch(e) {
@@ -2458,6 +2522,7 @@ async function geoJudgeAndExplain(q, userAnswer) {
 
 // ==================== GEO RESULT ====================
 function geoRenderResult() {
+  playSound('complete');
   const el=document.getElementById('geo-main');
   const results=geoSess.results;
   const ok=results.filter(r=>r.result==='○').length;
