@@ -2410,12 +2410,12 @@ async function geoJudgeAndExplain(q, userAnswer) {
     const res=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-haiku-4-5',max_tokens:400,messages:[{role:'user',content:`あなたは中学生を教えるベテランの先生です。\n生徒の答えを採点し、簡潔な解説をJSON形式で返してください。\n\n単元：${q.unit}\n問題：${q.question}\n正解：${q.answer}\n生徒の答え：${userAnswer||'（未記入）'}\n\n採点基準：意味が合っていれば正解。表現が多少違っても内容が正しければ正解。\n\n必ずJSON形式のみで返してください（説明文・マークダウン不要）：\n{"correct":true,"explanation":"解説文"}\n\n解説は100字以内で、なぜその答えになるかを端的に説明してください。記号（*、#、**など）は使わないでください。`}]})
+      body:JSON.stringify({model:'claude-haiku-4-5',max_tokens:700,messages:[{role:'user',content:`あなたは中学生を教えるベテランの先生です。\n生徒の答えを採点し、JSON形式で返してください。\n\n単元：${q.unit}\n問題：${q.question}\n正解：${q.answer}\n生徒の答え：${userAnswer||'（未記入）'}\n\n採点基準：意味が合っていれば正解。表現が多少違っても内容が正しければ正解。\n\n必ずJSON形式のみで返してください（説明文・マークダウン不要）：\n{"correct":true,"explanation":"解説文","examples":["例文1","例文2","例文3"]}\n\nルール：\n・解説は100字以内、記号（*、#、**など）は使わない\n・英語または国語（日本語の語彙・慣用句・文法など）の問題の場合のみ、正解の語句を使った自然な例文を3つexamplesに入れる\n・英語の例文は「英文（日本語訳）」の形式にする\n・それ以外の教科（数学・理科・歴史・地理・公民など）はexamples:[]にする`}]})
     });
     if(!res.ok){const err=await res.json().catch(()=>({}));throw new Error(err.error?.message||`APIエラー (${res.status})`);}
     const data=await res.json();
     const text=data.content[0].text;
-    const match=text.match(/\{[\s\S]*?\}/);
+    const match=text.match(/\{[\s\S]*\}/);
     if(!match) throw new Error('判定結果の取得に失敗しました');
     const parsed=JSON.parse(match[0]);
     const result=parsed.correct?'○':'×';
@@ -2424,11 +2424,17 @@ async function geoJudgeAndExplain(q, userAnswer) {
     if(!q.history)q.history=[];
     q.history.push({d:todayStr(),r:result});
     geoSess.results.push({q,result});
+    let html='';
     if(parsed.explanation){
-      geoSess.explanationHtml=`<div class="explanation-box"><div class="explanation-label">🤖 <span style="color:var(--purple)">Claude</span> の解説</div><div class="explanation-text">${geoEsc(parsed.explanation)}</div></div>`;
-    } else {
-      geoSess.explanationHtml='';
+      html+=`<div class="explanation-box"><div class="explanation-label">🤖 <span style="color:var(--purple)">Claude</span> の解説</div><div class="explanation-text">${geoEsc(parsed.explanation)}</div></div>`;
     }
+    if(Array.isArray(parsed.examples)&&parsed.examples.length){
+      html+=`<div class="explanation-box" style="margin-top:6px;border-color:rgba(52,152,219,0.3);background:rgba(52,152,219,0.05);">
+        <div class="explanation-label" style="color:var(--blue);">📝 例文</div>
+        ${parsed.examples.map((ex,i)=>`<div style="font-size:0.82rem;color:var(--text);line-height:1.7;padding:3px 0;border-top:${i>0?'1px solid var(--border)':'none'};margin-top:${i>0?'4px':'0'};">${i+1}. ${geoEsc(ex)}</div>`).join('')}
+      </div>`;
+    }
+    geoSess.explanationHtml=html;
     save();
     geoRenderStudy();
   } catch(e) {
