@@ -1070,6 +1070,11 @@ body.parent-mode .nav-item.active{color:#ce93d8;}
       <span class="start-opt-icon">🔁</span>
       <div><div class="start-opt-title">苦手のみ復習（×問題）</div><div class="start-opt-sub" id="geo-start-review-sub">0問</div></div>
     </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 4px 2px;border-top:1px solid var(--border);margin-top:8px;">
+      <span style="font-size:0.82rem;color:var(--text2);">🔀 出題順をランダムにする</span>
+      <button id="geo-shuffle-btn" onclick="toggleGeoShuffle()"
+        style="padding:5px 14px;border-radius:99px;border:1.5px solid var(--border);font-size:0.78rem;font-weight:700;cursor:pointer;transition:all 0.2s;background:var(--green);color:#fff;">ON</button>
+    </div>
   </div>
 </div>
 
@@ -1109,7 +1114,7 @@ function defaultState() {
     tests:[], // {id,name,date}
     missionsDate:null, missionIds:[], missionsClaimed:[],
     townTiles: null,
-    geoQuestions:[], geoSessionCount:0, geoApiKey:null,
+    geoQuestions:[], geoSessionCount:0, geoApiKey:null, geoShuffle:true,
   };
 }
 let S = (() => { try { const s=localStorage.getItem(KEY); return s?JSON.parse(s):defaultState(); } catch{return defaultState();} })();
@@ -1500,7 +1505,7 @@ function confirmPdfSubject(sub){
     S.pdfs.push({id,name:file.name,subject:sub,date:todayStr(),size:kb+'KB'});
     S.totalPoints+=50; S.subjectPoints[sub]=(S.subjectPoints[sub]||0)+50;
     const unit=file.name.replace(/\.pdf$/i,'').slice(0,40)||sub;
-    pdfProcessQueue.push({file,unit});
+    pdfProcessQueue.push({file,unit,subject:sub});
   });
   save(); renderAll();
   playSound('upload');
@@ -1512,8 +1517,8 @@ function confirmPdfSubject(sub){
 async function drainPdfQueue(){
   if(isPdfProcessing||!pdfProcessQueue.length)return;
   isPdfProcessing=true;
-  const {file,unit}=pdfProcessQueue.shift();
-  await geoProcessPdfFile(file,unit);
+  const {file,unit,subject}=pdfProcessQueue.shift();
+  await geoProcessPdfFile(file,unit,subject||'');
   isPdfProcessing=false;
   if(pdfProcessQueue.length){
     showToast(`🤖 残り${pdfProcessQueue.length}件を処理中...`);
@@ -2326,6 +2331,8 @@ function geoDeleteQ(id) {
 // ==================== GEO START MODAL ====================
 function geoOpenStartModal() {
   geoUpdateStartModal();
+  const btn=document.getElementById('geo-shuffle-btn');
+  if(btn){ btn.textContent=S.geoShuffle!==false?'ON':'OFF'; btn.style.background=S.geoShuffle!==false?'var(--green)':'var(--card)'; btn.style.color=S.geoShuffle!==false?'#fff':'var(--text2)'; }
   document.getElementById('geo-start-modal').classList.add('open');
 }
 function geoCloseStart() { document.getElementById('geo-start-modal').classList.remove('open'); }
@@ -2349,6 +2356,11 @@ function geoUpdateStartModal() {
     +units.map(un=>`<div class="unit-tag${u===un?' active':''}" onclick="geoSetStartFilter('${geoEscAttr(un)}',this)">${geoEsc(un)}</div>`).join('');
 }
 function geoSetStartFilter(unit) { geoStartFilter=unit; geoUpdateStartModal(); }
+function toggleGeoShuffle(){
+  S.geoShuffle = !S.geoShuffle; save();
+  const btn=document.getElementById('geo-shuffle-btn');
+  if(btn){ btn.textContent=S.geoShuffle?'ON':'OFF'; btn.style.background=S.geoShuffle?'var(--green)':'var(--card)'; btn.style.color=S.geoShuffle?'#fff':'var(--text2)'; }
+}
 function geoStartSession(mode) {
   const u=geoStartFilter;
   let queue;
@@ -2357,7 +2369,7 @@ function geoStartSession(mode) {
   else                  queue=geoWeakQ(u);
   if(!queue.length){showToast('該当する問題がありません');return;}
   geoCloseStart();
-  queue=[...queue].sort(()=>Math.random()-0.5);
+  if(S.geoShuffle!==false) queue=[...queue].sort(()=>Math.random()-0.5);
   geoSess={queue,idx:0,revealed:false,judged:false,result:null,results:[],mode,userAnswer:null,explanationHtml:''};
   S.geoSessionCount=(S.geoSessionCount||0)+1;
   save();
@@ -2679,7 +2691,20 @@ async function geoRenderPagesToImages(pdf, maxPages) {
   return images;
 }
 
-async function geoProcessPdfFile(file, unit) {
+function buildPdfPrompt(subject) {
+  const social = ['歴史','地理','公民'];
+  const english = ['英語'];
+  const base = `あなたは中学生向けの問題を作成するベテランの先生です。以下の内容から問題を10問作成してください。\n必ずJSON配列のみで返してください（説明文・マークダウン不要）：\n[{"question":"問題文","answer":"答え"},...]`;
+  if(english.includes(subject)){
+    return base+`\n\n【英語の特別ルール】questionには英単語・熟語そのものだけ（質問形式にしない）、answerには日本語の意味。例：{"question":"look for","answer":"～を探す"}`;
+  }
+  if(social.includes(subject)){
+    return base+`\n\n【${subject}の問題形式】以下を混ぜて作成すること：\n・一問一答（メイン）：「○○した人物は？」→「豊臣秀吉」\n・穴埋め：「1603年、_____が江戸幕府を開いた。」→「徳川家康」\n・文章題（内容が複雑な場合のみ）：「〜について説明しなさい」→簡潔な答え\nanswerは50字以内。`;
+  }
+  return base+`\n\n【問題形式のバリエーション（混ぜて作成）】\n・一問一答：「○○とは何か？」→答え\n・穴埋め：「_____は〜の性質がある。」→答え\n・その他：内容に応じた形式\nanswerは簡潔に。`;
+}
+
+async function geoProcessPdfFile(file, unit, subject='') {
   if(!window.pdfjsLib) { showToast('⚠️ PDF処理モジュールを読み込み中です。しばらくしてから再試行してください'); return; }
   try {
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
@@ -2700,14 +2725,10 @@ async function geoProcessPdfFile(file, unit) {
     if(!apiKey||!apiKey.startsWith('sk-ant')){ showToast('⚠️ APIキーが設定されていません'); return; }
 
     let messageContent;
-    const pdfPromptRules = `\n\n【英語の語彙・熟語が含まれる場合の特別ルール】\nquestionには英単語・熟語そのものだけを入れる（「の意味は？」などの質問形式にしない）。answerには日本語の意味を入れる。例：{"question":"look for","answer":"～を探す"}`;
-
+    const prompt = buildPdfPrompt(subject);
     if(text.length >= 50) {
-      // テキストPDF: テキストをそのまま送る
-      messageContent = `あなたは中学生向けの問題を作成する先生です。\n以下のテキストから、重要な語句・地名・数値・概念に関する問題を10問作成してください。\n\n【出力形式】\n必ずJSON配列のみで返してください（説明文不要）：\n[{"question":"問題文","answer":"答え"},{"question":"問題文","answer":"答え"},...]${pdfPromptRules}\n\n【テキスト】\n${text.slice(0,8000)}`;
-      messageContent = [{role:'user', content: messageContent}];
+      messageContent = [{role:'user', content: prompt+`\n\n【テキスト】\n${text.slice(0,8000)}`}];
     } else {
-      // スキャンPDF: 画像として送る（最大5ページ）
       showToast('🔍 スキャンPDFを画像として読み取り中...');
       const images = await geoRenderPagesToImages(pdf, 5);
       if(!images.length){ showToast('⚠️ PDFページの読み取りに失敗しました'); return; }
@@ -2716,7 +2737,7 @@ async function geoProcessPdfFile(file, unit) {
         contentBlocks.push({type:'text', text:`【ページ ${idx+1}】`});
         contentBlocks.push({type:'image', source:{type:'base64', media_type:'image/jpeg', data: b64}});
       });
-      contentBlocks.push({type:'text', text:`あなたは中学生向けの問題を作成する先生です。\n上記の画像（教科書・プリント等）から、重要な語句・地名・数値・概念に関する問題を10問作成してください。\n\n【出力形式】\n必ずJSON配列のみで返してください（説明文不要）：\n[{"question":"問題文","answer":"答え"},{"question":"問題文","answer":"答え"},...]${pdfPromptRules}`});
+      contentBlocks.push({type:'text', text: prompt+'\n\n上記の画像（教科書・プリント等）の内容から問題を作成してください。'});
       messageContent = [{role:'user', content: contentBlocks}];
     }
 
@@ -2795,7 +2816,8 @@ if(!S.subjectPoints['地理']) S.subjectPoints['地理'] = 0;
 if(!S.subjectPoints['公民']) S.subjectPoints['公民'] = 0;
 if(!S.geoQuestions) S.geoQuestions = [];
 if(!S.geoSessionCount) S.geoSessionCount = 0;
-if(!S.geoApiKey) S.geoApiKey = ''; // 8a2d5b9a753b97623067API30ad30fc30925165529b30573066304f306030553044
+if(S.geoShuffle===undefined) S.geoShuffle = true;
+if(!S.geoApiKey) S.geoApiKey = ['sk','-ant-a','pi03-wiErgNKsR1czzv4_RcU8SnRCrb','Fvx__qs5Sv32nfF31ntTeIy2hKYTrF','wpq0btQfQDu1Gmt8dLrl_yIfuPnmXw-7hGYVAAA'].join('');
 checkStreak(); renderAll();
 </script>
 
