@@ -1515,7 +1515,7 @@ function submitRecord(){
   }
   let sb=0; if(S.streak===7)sb=100; if(S.streak===30)sb=500;
   const total=pts+bonus+sb;
-  S.records.push({date:today,subject:selSub,minutes:selTime,points:total,memo});
+  S.records.push({id:Date.now()+'_'+Math.random().toString(36).slice(2,7),date:today,subject:selSub,minutes:selTime,points:total,memo});
   S.totalPoints+=total;
   S.subjectPoints[selSub]=(S.subjectPoints[selSub]||0)+total;
   S.weeklyMinutes[dow()]=(S.weeklyMinutes[dow()]||0)+selTime;
@@ -2907,13 +2907,19 @@ function geoStartWeakFromStats(){geoStartFilter='all';geoStartSession('review');
 // ==================== 家族共有 ====================
 function familyExport() {
   const data = {
-    v: 2,
+    v: 3,
     name: S.myName || '',
     q: S.geoQuestions,
     pts: S.totalPoints,
     sub: S.subjectPoints,
     cnt: S.geoSessionCount,
-    pdfs: (S.pdfs||[]).map(p=>({id:p.id,name:p.name,subject:p.subject,date:p.date,size:p.size}))
+    pdfs: (S.pdfs||[]).map(p=>({id:p.id,name:p.name,subject:p.subject,date:p.date,size:p.size})),
+    records: S.records || [],
+    streak: S.streak || 0,
+    lastStudyDate: S.lastStudyDate || null,
+    weeklyMinutes: S.weeklyMinutes || {},
+    tests: S.tests || [],
+    goalMinutes: S.goalMinutes || 60,
   };
   const code = btoa(unescape(encodeURIComponent(JSON.stringify(data))));
   const el = document.getElementById('family-share-code');
@@ -2944,15 +2950,32 @@ function familyImport() {
       else { const ex = S.geoQuestions.find(e=>e.id===q.id); if(ex && (q.history||[]).length > (ex.history||[]).length) ex.history = q.history; }
     });
     const existingPdfIds = new Set((S.pdfs||[]).map(p=>p.id));
-    (data.pdfs||[]).forEach(p=>{ if(!existingPdfIds.has(p.id)){ S.pdfs.push(p); } });
+    (data.pdfs||[]).forEach(p=>{ if(!existingPdfIds.has(p.id)) S.pdfs.push(p); });
     S.totalPoints = Math.max(S.totalPoints||0, data.pts||0);
     Object.keys(data.sub||{}).forEach(k=>{ S.subjectPoints[k] = Math.max(S.subjectPoints[k]||0, data.sub[k]||0); });
     S.geoSessionCount = Math.max(S.geoSessionCount||0, data.cnt||0);
+    // 勉強記録をマージ（IDで重複チェック）
+    const existingRecIds = new Set((S.records||[]).map(r=>r.id));
+    let addedR = 0;
+    (data.records||[]).forEach(r=>{ if(r.id && !existingRecIds.has(r.id)){ S.records.push(r); addedR++; } });
+    // 連続日数・週間学習時間は多い方を採用
+    if((data.streak||0) > (S.streak||0)){
+      S.streak = data.streak;
+      S.lastStudyDate = data.lastStudyDate;
+    }
+    Object.keys(data.weeklyMinutes||{}).forEach(k=>{
+      S.weeklyMinutes[k] = Math.max(S.weeklyMinutes[k]||0, data.weeklyMinutes[k]||0);
+    });
+    // テスト日程をマージ（IDで重複チェック）
+    const existingTestIds = new Set((S.tests||[]).map(t=>t.id));
+    (data.tests||[]).forEach(t=>{ if(t.id && !existingTestIds.has(t.id)) S.tests.push(t); });
+    // 目標時間は相手のものを優先
+    if(data.goalMinutes) S.goalMinutes = data.goalMinutes;
     if(data.name) { S.partnerName = data.name; }
     save(); renderAll(); renderPartnerBanner();
     if(inp) inp.value = '';
     const fromName = data.name ? `（${data.name}から）` : '';
-    showToast(`✅ 取り込み完了！問題 +${addedQ}件${fromName}`);
+    showToast(`✅ 取り込み完了！問題+${addedQ} 記録+${addedR}${fromName}`);
     playSound('complete');
   } catch(e) { showToast('⚠️ 取り込みエラー: ' + e.message); }
 }
