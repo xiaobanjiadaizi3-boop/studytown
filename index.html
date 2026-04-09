@@ -649,6 +649,36 @@ body.parent-mode .nav-item.active{color:#ce93d8;}
 </head>
 <body>
 
+<!-- Fixed refresh button -->
+<button id="refresh-fab" onclick="location.reload(true)"
+  style="position:fixed;top:calc(10px + var(--safe-top));right:14px;z-index:300;
+  background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);
+  border-radius:50%;width:38px;height:38px;font-size:1.05rem;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;color:var(--text2);
+  backdrop-filter:blur(8px);">🔄</button>
+
+<!-- Mode select overlay -->
+<div id="mode-select-overlay"
+  style="position:fixed;inset:0;z-index:9998;background:var(--bg);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:32px;gap:16px;">
+  <div style="font-size:3.2rem;margin-bottom:4px;">🏙️</div>
+  <div style="font-family:'Zen Kaku Gothic New';font-size:1.5rem;font-weight:900;
+    background:linear-gradient(135deg,var(--gold),var(--gold2));
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;">StudyTown</div>
+  <div style="font-size:0.92rem;color:var(--text2);margin-bottom:12px;">だれが使うの？</div>
+  <button onclick="selectChildMode()"
+    style="width:100%;max-width:300px;padding:20px;
+    background:linear-gradient(135deg,var(--blue),#5fa0ff);
+    border:none;border-radius:18px;color:#fff;font-size:1.1rem;font-weight:700;cursor:pointer;
+    box-shadow:0 6px 24px rgba(58,134,255,0.35);">👦 子供モード</button>
+  <button onclick="selectParentMode()"
+    style="width:100%;max-width:300px;padding:20px;
+    background:linear-gradient(135deg,#7b1fa2,#ce93d8);
+    border:none;border-radius:18px;color:#fff;font-size:1.1rem;font-weight:700;cursor:pointer;
+    box-shadow:0 6px 24px rgba(156,39,176,0.35);">👩 お母さんモード</button>
+</div>
+
 <!-- Parent mode banner -->
 <div class="parent-banner">👩 お母さんモード（管理者）</div>
 
@@ -1645,6 +1675,15 @@ function showCalDay(ds, el){
 let pcMode='enter'; // 'enter' | 'set'
 let pcBuf='';
 
+function selectChildMode() {
+  sessionStorage.setItem('stMode','child');
+  document.getElementById('mode-select-overlay').style.display='none';
+}
+function selectParentMode() {
+  document.getElementById('mode-select-overlay').style.display='none';
+  enterParentMode();
+}
+
 function enterParentMode(){pcMode='enter';pcBuf='';updatePcDots();document.getElementById('pc-title').textContent='お母さんモード';document.getElementById('pc-sub').innerHTML='パスコードを入力してください<br><span style="font-size:0.7rem;opacity:0.6;">初回は 1234 です</span>';document.getElementById('pc-error').classList.remove('show');document.getElementById('passcode-overlay').classList.add('open');}
 
 function openPasscodeSetting(){pcMode='set';pcBuf='';updatePcDots();document.getElementById('pc-title').textContent='新しいパスコード';document.getElementById('pc-sub').innerHTML='お母さんモード用の<br>新しい4桁パスコードを入力してください';document.getElementById('pc-error').classList.remove('show');document.getElementById('passcode-overlay').classList.add('open');}
@@ -1664,6 +1703,7 @@ function pcConfirm(){
   if(pcMode==='enter'){
     if(pcBuf===S.passcode){
       closePasscode();
+      sessionStorage.setItem('stMode','parent');
       document.body.classList.add('parent-mode');
       switchScreen('parent',null);
       document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
@@ -2899,6 +2939,12 @@ if(!S.geoSessionCount) S.geoSessionCount = 0;
 if(S.geoShuffle===undefined) S.geoShuffle = true;
 if(!S.geoApiKey) S.geoApiKey = ['sk','-ant-a','pi03-wiErgNKsR1czzv4_RcU8SnRCrb','Fvx__qs5Sv32nfF31ntTeIy2hKYTrF','wpq0btQfQDu1Gmt8dLrl_yIfuPnmXw-7hGYVAAA'].join('');
 checkStreak(); renderAll();
+// モード選択：セッションにモードが保存されていなければ選択画面を表示
+if(!sessionStorage.getItem('stMode')) {
+  document.getElementById('mode-select-overlay').style.display='flex';
+} else {
+  document.getElementById('mode-select-overlay').style.display='none';
+}
 </script>
 
 <!-- PWA Manifest inline -->
