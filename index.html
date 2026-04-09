@@ -924,7 +924,13 @@ body.parent-mode #parent-nav{display:flex!important;}
       <div class="modal-handle"></div>
       <div style="font-weight:700;font-size:1rem;margin-bottom:8px;text-align:center;">📤 共有コード</div>
       <div style="font-size:0.72rem;color:var(--text2);text-align:center;margin-bottom:10px;">このコードをLINEなどで家族に送ってください</div>
-      <textarea id="family-share-code" readonly style="width:100%;height:100px;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;color:var(--text);font-size:0.7rem;font-family:monospace;padding:8px;resize:none;box-sizing:border-box;"></textarea>
+      <textarea id="family-share-code" readonly style="width:100%;height:80px;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;color:var(--text);font-size:0.7rem;font-family:monospace;padding:8px;resize:none;box-sizing:border-box;"></textarea>
+      <div style="font-size:0.78rem;color:var(--text2);margin:10px 0 4px;">誰に送る？（相手の名前）</div>
+      <input id="share-partner-name" type="text" placeholder="例：お母さん、りく"
+        style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;
+        color:var(--text);font-size:0.88rem;font-family:'Noto Sans JP',sans-serif;
+        padding:9px 12px;outline:none;box-sizing:border-box;"
+        oninput="this.style.borderColor='rgba(245,200,66,0.4)'">
       <button onclick="copyShareCode()" style="width:100%;padding:12px;background:var(--blue);border:none;border-radius:12px;color:#fff;font-size:0.9rem;font-weight:700;cursor:pointer;margin-top:8px;">📋 コピーする</button>
       <button onclick="document.getElementById('family-share-modal').classList.remove('open')" style="width:100%;padding:11px;background:var(--card);border:1.5px solid var(--border);border-radius:12px;color:var(--text2);font-size:0.85rem;font-weight:700;cursor:pointer;margin-top:6px;">閉じる</button>
     </div>
@@ -1066,6 +1072,7 @@ body.parent-mode #parent-nav{display:flex!important;}
 
 <!-- PARENT NAV -->
 <nav id="parent-nav" class="bottom-nav" style="border-top-color:var(--parent-border);">
+  <div class="nav-item" onclick="location.reload(true)"><span class="nav-icon">🔄</span>更新</div>
   <div class="nav-item active" id="pnav-dash" onclick="parentScrollTo('screen-parent')"><span class="nav-icon">📊</span>状況</div>
   <div class="nav-item" id="pnav-reward" onclick="parentScrollTo('p-requests')"><span class="nav-icon">🎁</span>報酬申請</div>
   <div class="nav-item" id="pnav-test" onclick="parentScrollTo('p-test-list')"><span class="nav-icon">📅</span>テスト</div>
@@ -2910,6 +2917,8 @@ function familyExport() {
 function copyShareCode() {
   const el = document.getElementById('family-share-code');
   if(!el) return;
+  const pname = (document.getElementById('share-partner-name')?.value||'').trim();
+  if(pname) { S.partnerName = pname; save(); renderPartnerBanner(); }
   navigator.clipboard?.writeText(el.value).then(()=>{ showToast('✅ コピーしました！LINEなどで送ってください'); }).catch(()=>{ el.select(); document.execCommand('copy'); showToast('✅ コピーしました！'); });
 }
 function familyImport() {
