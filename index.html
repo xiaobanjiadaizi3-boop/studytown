@@ -329,6 +329,10 @@ body.parent-mode{--bg:#0d0716;--bg2:#110a1f;--card:#1a0d2e;--card2:#22103c;--bor
 body.parent-mode .parent-banner{display:block;}
 body.parent-mode .bottom-nav{border-top-color:var(--parent-border);}
 body.parent-mode .nav-item.active{color:#ce93d8;}
+/* parent mode nav swap */
+body.parent-mode nav.bottom-nav:not(#parent-nav){display:none!important;}
+#parent-nav{display:none;}
+body.parent-mode #parent-nav{display:flex!important;}
 
 /* Parent dashboard cards */
 .parent-stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 16px 10px;}
@@ -1024,6 +1028,14 @@ body.parent-mode .nav-item.active{color:#ce93d8;}
   <div class="nav-item" onclick="switchScreen('settings',this)"      id="nav-set"><span class="nav-icon">⚙️</span>設定</div>
 </nav>
 
+<!-- PARENT NAV -->
+<nav id="parent-nav" class="bottom-nav" style="border-top-color:var(--parent-border);">
+  <div class="nav-item active" id="pnav-dash" onclick="parentScrollTo('screen-parent')"><span class="nav-icon">📊</span>状況</div>
+  <div class="nav-item" id="pnav-reward" onclick="parentScrollTo('p-requests')"><span class="nav-icon">🎁</span>報酬申請</div>
+  <div class="nav-item" id="pnav-test" onclick="parentScrollTo('p-test-list')"><span class="nav-icon">📅</span>テスト</div>
+  <div class="nav-item" id="pnav-exit" onclick="exitParentMode()"><span class="nav-icon">🚪</span>子供モードへ</div>
+</nav>
+
 <!-- RECORD MODAL -->
 <div class="modal-overlay" id="modal" onclick="closeModalOut(event)">
   <div class="modal-sheet">
@@ -1672,23 +1684,51 @@ function showCalDay(ds, el){
 }
 
 // ==================== PARENT MODE ====================
-let pcMode='enter'; // 'enter' | 'set'
+let pcMode='enter'; // 'enter' | 'set' | 'setup'
 let pcBuf='';
+let pcSetupStep=1;
+let pcSetupFirst='';
 
 function selectChildMode() {
+  localStorage.setItem('stModePersist','child');
   sessionStorage.setItem('stMode','child');
   document.getElementById('mode-select-overlay').style.display='none';
 }
 function selectParentMode() {
   document.getElementById('mode-select-overlay').style.display='none';
-  enterParentMode();
+  if(S.passcode==='1234') {
+    pcMode='setup'; pcSetupStep=1; pcSetupFirst=''; pcBuf='';
+    updatePcDots();
+    document.getElementById('pc-title').textContent='パスワードを設定してください';
+    document.getElementById('pc-sub').innerHTML='お母さんモード用の4桁パスワードを<br>新しく決めてください';
+    document.getElementById('pc-error').textContent='パスワードが一致しません';
+    document.getElementById('pc-error').classList.remove('show');
+    document.getElementById('passcode-overlay').classList.add('open');
+  } else {
+    enterParentMode();
+  }
 }
 
-function enterParentMode(){pcMode='enter';pcBuf='';updatePcDots();document.getElementById('pc-title').textContent='お母さんモード';document.getElementById('pc-sub').innerHTML='パスコードを入力してください<br><span style="font-size:0.7rem;opacity:0.6;">初回は 1234 です</span>';document.getElementById('pc-error').classList.remove('show');document.getElementById('passcode-overlay').classList.add('open');}
+function enterParentModeNow() {
+  localStorage.setItem('stModePersist','parent');
+  sessionStorage.setItem('stMode','parent');
+  document.body.classList.add('parent-mode');
+  switchScreen('parent',null);
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('pnav-dash').classList.add('active');
+  renderParent();
+}
 
-function openPasscodeSetting(){pcMode='set';pcBuf='';updatePcDots();document.getElementById('pc-title').textContent='新しいパスコード';document.getElementById('pc-sub').innerHTML='お母さんモード用の<br>新しい4桁パスコードを入力してください';document.getElementById('pc-error').classList.remove('show');document.getElementById('passcode-overlay').classList.add('open');}
+function enterParentMode(){pcMode='enter';pcBuf='';updatePcDots();document.getElementById('pc-title').textContent='お母さんモード';document.getElementById('pc-sub').innerHTML='パスワードを入力してください';document.getElementById('pc-error').textContent='パスワードが違います';document.getElementById('pc-error').classList.remove('show');document.getElementById('passcode-overlay').classList.add('open');}
 
-function closePasscode(){document.getElementById('passcode-overlay').classList.remove('open');}
+function openPasscodeSetting(){pcMode='set';pcBuf='';updatePcDots();document.getElementById('pc-title').textContent='新しいパスワード';document.getElementById('pc-sub').innerHTML='お母さんモード用の<br>新しい4桁パスワードを入力してください';document.getElementById('pc-error').textContent='パスワードが違います';document.getElementById('pc-error').classList.remove('show');document.getElementById('passcode-overlay').classList.add('open');}
+
+function closePasscode(){
+  document.getElementById('passcode-overlay').classList.remove('open');
+  if(!sessionStorage.getItem('stMode')) {
+    document.getElementById('mode-select-overlay').style.display='flex';
+  }
+}
 
 function pcKey(k){
   if(pcBuf.length>=4)return;
@@ -1700,27 +1740,54 @@ function updatePcDots(){
   for(let i=0;i<4;i++) document.getElementById('dot-'+i).className='passcode-dot'+(i<pcBuf.length?' filled':'');
 }
 function pcConfirm(){
-  if(pcMode==='enter'){
+  if(pcMode==='setup') {
+    if(pcSetupStep===1) {
+      pcSetupFirst=pcBuf; pcBuf=''; updatePcDots();
+      document.getElementById('pc-title').textContent='もう一度入力してください';
+      document.getElementById('pc-sub').innerHTML='確認のため、同じパスワードを<br>もう一度入力してください';
+      pcSetupStep=2;
+    } else {
+      if(pcBuf===pcSetupFirst) {
+        S.passcode=pcBuf; save(); closePasscode();
+        showToast('✅ パスワードを設定しました');
+        enterParentModeNow();
+      } else {
+        document.getElementById('pc-error').classList.add('show');
+        setTimeout(()=>{
+          pcBuf=''; pcSetupStep=1; pcSetupFirst=''; updatePcDots();
+          document.getElementById('pc-title').textContent='パスワードを設定してください';
+          document.getElementById('pc-sub').innerHTML='お母さんモード用の4桁パスワードを<br>新しく決めてください';
+          document.getElementById('pc-error').classList.remove('show');
+        },1200);
+      }
+    }
+  } else if(pcMode==='enter'){
     if(pcBuf===S.passcode){
       closePasscode();
-      sessionStorage.setItem('stMode','parent');
-      document.body.classList.add('parent-mode');
-      switchScreen('parent',null);
-      document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
-      renderParent();
+      enterParentModeNow();
     } else {
       document.getElementById('pc-error').classList.add('show');
       setTimeout(()=>{pcBuf='';updatePcDots();document.getElementById('pc-error').classList.remove('show');},1200);
     }
   } else {
     S.passcode=pcBuf; save(); closePasscode();
-    showToast('🔐 パスコードを変更しました');
+    showToast('🔐 パスワードを変更しました');
   }
 }
 
 function exitParentMode(){
+  localStorage.setItem('stModePersist','child');
+  sessionStorage.setItem('stMode','child');
   document.body.classList.remove('parent-mode');
   switchScreen('home',document.getElementById('nav-home'));
+}
+
+function parentScrollTo(id) {
+  const el = document.getElementById(id);
+  if(!el) return;
+  document.querySelectorAll('#parent-nav .nav-item').forEach(n=>n.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  el.scrollIntoView({behavior:'smooth',block:'start'});
 }
 
 function renderParent(){
@@ -2939,12 +3006,24 @@ if(!S.geoSessionCount) S.geoSessionCount = 0;
 if(S.geoShuffle===undefined) S.geoShuffle = true;
 if(!S.geoApiKey) S.geoApiKey = ['sk','-ant-a','pi03-wiErgNKsR1czzv4_RcU8SnRCrb','Fvx__qs5Sv32nfF31ntTeIy2hKYTrF','wpq0btQfQDu1Gmt8dLrl_yIfuPnmXw-7hGYVAAA'].join('');
 checkStreak(); renderAll();
-// モード選択：セッションにモードが保存されていなければ選択画面を表示
-if(!sessionStorage.getItem('stMode')) {
-  document.getElementById('mode-select-overlay').style.display='flex';
-} else {
-  document.getElementById('mode-select-overlay').style.display='none';
-}
+// モード復元：localStorageに保存されていれば選択画面をスキップ
+(function(){
+  const saved = localStorage.getItem('stModePersist');
+  if(saved === 'parent') {
+    document.getElementById('mode-select-overlay').style.display='none';
+    sessionStorage.setItem('stMode','parent');
+    document.body.classList.add('parent-mode');
+    switchScreen('parent',null);
+    document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+    document.getElementById('pnav-dash').classList.add('active');
+    renderParent();
+  } else if(saved === 'child') {
+    document.getElementById('mode-select-overlay').style.display='none';
+    sessionStorage.setItem('stMode','child');
+  } else {
+    document.getElementById('mode-select-overlay').style.display='flex';
+  }
+})();
 </script>
 
 <!-- PWA Manifest inline -->
