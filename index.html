@@ -834,6 +834,34 @@ body.parent-mode .nav-item.active{color:#ce93d8;}
   </div>
   <div class="settings-card">
     <div style="padding:13px 16px;">
+      <div style="font-size:0.9rem;font-weight:700;color:var(--text);margin-bottom:4px;">👨‍👩‍👧 家族で共有</div>
+      <div style="font-size:0.72rem;color:var(--text2);margin-bottom:12px;">問題・学習記録を親子間で共有できます</div>
+      <button onclick="familyExport()"
+        style="width:100%;padding:11px;background:linear-gradient(135deg,var(--blue),#5fa0ff);border:none;border-radius:12px;color:#fff;font-size:0.88rem;font-weight:700;cursor:pointer;margin-bottom:8px;">
+        📤 共有コードを作る（送る側）
+      </button>
+      <div style="font-size:0.72rem;color:var(--text2);margin-bottom:8px;text-align:center;">▼ 受け取った場合はコードを貼り付けてください</div>
+      <textarea id="family-import-input" placeholder="共有コードをここに貼り付け..."
+        style="width:100%;height:72px;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;color:var(--text);font-size:0.78rem;font-family:'Noto Sans JP',sans-serif;padding:8px 10px;outline:none;resize:none;box-sizing:border-box;"></textarea>
+      <button onclick="familyImport()"
+        style="width:100%;padding:11px;background:var(--green);border:none;border-radius:12px;color:#fff;font-size:0.88rem;font-weight:700;cursor:pointer;margin-top:6px;">
+        📥 取り込む（受け取る側）
+      </button>
+    </div>
+  </div>
+  <!-- 共有コード表示モーダル -->
+  <div class="modal-overlay" id="family-share-modal" onclick="if(event.target===this)this.classList.remove('open')">
+    <div class="modal-sheet" style="padding-bottom:calc(20px + var(--safe-bot));">
+      <div class="modal-handle"></div>
+      <div style="font-weight:700;font-size:1rem;margin-bottom:8px;text-align:center;">📤 共有コード</div>
+      <div style="font-size:0.72rem;color:var(--text2);text-align:center;margin-bottom:10px;">このコードをLINEなどで家族に送ってください</div>
+      <textarea id="family-share-code" readonly style="width:100%;height:100px;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;color:var(--text);font-size:0.7rem;font-family:monospace;padding:8px;resize:none;box-sizing:border-box;"></textarea>
+      <button onclick="copyShareCode()" style="width:100%;padding:12px;background:var(--blue);border:none;border-radius:12px;color:#fff;font-size:0.9rem;font-weight:700;cursor:pointer;margin-top:8px;">📋 コピーする</button>
+      <button onclick="document.getElementById('family-share-modal').classList.remove('open')" style="width:100%;padding:11px;background:var(--card);border:1.5px solid var(--border);border-radius:12px;color:var(--text2);font-size:0.85rem;font-weight:700;cursor:pointer;margin-top:6px;">閉じる</button>
+    </div>
+  </div>
+  <div class="settings-card">
+    <div style="padding:13px 16px;">
       <div style="font-size:0.8rem;font-weight:700;color:var(--text);margin-bottom:8px;">🤖 Claude APIキー（学習タブのAI解説・PDF問題生成に使用）</div>
       <input id="geo-api-key-input" type="password" placeholder="sk-ant-api03-..."
         style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;color:var(--text);font-size:0.82rem;font-family:'Noto Sans JP',sans-serif;padding:9px 12px;outline:none;"
@@ -2665,6 +2693,52 @@ function renderGeoStats() {
   el.innerHTML=html;
 }
 function geoStartWeakFromStats(){geoStartFilter='all';geoStartSession('review');}
+
+// ==================== 家族共有 ====================
+function familyExport() {
+  const data = {
+    v: 2,
+    q: S.geoQuestions,
+    pts: S.totalPoints,
+    sub: S.subjectPoints,
+    cnt: S.geoSessionCount,
+    pdfs: (S.pdfs||[]).map(p=>({id:p.id,name:p.name,subject:p.subject,date:p.date,size:p.size}))
+  };
+  const code = btoa(unescape(encodeURIComponent(JSON.stringify(data))));
+  const el = document.getElementById('family-share-code');
+  if(el) el.value = code;
+  document.getElementById('family-share-modal').classList.add('open');
+  navigator.clipboard?.writeText(code).then(()=>showToast('✅ コードをコピーしました')).catch(()=>{});
+}
+function copyShareCode() {
+  const el = document.getElementById('family-share-code');
+  if(!el) return;
+  navigator.clipboard?.writeText(el.value).then(()=>{ showToast('✅ コピーしました！LINEなどで送ってください'); }).catch(()=>{ el.select(); document.execCommand('copy'); showToast('✅ コピーしました！'); });
+}
+function familyImport() {
+  const inp = document.getElementById('family-import-input');
+  const code = (inp?.value||'').trim();
+  if(!code){ showToast('コードを貼り付けてください'); return; }
+  try {
+    const data = JSON.parse(decodeURIComponent(escape(atob(code))));
+    if(!data.v || !Array.isArray(data.q)) throw new Error('無効なコードです');
+    const existingIds = new Set(S.geoQuestions.map(q=>q.id));
+    let addedQ = 0;
+    data.q.forEach(q => {
+      if(!existingIds.has(q.id)){ S.geoQuestions.push(q); addedQ++; }
+      else { const ex = S.geoQuestions.find(e=>e.id===q.id); if(ex && (q.history||[]).length > (ex.history||[]).length) ex.history = q.history; }
+    });
+    const existingPdfIds = new Set((S.pdfs||[]).map(p=>p.id));
+    (data.pdfs||[]).forEach(p=>{ if(!existingPdfIds.has(p.id)){ S.pdfs.push(p); } });
+    S.totalPoints = Math.max(S.totalPoints||0, data.pts||0);
+    Object.keys(data.sub||{}).forEach(k=>{ S.subjectPoints[k] = Math.max(S.subjectPoints[k]||0, data.sub[k]||0); });
+    S.geoSessionCount = Math.max(S.geoSessionCount||0, data.cnt||0);
+    save(); renderAll();
+    if(inp) inp.value = '';
+    showToast(`✅ 取り込み完了！問題 +${addedQ}件`);
+    playSound('complete');
+  } catch(e) { showToast('⚠️ 取り込みエラー: ' + e.message); }
+}
 
 function saveGeoApiKey() {
   const v=(document.getElementById('geo-api-key-input')||{}).value?.trim()||'';
