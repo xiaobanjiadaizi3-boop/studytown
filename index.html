@@ -1033,7 +1033,8 @@ body.parent-mode #parent-nav{display:flex!important;}
   <div class="nav-item active" id="pnav-dash" onclick="parentScrollTo('screen-parent')"><span class="nav-icon">📊</span>状況</div>
   <div class="nav-item" id="pnav-reward" onclick="parentScrollTo('p-requests')"><span class="nav-icon">🎁</span>報酬申請</div>
   <div class="nav-item" id="pnav-test" onclick="parentScrollTo('p-test-list')"><span class="nav-icon">📅</span>テスト</div>
-  <div class="nav-item" id="pnav-exit" onclick="exitParentMode()"><span class="nav-icon">🚪</span>子供モードへ</div>
+  <div class="nav-item" id="pnav-set" onclick="parentGoSettings()"><span class="nav-icon">⚙️</span>設定</div>
+  <div class="nav-item" id="pnav-exit" onclick="exitParentMode()"><span class="nav-icon">🚪</span>子供へ</div>
 </nav>
 
 <!-- RECORD MODAL -->
@@ -1785,9 +1786,17 @@ function exitParentMode(){
 function parentScrollTo(id) {
   const el = document.getElementById(id);
   if(!el) return;
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-parent').classList.add('active');
   document.querySelectorAll('#parent-nav .nav-item').forEach(n=>n.classList.remove('active'));
   event.currentTarget.classList.add('active');
-  el.scrollIntoView({behavior:'smooth',block:'start'});
+  setTimeout(()=>el.scrollIntoView({behavior:'smooth',block:'start'}),50);
+}
+function parentGoSettings() {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-settings').classList.add('active');
+  document.querySelectorAll('#parent-nav .nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('pnav-set').classList.add('active');
 }
 
 function renderParent(){
