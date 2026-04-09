@@ -901,7 +901,18 @@ body.parent-mode #parent-nav{display:flex!important;}
   <div class="settings-card">
     <div style="padding:13px 16px;">
       <div style="font-size:0.9rem;font-weight:700;color:var(--text);margin-bottom:4px;">👨‍👩‍👧 家族で共有</div>
-      <div style="font-size:0.72rem;color:var(--text2);margin-bottom:12px;">問題・学習記録を親子間で共有できます</div>
+      <div style="font-size:0.72rem;color:var(--text2);margin-bottom:10px;">問題・学習記録を親子間で共有できます</div>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;">
+        <span style="font-size:0.78rem;color:var(--text2);white-space:nowrap;">自分の名前：</span>
+        <input id="settings-name-input" type="text" placeholder="名前を入力"
+          style="flex:1;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;
+          color:var(--text);font-size:0.85rem;font-family:'Noto Sans JP',sans-serif;
+          padding:7px 10px;outline:none;"
+          oninput="this.style.borderColor='rgba(245,200,66,0.4)'">
+        <button onclick="saveNameFromSettings()"
+          style="padding:7px 14px;background:var(--blue);border:none;border-radius:10px;
+          color:#fff;font-size:0.8rem;font-weight:700;cursor:pointer;white-space:nowrap;">保存</button>
+      </div>
       <button onclick="familyExport()"
         style="width:100%;padding:11px;background:linear-gradient(135deg,var(--blue),#5fa0ff);border:none;border-radius:12px;color:#fff;font-size:0.88rem;font-weight:700;cursor:pointer;margin-bottom:8px;">
         📤 共有コードを作る（送る側）
@@ -1738,6 +1749,12 @@ function saveName() {
   renderPartnerBanner();
   if(overlay._callback) overlay._callback();
 }
+function saveNameFromSettings() {
+  const val = (document.getElementById('settings-name-input')?.value||'').trim();
+  if(!val){ showToast('名前を入力してください'); return; }
+  S.myName = val; save();
+  showToast('✅ 名前を保存しました');
+}
 function renderPartnerBanner() {
   const banner = document.getElementById('partner-banner');
   if(S.partnerName) {
@@ -2246,7 +2263,10 @@ function switchScreen(name,navEl){
   if(name==='reward')renderRewardScreen();
   if(name==='town')renderTownScreen(false);
   if(name==='geo'){geoNav(geoTab,null);}
-  if(name==='settings'){ const el=document.getElementById('geo-api-key-input'); if(el)el.value=S.geoApiKey||''; }
+  if(name==='settings'){
+    const el=document.getElementById('geo-api-key-input'); if(el)el.value=S.geoApiKey||'';
+    const ni=document.getElementById('settings-name-input'); if(ni)ni.value=S.myName||'';
+  }
 }
 
 // ==================== CONFIRM MODAL ====================
