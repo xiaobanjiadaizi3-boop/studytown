@@ -1875,6 +1875,8 @@ function parentGoSettings() {
   document.getElementById('screen-settings').classList.add('active');
   document.querySelectorAll('#parent-nav .nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById('pnav-set').classList.add('active');
+  const el=document.getElementById('geo-api-key-input'); if(el)el.value=S.geoApiKey||'';
+  const ni=document.getElementById('settings-name-input'); if(ni)ni.value=S.myName||'';
 }
 
 function renderParent(){
@@ -2243,7 +2245,12 @@ function openGoalSetting(){
 function resetData(){
   showConfirm('本当にリセットしますか？','この操作は元に戻せません',()=>{
     localStorage.removeItem(KEY);
-    S=defaultState();save();renderAll();showToast('リセットしました');
+    localStorage.removeItem('stModePersist');
+    sessionStorage.removeItem('stMode');
+    document.body.classList.remove('parent-mode');
+    S=defaultState();save();renderAll();
+    showToast('リセットしました');
+    document.getElementById('mode-select-overlay').style.display='flex';
   });
 }
 
@@ -2912,6 +2919,8 @@ function familyExport() {
   const el = document.getElementById('family-share-code');
   if(el) el.value = code;
   document.getElementById('family-share-modal').classList.add('open');
+  const pnInput = document.getElementById('share-partner-name');
+  if(pnInput && S.partnerName) pnInput.value = S.partnerName;
   navigator.clipboard?.writeText(code).then(()=>showToast('✅ コードをコピーしました')).catch(()=>{});
 }
 function copyShareCode() {
