@@ -11,6 +11,8 @@
 <title>StudyTown</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&family=Zen+Kaku+Gothic+New:wght@700;900&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <style>
 :root {
   --bg:#0a0f1e; --bg2:#0f1729; --card:#151d35; --card2:#1a2440;
@@ -892,10 +894,11 @@ body.parent-mode #parent-nav{display:flex!important;}
   </div>
   <div class="settings-card">
     <div style="padding:13px 16px;">
-      <div style="font-size:0.9rem;font-weight:700;color:var(--text);margin-bottom:4px;">👨‍👩‍👧 家族で共有</div>
-      <div style="font-size:0.72rem;color:var(--text2);margin-bottom:10px;">問題・学習記録を親子間で共有できます</div>
-      <div style="margin-bottom:12px;">
-        <div style="font-size:0.78rem;color:var(--text2);margin-bottom:5px;">自分の名前</div>
+      <div style="font-size:0.9rem;font-weight:700;color:var(--text);margin-bottom:4px;">🔄 リアルタイム同期</div>
+      <div id="fb-status-bar" style="font-size:0.72rem;margin-bottom:10px;color:var(--text2);">⚫ 未接続</div>
+      <div id="fb-settings-ui"></div>
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);">
+        <div style="font-size:0.78rem;font-weight:700;color:var(--text2);margin-bottom:8px;">自分の名前</div>
         <input id="settings-name-input" type="text" placeholder="名前を入力"
           style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;
           color:var(--text);font-size:0.85rem;font-family:'Noto Sans JP',sans-serif;
@@ -905,17 +908,6 @@ body.parent-mode #parent-nav{display:flex!important;}
           style="width:100%;margin-top:6px;padding:9px;background:var(--blue);border:none;border-radius:10px;
           color:#fff;font-size:0.85rem;font-weight:700;cursor:pointer;">保存</button>
       </div>
-      <button onclick="familyExport()"
-        style="width:100%;padding:11px;background:linear-gradient(135deg,var(--blue),#5fa0ff);border:none;border-radius:12px;color:#fff;font-size:0.88rem;font-weight:700;cursor:pointer;margin-bottom:8px;">
-        📤 共有コードを作る（送る側）
-      </button>
-      <div style="font-size:0.72rem;color:var(--text2);margin-bottom:8px;text-align:center;">▼ 受け取った場合はコードを貼り付けてください</div>
-      <textarea id="family-import-input" placeholder="共有コードをここに貼り付け..."
-        style="width:100%;height:72px;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;color:var(--text);font-size:0.78rem;font-family:'Noto Sans JP',sans-serif;padding:8px 10px;outline:none;resize:none;box-sizing:border-box;"></textarea>
-      <button onclick="familyImport()"
-        style="width:100%;padding:11px;background:var(--green);border:none;border-radius:12px;color:#fff;font-size:0.88rem;font-weight:700;cursor:pointer;margin-top:6px;">
-        📥 取り込む（受け取る側）
-      </button>
     </div>
   </div>
   <!-- 共有コード表示モーダル -->
@@ -1239,7 +1231,7 @@ function defaultState() {
   };
 }
 let S = (() => { try { const s=localStorage.getItem(KEY); return s?JSON.parse(s):defaultState(); } catch{return defaultState();} })();
-const save = () => localStorage.setItem(KEY, JSON.stringify(S));
+const save = () => { localStorage.setItem(KEY, JSON.stringify(S)); fbWrite(); };
 
 // ==================== HELPERS ====================
 const todayStr = () => new Date().toISOString().slice(0,10);
@@ -2273,6 +2265,7 @@ function switchScreen(name,navEl){
   if(name==='settings'){
     const el=document.getElementById('geo-api-key-input'); if(el)el.value=S.geoApiKey||'';
     const ni=document.getElementById('settings-name-input'); if(ni)ni.value=S.myName||'';
+    renderFbSettingsUI();
   }
 }
 
@@ -3109,6 +3102,144 @@ if(isIOS){
   document.getElementById('install-btn').style.display='none';
 }
 
+// ==================== FIREBASE SYNC ====================
+const FB_CONFIG = {
+  apiKey: "AIzaSyDXhnTcwhKrSWy4wlzPrGXvYxc1kDWlAcY",
+  databaseURL: "https://studytownmoyaaaashi-default-rtdb.firebaseio.com",
+  projectId: "studytownmoyaaaashi",
+  appId: "1:481160310310:web:ae94cfeda542d4986980e7"
+};
+let fbDb = null, fbRef = null, fbWriteTimer = null, fbMerging = false, fbIgnoreCount = 0;
+let fbRoomId = localStorage.getItem('stFamilyRoom') || null;
+
+function fbGetDb() {
+  if(fbDb) return fbDb;
+  if(!firebase.apps.length) firebase.initializeApp(FB_CONFIG);
+  fbDb = firebase.database();
+  return fbDb;
+}
+function fbConnect(roomId) {
+  if(fbRef) { fbRef.off(); fbRef = null; }
+  fbRoomId = roomId.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,8);
+  localStorage.setItem('stFamilyRoom', fbRoomId);
+  const db = fbGetDb();
+  fbRef = db.ref('families/' + fbRoomId + '/data');
+  fbRef.on('value', fbOnRemote, e => showToast('⚠️ 同期エラー: ' + e.message));
+  fbIgnoreCount = 0;
+  fbWrite();
+  renderFbSettingsUI();
+  showToast('✅ ルーム ' + fbRoomId + ' に接続しました');
+}
+function fbDisconnect() {
+  if(fbRef) { fbRef.off(); fbRef = null; }
+  fbRoomId = null;
+  localStorage.removeItem('stFamilyRoom');
+  renderFbSettingsUI();
+  showToast('切断しました');
+}
+function fbCreateRoom() {
+  const id = Math.random().toString(36).slice(2,8).toUpperCase();
+  fbConnect(id);
+}
+function fbJoinRoom() {
+  const el = document.getElementById('fb-join-input');
+  const id = (el?.value||'').trim();
+  if(!id) { showToast('ルームIDを入力してください'); return; }
+  fbConnect(id);
+}
+function fbWrite() {
+  if(!fbRef || fbMerging) return;
+  clearTimeout(fbWriteTimer);
+  fbWriteTimer = setTimeout(() => {
+    if(!fbRef) return;
+    const data = {
+      v:3, name:S.myName||'',
+      q:S.geoQuestions, pts:S.totalPoints, sub:S.subjectPoints, cnt:S.geoSessionCount,
+      pdfs:(S.pdfs||[]).map(p=>({id:p.id,name:p.name,subject:p.subject,date:p.date,size:p.size})),
+      records:S.records||[], streak:S.streak||0, lastStudyDate:S.lastStudyDate||null,
+      weeklyMinutes:S.weeklyMinutes||{}, tests:S.tests||[], goalMinutes:S.goalMinutes||60,
+      ts:Date.now()
+    };
+    fbIgnoreCount++;
+    fbRef.set(data).catch(e=>{ fbIgnoreCount=Math.max(0,fbIgnoreCount-1); });
+  }, 1500);
+}
+function fbOnRemote(snapshot) {
+  if(fbIgnoreCount > 0) { fbIgnoreCount--; return; }
+  const data = snapshot.val();
+  if(!data) return;
+  fbMerging = true;
+  let changed = false;
+  // 問題
+  const qIds = new Set(S.geoQuestions.map(q=>q.id));
+  (data.q||[]).forEach(q=>{
+    if(!qIds.has(q.id)){S.geoQuestions.push(q);changed=true;}
+    else{const ex=S.geoQuestions.find(e=>e.id===q.id);if(ex&&(q.history||[]).length>(ex.history||[]).length){ex.history=q.history;changed=true;}}
+  });
+  // PDF
+  const pdfIds=new Set((S.pdfs||[]).map(p=>p.id));
+  (data.pdfs||[]).forEach(p=>{if(!pdfIds.has(p.id)){S.pdfs.push(p);changed=true;}});
+  // ポイント
+  if((data.pts||0)>(S.totalPoints||0)){S.totalPoints=data.pts;changed=true;}
+  Object.keys(data.sub||{}).forEach(k=>{if((data.sub[k]||0)>(S.subjectPoints[k]||0)){S.subjectPoints[k]=data.sub[k];changed=true;}});
+  if((data.cnt||0)>(S.geoSessionCount||0)){S.geoSessionCount=data.cnt;changed=true;}
+  // 勉強記録
+  const recIds=new Set((S.records||[]).map(r=>r.id));
+  (data.records||[]).forEach(r=>{if(r.id&&!recIds.has(r.id)){S.records.push(r);changed=true;}});
+  // 連続日数
+  if((data.streak||0)>(S.streak||0)){S.streak=data.streak;S.lastStudyDate=data.lastStudyDate;changed=true;}
+  Object.keys(data.weeklyMinutes||{}).forEach(k=>{if((data.weeklyMinutes[k]||0)>(S.weeklyMinutes[k]||0)){S.weeklyMinutes[k]=data.weeklyMinutes[k];changed=true;}});
+  // テスト
+  const testIds=new Set((S.tests||[]).map(t=>t.id));
+  (data.tests||[]).forEach(t=>{if(t.id&&!testIds.has(t.id)){S.tests.push(t);changed=true;}});
+  // 目標
+  if(data.goalMinutes&&data.goalMinutes!==S.goalMinutes){S.goalMinutes=data.goalMinutes;changed=true;}
+  // 相手の名前
+  if(data.name&&data.name!==S.partnerName){S.partnerName=data.name;renderPartnerBanner();}
+  if(changed){
+    save(); renderAll();
+    showToast('🔄 ' + (data.name||'相手') + 'のデータを同期しました');
+  }
+  fbMerging = false;
+}
+function renderFbSettingsUI() {
+  const el = document.getElementById('fb-settings-ui');
+  const bar = document.getElementById('fb-status-bar');
+  if(!el) return;
+  if(fbRoomId && fbRef) {
+    if(bar) bar.innerHTML = '<span style="color:var(--green);font-weight:700;">🟢 同期中</span>';
+    el.innerHTML = `
+      <div style="background:var(--bg);border:1.5px solid var(--green);border-radius:12px;padding:12px 14px;margin-bottom:8px;">
+        <div style="font-size:0.68rem;color:var(--text2);margin-bottom:4px;">ルームID（相手に教えてください）</div>
+        <div style="font-size:1.6rem;font-weight:900;letter-spacing:6px;color:var(--gold);font-family:monospace;">${fbRoomId}</div>
+      </div>
+      <div style="display:flex;gap:6px;">
+        <button onclick="navigator.clipboard?.writeText('${fbRoomId}').then(()=>showToast('✅ コピーしました'))"
+          style="flex:1;padding:9px;background:var(--blue);border:none;border-radius:10px;color:#fff;font-size:0.82rem;font-weight:700;cursor:pointer;">📋 IDをコピー</button>
+        <button onclick="fbDisconnect()"
+          style="padding:9px 14px;background:rgba(231,76,60,0.12);border:1.5px solid var(--red);border-radius:10px;color:var(--red);font-size:0.82rem;font-weight:700;cursor:pointer;">切断</button>
+      </div>`;
+  } else {
+    if(bar) bar.innerHTML = '<span style="color:var(--text2);">⚫ 未接続</span>';
+    el.innerHTML = `
+      <button onclick="fbCreateRoom()"
+        style="width:100%;padding:12px;background:linear-gradient(135deg,var(--green),#27ae60);border:none;border-radius:12px;color:#fff;font-size:0.9rem;font-weight:700;cursor:pointer;margin-bottom:10px;">
+        ✨ 新しいルームを作る
+      </button>
+      <div style="font-size:0.72rem;color:var(--text2);text-align:center;margin-bottom:8px;">または相手から教えてもらったIDで参加</div>
+      <div style="display:flex;gap:6px;">
+        <input id="fb-join-input" type="text" placeholder="ルームID（例：ABC123）"
+          style="flex:1;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;
+          color:var(--text);font-size:1rem;font-family:monospace;letter-spacing:3px;
+          padding:9px 12px;outline:none;text-transform:uppercase;"
+          oninput="this.value=this.value.toUpperCase()"
+          onkeydown="if(event.key==='Enter')fbJoinRoom()">
+        <button onclick="fbJoinRoom()"
+          style="padding:9px 16px;background:var(--blue);border:none;border-radius:10px;color:#fff;font-size:0.88rem;font-weight:700;cursor:pointer;">参加</button>
+      </div>`;
+  }
+}
+
 // ==================== INIT ====================
 // マイグレーション：古いデータに新フィールドがなければ補完
 if(!S.rewards) S.rewards = defaultState().rewards;
@@ -3136,6 +3267,8 @@ if(!S.myName) S.myName = null;
 if(!S.partnerName) S.partnerName = null;
 checkStreak(); renderAll();
 renderPartnerBanner();
+// Firebase: 前回のルームに自動接続
+if(fbRoomId) { try { fbConnect(fbRoomId); } catch(e) { console.error('Firebase auto-connect error', e); } }
 // モード復元：localStorageに保存されていれば選択画面をスキップ
 (function(){
   const saved = localStorage.getItem('stModePersist');
