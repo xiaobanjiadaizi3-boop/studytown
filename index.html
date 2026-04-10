@@ -756,13 +756,13 @@ body.parent-mode #parent-nav{display:flex!important;}
   <div id="mission-section"></div>
 
   <div class="subjects-wrap">
-    <div class="subject-badge s-kokugo"  onclick="openModal('国語')"><span class="sub-icon">📖</span><span class="sub-name">国語</span><span class="sub-pt" id="pt-国語">0pt</span></div>
-    <div class="subject-badge s-eigo"    onclick="openModal('英語')"><span class="sub-icon">🔤</span><span class="sub-name">英語</span><span class="sub-pt" id="pt-英語">0pt</span></div>
-    <div class="subject-badge s-math"    onclick="openModal('数学')"><span class="sub-icon">📐</span><span class="sub-name">数学</span><span class="sub-pt" id="pt-数学">0pt</span></div>
-    <div class="subject-badge s-rika"    onclick="openModal('理科')"><span class="sub-icon">⚗️</span><span class="sub-name">理科</span><span class="sub-pt" id="pt-理科">0pt</span></div>
-    <div class="subject-badge s-rekishi" onclick="openModal('歴史')"><span class="sub-icon">🏛️</span><span class="sub-name">歴史</span><span class="sub-pt" id="pt-歴史">0pt</span></div>
-    <div class="subject-badge s-chiri"   onclick="openModal('地理')"><span class="sub-icon">🗺️</span><span class="sub-name">地理</span><span class="sub-pt" id="pt-地理">0pt</span></div>
-    <div class="subject-badge s-koumin"  onclick="openModal('公民')"><span class="sub-icon">⚖️</span><span class="sub-name">公民</span><span class="sub-pt" id="pt-公民">0pt</span></div>
+    <div class="subject-badge s-kokugo"><span class="sub-icon">📖</span><span class="sub-name">国語</span><span class="sub-pt" id="pt-国語">0pt</span></div>
+    <div class="subject-badge s-eigo"><span class="sub-icon">🔤</span><span class="sub-name">英語</span><span class="sub-pt" id="pt-英語">0pt</span></div>
+    <div class="subject-badge s-math"><span class="sub-icon">📐</span><span class="sub-name">数学</span><span class="sub-pt" id="pt-数学">0pt</span></div>
+    <div class="subject-badge s-rika"><span class="sub-icon">⚗️</span><span class="sub-name">理科</span><span class="sub-pt" id="pt-理科">0pt</span></div>
+    <div class="subject-badge s-rekishi"><span class="sub-icon">🏛️</span><span class="sub-name">歴史</span><span class="sub-pt" id="pt-歴史">0pt</span></div>
+    <div class="subject-badge s-chiri"><span class="sub-icon">🗺️</span><span class="sub-name">地理</span><span class="sub-pt" id="pt-地理">0pt</span></div>
+    <div class="subject-badge s-koumin"><span class="sub-icon">⚖️</span><span class="sub-name">公民</span><span class="sub-pt" id="pt-公民">0pt</span></div>
   </div>
 
   <div class="sec-title">📝 今日の記録</div>
@@ -774,8 +774,6 @@ body.parent-mode #parent-nav{display:flex!important;}
     <div class="progress-bar"><div class="progress-fill" id="today-bar" style="width:0%"></div></div>
     <div id="today-records"><div class="no-record">まだ記録がありません</div></div>
   </div>
-
-  <button class="btn-main" onclick="openModal(null)">✏️ 勉強を記録する</button>
 </div>
 
 <!-- ==================== POINT SCREEN ==================== -->
@@ -1000,6 +998,24 @@ body.parent-mode #parent-nav{display:flex!important;}
     <div id="p-pdf-list"></div>
   </div>
 
+  <div class="sec-title" style="color:#ce93d8;border-color:#ce93d8;">🎯 今日のミッション</div>
+  <div id="p-mission-section" class="card" style="padding:10px 14px 8px;margin-bottom:10px;"></div>
+
+  <div class="sec-title" style="color:#ce93d8;border-color:#ce93d8;">📝 今日の記録</div>
+  <div class="card" style="margin-bottom:10px;">
+    <div class="progress-row">
+      <span class="progress-label">学習時間</span>
+      <span class="progress-pct" id="p-today-pct">0%</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="p-today-bar" style="width:0%"></div></div>
+    <div id="p-today-records"></div>
+  </div>
+
+  <div class="sec-title" style="color:#ce93d8;border-color:#ce93d8;">🏙️ マイタウン</div>
+  <div class="card" style="margin-bottom:10px;padding:10px 10px 12px;">
+    <div id="p-town-wrap"></div>
+  </div>
+
   <button class="btn-secondary" style="margin-bottom:80px;" onclick="exitParentMode()">← 子どもモードに戻る</button>
 </div>
 
@@ -1054,32 +1070,6 @@ body.parent-mode #parent-nav{display:flex!important;}
   <div class="nav-item" id="pnav-set" onclick="parentGoSettings()"><span class="nav-icon">⚙️</span>設定</div>
   <div class="nav-item" id="pnav-exit" onclick="exitParentMode()"><span class="nav-icon">🚪</span>子供へ</div>
 </nav>
-
-<!-- RECORD MODAL -->
-<div class="modal-overlay" id="modal" onclick="closeModalOut(event)">
-  <div class="modal-sheet">
-    <div class="modal-handle"></div>
-    <div class="modal-title"><span class="modal-back" onclick="closeModal()">←</span>今日の勉強を記録する</div>
-    <div class="input-label">科目を選択</div>
-    <div class="sub-grid">
-      <button class="sub-btn" id="sub-国語" onclick="selectSub('国語')"><span class="sub-btn-icon">📖</span><span class="sub-btn-name">国語</span></button>
-      <button class="sub-btn" id="sub-英語" onclick="selectSub('英語')"><span class="sub-btn-icon">🔤</span><span class="sub-btn-name">英語</span></button>
-      <button class="sub-btn" id="sub-数学" onclick="selectSub('数学')"><span class="sub-btn-icon">📐</span><span class="sub-btn-name">数学</span></button>
-      <button class="sub-btn" id="sub-理科" onclick="selectSub('理科')"><span class="sub-btn-icon">⚗️</span><span class="sub-btn-name">理科</span></button>
-      <button class="sub-btn" id="sub-歴史" onclick="selectSub('歴史')"><span class="sub-btn-icon">🏛️</span><span class="sub-btn-name">歴史</span></button>
-      <button class="sub-btn" id="sub-地理" onclick="selectSub('地理')"><span class="sub-btn-icon">🗺️</span><span class="sub-btn-name">地理</span></button>
-      <button class="sub-btn" id="sub-公民" onclick="selectSub('公民')"><span class="sub-btn-icon">⚖️</span><span class="sub-btn-name">公民</span></button>
-    </div>
-    <div class="input-label">勉強時間</div>
-    <div class="time-row">
-      <button class="time-btn" onclick="changeTime(-15)">−</button>
-      <div class="time-display"><span id="time-val">30</span>分</div>
-      <button class="time-btn" onclick="changeTime(15)">＋</button>
-    </div>
-    <textarea class="memo-input" id="memo-input" rows="2" placeholder="メモ（任意）例：二次方程式の練習"></textarea>
-    <button class="btn-submit" id="btn-submit" onclick="submitRecord()" disabled>記録する <span id="submit-pt-label">+0pt</span></button>
-  </div>
-</div>
 
 <!-- PASSCODE OVERLAY -->
 <div class="passcode-overlay" id="passcode-overlay">
@@ -1149,6 +1139,18 @@ body.parent-mode #parent-nav{display:flex!important;}
   <div class="modal-sheet">
     <div class="modal-handle"></div>
     <div class="modal-title">🎯 学習モードを選ぶ</div>
+    <div style="margin-bottom:12px;">
+      <div style="font-size:0.78rem;color:var(--text2);margin-bottom:8px;">教科を選ぶ <span style="color:var(--red);">*</span></div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;" id="geo-start-subjects">
+        <div class="unit-tag" data-sub="国語" onclick="geoSelectSubject('国語',this)">📖 国語</div>
+        <div class="unit-tag" data-sub="英語" onclick="geoSelectSubject('英語',this)">🔤 英語</div>
+        <div class="unit-tag" data-sub="数学" onclick="geoSelectSubject('数学',this)">📐 数学</div>
+        <div class="unit-tag" data-sub="理科" onclick="geoSelectSubject('理科',this)">⚗️ 理科</div>
+        <div class="unit-tag" data-sub="歴史" onclick="geoSelectSubject('歴史',this)">🏛️ 歴史</div>
+        <div class="unit-tag" data-sub="地理" onclick="geoSelectSubject('地理',this)">🗺️ 地理</div>
+        <div class="unit-tag" data-sub="公民" onclick="geoSelectSubject('公民',this)">⚖️ 公民</div>
+      </div>
+    </div>
     <div style="margin-bottom:10px;">
       <div style="font-size:0.78rem;color:var(--text2);margin-bottom:8px;">単元を絞り込む（任意）</div>
       <div class="unit-filter-row" id="geo-start-unit-filter" style="padding:0;flex-wrap:wrap;gap:6px;overflow:visible;"></div>
@@ -1449,63 +1451,6 @@ function renderTodayRecords() {
   const c=document.getElementById('today-records');
   if(!recs.length){c.innerHTML='<div class="no-record">まだ記録がありません</div>';return;}
   c.innerHTML=recs.map(r=>`<div class="record-row"><div class="record-dot"></div><span class="record-name">${r.subject}${r.memo?' — '+r.memo:''}</span><span class="record-time">+${r.minutes}分</span><span class="record-pt">+${r.points}pt</span></div>`).join('');
-}
-
-// ==================== RECORD MODAL ====================
-let selSub=null, selTime=30;
-const subSelClass={国語:'sel-kokugo',英語:'sel-eigo',数学:'sel-math',理科:'sel-rika',歴史:'sel-rekishi',地理:'sel-chiri',公民:'sel-koumin'};
-
-function openModal(sub) {
-  selSub=sub; selTime=30;
-  document.getElementById('time-val').textContent=30;
-  document.getElementById('memo-input').value='';
-  ['国語','英語','数学','理科','歴史','地理','公民'].forEach(s=>document.getElementById('sub-'+s).className='sub-btn');
-  if(sub) selectSub(sub);
-  updateSubmitBtn();
-  document.getElementById('modal').classList.add('open');
-}
-function closeModal(){document.getElementById('modal').classList.remove('open');}
-function closeModalOut(e){if(e.target===document.getElementById('modal'))closeModal();}
-function selectSub(s){
-  ['国語','英語','数学','理科','歴史','地理','公民'].forEach(x=>document.getElementById('sub-'+x).className='sub-btn');
-  selSub=s;
-  document.getElementById('sub-'+s).className='sub-btn '+subSelClass[s];
-  updateSubmitBtn();
-}
-function changeTime(d){selTime=Math.max(15,Math.min(300,selTime+d));document.getElementById('time-val').textContent=selTime;updateSubmitBtn();}
-function updateSubmitBtn(){
-  const pts=calcPts(selTime);
-  document.getElementById('submit-pt-label').textContent='+'+pts+'pt';
-  document.getElementById('btn-submit').disabled=!selSub;
-}
-function submitRecord(){
-  if(!selSub)return;
-  const today=todayStr(); const pts=calcPts(selTime); const memo=document.getElementById('memo-input').value.trim();
-  let bonus=0;
-  if(S.dailyBonusClaimed!==today){bonus=20;S.dailyBonusClaimed=today;}
-  if(S.lastStudyDate!==today){
-    const yest=new Date();yest.setDate(yest.getDate()-1);
-    const yStr=yest.toISOString().slice(0,10);
-    S.streak=(S.lastStudyDate===yStr||S.lastStudyDate===null)?S.streak+1:1;
-    S.lastStudyDate=today;
-  }
-  let sb=0; if(S.streak===7)sb=100; if(S.streak===30)sb=500;
-  const total=pts+bonus+sb;
-  S.records.push({id:Date.now()+'_'+Math.random().toString(36).slice(2,7),date:today,subject:selSub,minutes:selTime,points:total,memo});
-  S.totalPoints+=total;
-  S.subjectPoints[selSub]=(S.subjectPoints[selSub]||0)+total;
-  S.weeklyMinutes[dow()]=(S.weeklyMinutes[dow()]||0)+selTime;
-  save(); closeModal();
-  // float effects
-  showFloatPt(pts, false);
-  if(bonus>0) setTimeout(()=>showFloatPt(bonus, true), 400);
-  if(sb>0)    setTimeout(()=>showFloatPt(sb, true), 800);
-  let msg=`${selSub} ${selTime}分 +${total}pt`;
-  if(bonus>0)msg+=' 🌟+20pt';
-  if(sb>0)msg+=` 🔥${S.streak}日連続+${sb}pt`;
-  showToast(msg);
-  awardMissions();
-  renderAll();
 }
 
 // ==================== POINT SCREEN ====================
@@ -1927,6 +1872,88 @@ function renderParent(){
       <div style="flex:1;min-width:0"><div style="font-size:0.78rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.name}</div><div style="font-size:0.68rem;color:var(--text2)">${p.subject} · ${p.date}</div></div>
     </div>
   `).join(''):'<div style="text-align:center;color:var(--text2);font-size:0.8rem;padding:8px">教材がありません</div>';
+
+  // missions (parent view)
+  const pmEl = document.getElementById('p-mission-section');
+  if(pmEl) {
+    ensureDailyMissions();
+    const claimed = S.missionsClaimed || [];
+    const missions = S.missionIds.map(id=>MISSION_POOL.find(m=>m.id===id)).filter(Boolean);
+    const doneCount = missions.filter(m=>claimed.includes(m.id)).length;
+    const allDone = doneCount === missions.length && missions.length > 0;
+    if(allDone) {
+      pmEl.innerHTML = '<div style="text-align:center;font-size:0.85rem;color:var(--green);padding:6px 0;font-weight:700;">🎉 今日のミッション全クリア！</div>';
+    } else {
+      pmEl.innerHTML = missions.map(m=>{
+        const done = claimed.includes(m.id);
+        const ready = !done && checkMissionCondition(m.id);
+        return `<div class="mission-item ${done?'mission-done':ready?'mission-ready':''}">
+          <span class="mission-icon">${done?'✅':m.icon}</span>
+          <span class="mission-text">${m.text}${ready?'<span class="mission-ready-hint">達成！</span>':''}</span>
+          <span class="mission-pts">${done?'✓':'+'}${m.pts}pt</span>
+        </div>`;
+      }).join('') + `<div style="font-size:0.72rem;color:var(--text2);text-align:right;margin-top:4px;">${doneCount}/${missions.length}完了</div>`;
+    }
+  }
+
+  // today's records (parent view)
+  const pToday = todayStr();
+  const pRecs = S.records.filter(r=>r.date===pToday);
+  const pTotalMin = pRecs.reduce((a,r)=>a+r.minutes,0);
+  const pGoal = S.goalMinutes||60;
+  const pPct = Math.min(100, Math.round(pTotalMin/pGoal*100));
+  const pPctEl = document.getElementById('p-today-pct');
+  const pBarEl = document.getElementById('p-today-bar');
+  const pRecEl = document.getElementById('p-today-records');
+  if(pPctEl) pPctEl.textContent = `${pPct}% (${pTotalMin}/${pGoal}分)`;
+  if(pBarEl) pBarEl.style.width = pPct+'%';
+  if(pRecEl) pRecEl.innerHTML = pRecs.length
+    ? pRecs.map(r=>`<div class="record-row"><div class="record-dot"></div><span class="record-name">${r.subject}${r.memo?' — '+r.memo:''}</span><span class="record-time">+${r.minutes}分</span><span class="record-pt">+${r.points}pt</span></div>`).join('')
+    : '<div class="no-record">まだ記録がありません</div>';
+
+  // town (parent view)
+  renderParentTown(document.getElementById('p-town-wrap'));
+}
+
+// ==================== PARENT TOWN (mini read-only) ====================
+function renderParentTown(container) {
+  if(!container) return;
+  if(!S.townTiles || !Object.keys(S.townTiles).length) {
+    container.innerHTML = '<div style="text-align:center;color:var(--text2);font-size:0.8rem;padding:16px 0;">まだタウンがありません</div>';
+    return;
+  }
+  const tiles = S.townTiles;
+  const HR = 28;
+  const sq3 = Math.sqrt(3);
+  function h2px(q,r){ return {x: HR*sq3*(q+r/2), y: HR*1.5*r}; }
+  function corners(cx,cy){
+    const s=[];
+    for(let i=0;i<6;i++){const a=Math.PI/180*(60*i-30);s.push(`${cx+HR*Math.cos(a)},${cy+HR*Math.sin(a)}`);}
+    return s.join(' ');
+  }
+  let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
+  Object.keys(tiles).forEach(k=>{
+    const[q,r]=k.split(',').map(Number);
+    const{x,y}=h2px(q,r);
+    if(x<minX)minX=x; if(x>maxX)maxX=x;
+    if(y<minY)minY=y; if(y>maxY)maxY=y;
+  });
+  const pad=HR*1.5;
+  const svgW=(maxX-minX)+HR*2+pad*2;
+  const svgH=(maxY-minY)+HR*2+pad*2;
+  const ox=-minX+HR+pad, oy=-minY+HR+pad;
+  let html='';
+  Object.entries(tiles).forEach(([key,tile])=>{
+    const[q,r]=key.split(',').map(Number);
+    const{x,y}=h2px(q,r);
+    const cx=x+ox, cy=y+oy;
+    const def=TOWN_TILES_DEF.find(d=>d.type===tile.type);
+    const fill=def?def.fill:'#0d2044';
+    const stroke=def?def.stroke:'#f5c842';
+    html+=`<polygon points="${corners(cx,cy)}" fill="${fill}" stroke="${stroke}" stroke-width="2"/>`;
+    html+=`<text x="${cx}" y="${cy+1}" text-anchor="middle" dominant-baseline="middle" font-size="18" style="pointer-events:none;user-select:none;">${tile.icon}</text>`;
+  });
+  container.innerHTML=`<div style="overflow:auto;-webkit-overflow-scrolling:touch;"><svg width="${svgW}" height="${svgH}" style="display:block;margin:0 auto;">${html}</svg></div>`;
 }
 
 // ==================== REWARD SCREEN ====================
@@ -2274,6 +2301,7 @@ function showToast(msg){
 let geoSess = null;
 let geoTab = 'home';
 let geoStartFilter = 'all';
+let geoStartSubject = null;
 let geoListFilter = 'all';
 let geoEditingId = null;
 
@@ -2541,12 +2569,21 @@ function geoDeleteQ(id) {
 // ==================== GEO START MODAL ====================
 function geoOpenStartModal() {
   geoUpdateStartModal();
+  // restore subject chip selection
+  document.querySelectorAll('#geo-start-subjects .unit-tag').forEach(t => {
+    t.classList.toggle('active', t.dataset.sub === geoStartSubject);
+  });
   const btn=document.getElementById('geo-shuffle-btn');
   if(btn){ btn.textContent=S.geoShuffle!==false?'ON':'OFF'; btn.style.background=S.geoShuffle!==false?'var(--green)':'var(--card)'; btn.style.color=S.geoShuffle!==false?'#fff':'var(--text2)'; }
   document.getElementById('geo-start-modal').classList.add('open');
 }
 function geoCloseStart() { document.getElementById('geo-start-modal').classList.remove('open'); }
 function geoCloseStartIfBg(e) { if(e.target===document.getElementById('geo-start-modal')) geoCloseStart(); }
+function geoSelectSubject(sub, el) {
+  geoStartSubject = sub;
+  document.querySelectorAll('#geo-start-subjects .unit-tag').forEach(t => t.classList.remove('active'));
+  if(el) el.classList.add('active');
+}
 function geoUpdateStartModal() {
   const u=geoStartFilter;
   const allEl=document.getElementById('geo-start-all-sub');
@@ -2572,6 +2609,7 @@ function toggleGeoShuffle(){
   if(btn){ btn.textContent=S.geoShuffle?'ON':'OFF'; btn.style.background=S.geoShuffle?'var(--green)':'var(--card)'; btn.style.color=S.geoShuffle?'#fff':'var(--text2)'; }
 }
 function geoStartSession(mode) {
+  if(!geoStartSubject) { showToast('教科を選んでください'); return; }
   const u=geoStartFilter;
   let queue;
   if(mode==='all')      queue=geoFilterQ(u);
@@ -2580,7 +2618,7 @@ function geoStartSession(mode) {
   if(!queue.length){showToast('該当する問題がありません');return;}
   geoCloseStart();
   if(S.geoShuffle!==false) queue=[...queue].sort(()=>Math.random()-0.5);
-  geoSess={queue,idx:0,revealed:false,judged:false,result:null,results:[],mode,userAnswer:null,explanationHtml:''};
+  geoSess={queue,idx:0,revealed:false,judged:false,result:null,results:[],mode,userAnswer:null,explanationHtml:'',subject:geoStartSubject,startTime:Date.now()};
   S.geoSessionCount=(S.geoSessionCount||0)+1;
   save();
   const subnav=document.getElementById('geo-subnav');
@@ -2776,8 +2814,40 @@ async function geoJudgeAndExplain(q, userAnswer) {
 }
 
 // ==================== GEO RESULT ====================
+function autoRecordGeoSession() {
+  if(!geoSess || !geoSess.subject) return;
+  const subject = geoSess.subject;
+  if(!(subject in S.subjectPoints)) return;
+  const elapsedMs = Date.now() - (geoSess.startTime || Date.now());
+  const elapsed = Math.max(5, Math.round(elapsedMs / 60000));
+  const minutes = Math.ceil(elapsed / 5) * 5; // round up to nearest 5 min
+  const today = todayStr();
+  const pts = calcPts(minutes);
+  let bonus = 0;
+  if(S.dailyBonusClaimed !== today) { bonus = 20; S.dailyBonusClaimed = today; }
+  if(S.lastStudyDate !== today) {
+    const yest = new Date(); yest.setDate(yest.getDate()-1);
+    const yStr = yest.toISOString().slice(0,10);
+    S.streak = (S.lastStudyDate===yStr || S.lastStudyDate===null) ? S.streak+1 : 1;
+    S.lastStudyDate = today;
+  }
+  let sb = 0; if(S.streak===7) sb=100; if(S.streak===30) sb=500;
+  const total = pts + bonus + sb;
+  S.records.push({id:Date.now()+'_'+Math.random().toString(36).slice(2,7), date:today, subject, minutes, points:total, memo:''});
+  S.totalPoints += total;
+  S.subjectPoints[subject] = (S.subjectPoints[subject]||0) + total;
+  S.weeklyMinutes[dow()] = (S.weeklyMinutes[dow()]||0) + minutes;
+  save();
+  let msg = `${subject} ${minutes}分 +${total}pt`;
+  if(bonus > 0) msg += ' 🌟+20pt';
+  if(sb > 0) msg += ` 🔥${S.streak}日連続+${sb}pt`;
+  showFloatPt(pts, false);
+  setTimeout(() => { showToast(msg); awardMissions(); renderAll(); }, 300);
+}
+
 function geoRenderResult() {
   playSound('complete');
+  autoRecordGeoSession();
   const el=document.getElementById('geo-main');
   const results=geoSess.results;
   const ok=results.filter(r=>r.result==='○').length;
@@ -3201,7 +3271,7 @@ const manifest={
   theme_color:'#0a0f1e',background_color:'#0a0f1e',
   display:'standalone',orientation:'portrait',
   start_url:'./',
-  icons:[{src:'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="100" fill="%230a0f1e"/><text y="320" x="80" font-size="380">🏙️</text></svg>',sizes:'512x512',type:'image/svg+xml'}]
+  icons:[{src:'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="100" fill="%230a0f1e"/><text x="256" y="360" font-size="320" text-anchor="middle">🏙️</text></svg>',sizes:'512x512',type:'image/svg+xml'}]
 };
 const blob=new Blob([JSON.stringify(manifest)],{type:'application/json'});
 const url=URL.createObjectURL(blob);
