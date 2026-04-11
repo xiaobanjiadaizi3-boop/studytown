@@ -640,6 +640,12 @@ body.parent-mode #parent-nav{display:flex!important;}
 .start-opt-title{font-size:0.88rem;font-weight:700;}
 .start-opt-sub{font-size:0.72rem;color:var(--text2);margin-top:2px;}
 
+/* ===== SYNC SPINNER ===== */
+.sync-spinner{position:fixed;top:calc(var(--safe-top) + 10px);right:14px;z-index:9999;display:none;align-items:center;gap:7px;background:rgba(10,15,30,0.92);border:1.5px solid var(--border);border-radius:99px;padding:6px 13px 6px 9px;backdrop-filter:blur(12px);box-shadow:0 2px 12px rgba(0,0,0,0.4);}
+.sync-spinner.show{display:flex;}
+.spin-ring{width:16px;height:16px;border:2.5px solid rgba(255,255,255,0.15);border-top-color:var(--blue);border-radius:50%;animation:spin 0.7s linear infinite;flex-shrink:0;}
+.sync-spin-text{font-size:0.72rem;color:var(--text2);white-space:nowrap;}
+
 /* ===== MOM MESSAGE ===== */
 .mom-msg-banner{margin:10px 16px 0;padding:10px 14px;background:linear-gradient(135deg,#4a148c,#7b1fa2);border:1.5px solid rgba(206,147,216,0.45);border-radius:14px;display:flex;align-items:flex-start;gap:10px;}
 .mom-msg-icon{font-size:1.3rem;flex-shrink:0;}
@@ -729,6 +735,12 @@ body.parent-mode #parent-nav{display:flex!important;}
     opacity:0.5;transition:opacity 0.2s;"
     onmouseenter="if(!this.disabled)this.style.opacity='1'"
     onmouseleave="if(!this.disabled)this.style.opacity='0.9'">決定</button>
+</div>
+
+<!-- Sync spinner -->
+<div class="sync-spinner" id="sync-spinner">
+  <div class="spin-ring"></div>
+  <span class="sync-spin-text" id="sync-spinner-text">同期中...</span>
 </div>
 
 <!-- Parent mode banner -->
@@ -943,7 +955,7 @@ body.parent-mode #parent-nav{display:flex!important;}
     </div>
   </div>
   <div class="settings-card">
-    <div class="settings-row" onclick="location.reload(true)">
+    <div class="settings-row" onclick="reloadApp()">
       <span class="settings-label">🔄 アプリを更新</span>
       <span class="settings-arrow">›</span>
     </div>
@@ -1292,7 +1304,7 @@ function defaultState() {
     townTiles: null,
     geoQuestions:[], geoSessionCount:0, geoApiKey:null, geoShuffle:true,
     myName: null, partnerName: null,
-    momMessage: '',
+    momMessage: '', momMessageTs: 0,
     sentPhotos: [],
   };
 }
@@ -2407,6 +2419,7 @@ function saveMomMessage() {
   const input = document.getElementById('p-mom-msg-input');
   if(!input) return;
   S.momMessage = input.value;
+  S.momMessageTs = Date.now();
   save(); renderAll();
   showToast('💌 メッセージを更新しました');
 }
@@ -3440,6 +3453,28 @@ const FB_CONFIG = {
   projectId: "studytownmoyaaaashi",
   appId: "1:481160310310:web:ae94cfeda542d4986980e7"
 };
+// ==================== SPINNER ====================
+let spinnerHideTimer = null;
+function showSpinner(text='同期中...') {
+  const el = document.getElementById('sync-spinner');
+  const tx = document.getElementById('sync-spinner-text');
+  if(tx) tx.textContent = text;
+  if(el) el.classList.add('show');
+  clearTimeout(spinnerHideTimer);
+}
+function hideSpinner(delay=600) {
+  clearTimeout(spinnerHideTimer);
+  spinnerHideTimer = setTimeout(() => {
+    const el = document.getElementById('sync-spinner');
+    if(el) el.classList.remove('show');
+  }, delay);
+}
+function reloadApp() {
+  showSpinner('更新中...');
+  setTimeout(() => location.reload(true), 400);
+}
+
+// ==================== FIREBASE ====================
 let fbDb = null, fbRef = null, fbWriteTimer = null, fbMerging = false, fbIgnoreCount = 0;
 let fbRoomId = localStorage.getItem('stFamilyRoom') || null;
 
@@ -3455,7 +3490,8 @@ function fbConnect(roomId) {
   localStorage.setItem('stFamilyRoom', fbRoomId);
   const db = fbGetDb();
   fbRef = db.ref('families/' + fbRoomId + '/data');
-  fbRef.on('value', fbOnRemote, e => showToast('⚠️ 同期エラー: ' + e.message));
+  showSpinner('接続中...');
+  fbRef.on('value', fbOnRemote, e => { hideSpinner(0); showToast('⚠️ 同期エラー: ' + e.message); });
   fbIgnoreCount = 0;
   fbWrite();
   renderFbSettingsUI();
@@ -3480,25 +3516,38 @@ function fbJoinRoom() {
 }
 function fbWrite() {
   if(!fbRef || fbMerging) return;
+  showSpinner('送信中...');
   clearTimeout(fbWriteTimer);
   fbWriteTimer = setTimeout(() => {
-    if(!fbRef) return;
+    if(!fbRef) { hideSpinner(); return; }
     const data = {
-      v:3, name:S.myName||'',
+      v:4, name:S.myName||'',
       q:S.geoQuestions, pts:S.totalPoints, sub:S.subjectPoints, cnt:S.geoSessionCount,
       pdfs:(S.pdfs||[]).map(p=>({id:p.id,name:p.name,subject:p.subject,date:p.date,size:p.size})),
       records:S.records||[], streak:S.streak||0, lastStudyDate:S.lastStudyDate||null,
       weeklyMinutes:S.weeklyMinutes||{}, tests:S.tests||[], goalMinutes:S.goalMinutes||60,
+      // newly synced fields
+      momMessage:S.momMessage||'', momMessageTs:S.momMessageTs||0,
+      sentPhotos:(S.sentPhotos||[]).slice(-8),
+      rewards:S.rewards||[],
+      exchangeRequests:S.exchangeRequests||[],
+      missionIds:S.missionIds||[], missionsClaimed:S.missionsClaimed||[], missionsDate:S.missionsDate||null,
+      dailyBonusClaimed:S.dailyBonusClaimed||null,
+      townTiles:S.townTiles||null,
+      geoShuffle:S.geoShuffle!==undefined?S.geoShuffle:true,
       ts:Date.now()
     };
     fbIgnoreCount++;
-    fbRef.set(data).catch(e=>{ fbIgnoreCount=Math.max(0,fbIgnoreCount-1); });
+    fbRef.set(data)
+      .then(()=>hideSpinner())
+      .catch(e=>{ fbIgnoreCount=Math.max(0,fbIgnoreCount-1); hideSpinner(); showToast('⚠️ 送信エラー: '+e.message); });
   }, 1500);
 }
 function fbOnRemote(snapshot) {
   if(fbIgnoreCount > 0) { fbIgnoreCount--; return; }
   const data = snapshot.val();
   if(!data) return;
+  showSpinner('受信中...');
   fbMerging = true;
   let changed = false;
   // 問題
@@ -3525,6 +3574,34 @@ function fbOnRemote(snapshot) {
   (data.tests||[]).forEach(t=>{if(t.id&&!testIds.has(t.id)){S.tests.push(t);changed=true;}});
   // 目標
   if(data.goalMinutes&&data.goalMinutes!==S.goalMinutes){S.goalMinutes=data.goalMinutes;changed=true;}
+  // ママのメッセージ（タイムスタンプが新しければ上書き）
+  if((data.momMessageTs||0)>(S.momMessageTs||0)){S.momMessage=data.momMessage||'';S.momMessageTs=data.momMessageTs||0;changed=true;}
+  // 送信写真（IDで差分マージ）
+  const spIds=new Set((S.sentPhotos||[]).map(b=>b.id));
+  (data.sentPhotos||[]).forEach(b=>{if(b.id&&!spIds.has(b.id)){S.sentPhotos.push(b);changed=true;}});
+  // 報酬一覧（リモートに多ければ上書き）
+  if((data.rewards||[]).length>(S.rewards||[]).length){S.rewards=data.rewards;changed=true;}
+  // 交換申請（IDで差分マージ、ステータス更新も反映）
+  const reqIds=new Set((S.exchangeRequests||[]).map(r=>r.id));
+  (data.exchangeRequests||[]).forEach(r=>{
+    if(!r.id) return;
+    if(!reqIds.has(r.id)){S.exchangeRequests.push(r);changed=true;}
+    else{const ex=S.exchangeRequests.find(e=>e.id===r.id);if(ex&&ex.status!==r.status){ex.status=r.status;changed=true;}}
+  });
+  // ミッション（今日の日付と一致する場合、クレーム済みをマージ）
+  if(data.missionsDate&&data.missionsDate===todayStr()){
+    if(data.missionIds&&data.missionIds.length&&JSON.stringify(data.missionIds)!==JSON.stringify(S.missionIds)){S.missionIds=data.missionIds;S.missionsDate=data.missionsDate;changed=true;}
+    const mc=new Set(S.missionsClaimed||[]);
+    let mcChanged=false;
+    (data.missionsClaimed||[]).forEach(id=>{if(!mc.has(id)){mc.add(id);mcChanged=true;}});
+    if(mcChanged){S.missionsClaimed=[...mc];changed=true;}
+  }
+  // デイリーボーナス
+  if(data.dailyBonusClaimed&&data.dailyBonusClaimed>=(S.dailyBonusClaimed||'')){if(data.dailyBonusClaimed!==S.dailyBonusClaimed){S.dailyBonusClaimed=data.dailyBonusClaimed;changed=true;}}
+  // マイタウン（タイル数が多い方を採用）
+  if(data.townTiles&&Object.keys(data.townTiles).length>Object.keys(S.townTiles||{}).length){S.townTiles=data.townTiles;changed=true;}
+  // シャッフル設定
+  if(data.geoShuffle!==undefined&&data.geoShuffle!==S.geoShuffle){S.geoShuffle=data.geoShuffle;changed=true;}
   // 相手の名前
   if(data.name&&data.name!==S.partnerName){S.partnerName=data.name;renderPartnerBanner();}
   if(changed){
@@ -3532,6 +3609,7 @@ function fbOnRemote(snapshot) {
     showToast('🔄 ' + (data.name||'相手') + 'のデータを同期しました');
   }
   fbMerging = false;
+  hideSpinner();
 }
 function renderFbSettingsUI() {
   const el = document.getElementById('fb-settings-ui');
@@ -3597,6 +3675,7 @@ if(!S.geoApiKey) S.geoApiKey = ['sk','-ant-a','pi03-wiErgNKsR1czzv4_RcU8SnRCrb',
 if(!S.myName) S.myName = null;
 if(!S.partnerName) S.partnerName = null;
 if(S.momMessage===undefined) S.momMessage = '';
+if(!S.momMessageTs) S.momMessageTs = 0;
 if(!S.sentPhotos) S.sentPhotos = [];
 checkStreak(); renderAll();
 renderPartnerBanner();
