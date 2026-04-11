@@ -2420,7 +2420,9 @@ function saveMomMessage() {
   if(!input) return;
   S.momMessage = input.value;
   S.momMessageTs = Date.now();
-  save(); renderAll();
+  localStorage.setItem(KEY, JSON.stringify(S)); // save locally without triggering fbWrite
+  fbWriteMomMsg(); // write to dedicated path
+  renderAll();
   showToast('💌 メッセージを更新しました');
 }
 
@@ -2578,7 +2580,8 @@ function executeSendPhotos() {
     message,
     date: dateStr
   });
-  save();
+  localStorage.setItem(KEY, JSON.stringify(S)); // save locally
+  fbWritePhotos(); // write to dedicated path
   document.getElementById('send-photo-modal').classList.remove('open');
   closeGallery();
   gallerySelectedIds = new Set();
@@ -3475,7 +3478,12 @@ function reloadApp() {
 }
 
 // ==================== FIREBASE ====================
-let fbDb = null, fbRef = null, fbWriteTimer = null, fbMerging = false, fbIgnoreCount = 0;
+// パス設計:
+//   /families/ROOMID/data       ← 双方向の共有データ（問題・記録など）
+//   /families/ROOMID/parentMsg  ← ママが書く・子供が読む（momMessage専用）
+//   /families/ROOMID/childPhotos← 子供が書く・ママが読む（sentPhotos専用）
+let fbDb = null, fbRef = null, fbMomRef = null, fbPhotosRef = null;
+let fbWriteTimer = null, fbMerging = false, fbIgnoreCount = 0;
 let fbRoomId = localStorage.getItem('stFamilyRoom') || null;
 
 function fbGetDb() {
@@ -3486,19 +3494,27 @@ function fbGetDb() {
 }
 function fbConnect(roomId) {
   if(fbRef) { fbRef.off(); fbRef = null; }
+  if(fbMomRef) { fbMomRef.off(); fbMomRef = null; }
+  if(fbPhotosRef) { fbPhotosRef.off(); fbPhotosRef = null; }
   fbRoomId = roomId.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,8);
   localStorage.setItem('stFamilyRoom', fbRoomId);
   const db = fbGetDb();
-  fbRef = db.ref('families/' + fbRoomId + '/data');
+  fbRef      = db.ref('families/' + fbRoomId + '/data');
+  fbMomRef   = db.ref('families/' + fbRoomId + '/parentMsg');
+  fbPhotosRef= db.ref('families/' + fbRoomId + '/childPhotos');
   showSpinner('接続中...');
-  fbRef.on('value', fbOnRemote, e => { hideSpinner(0); showToast('⚠️ 同期エラー: ' + e.message); });
+  fbRef.on('value', fbOnRemote,  e => { hideSpinner(0); showToast('⚠️ 同期エラー: ' + e.message); });
+  fbMomRef.on('value',    fbOnMomMsg,   e => console.warn('fbMomRef error', e));
+  fbPhotosRef.on('value', fbOnPhotos,   e => console.warn('fbPhotosRef error', e));
   fbIgnoreCount = 0;
   fbWrite();
   renderFbSettingsUI();
   showToast('✅ ルーム ' + fbRoomId + ' に接続しました');
 }
 function fbDisconnect() {
-  if(fbRef) { fbRef.off(); fbRef = null; }
+  if(fbRef)       { fbRef.off();       fbRef = null; }
+  if(fbMomRef)    { fbMomRef.off();    fbMomRef = null; }
+  if(fbPhotosRef) { fbPhotosRef.off(); fbPhotosRef = null; }
   fbRoomId = null;
   localStorage.removeItem('stFamilyRoom');
   renderFbSettingsUI();
@@ -3514,6 +3530,8 @@ function fbJoinRoom() {
   if(!id) { showToast('ルームIDを入力してください'); return; }
   fbConnect(id);
 }
+
+// メイン共有データ書き込み（momMessage/sentPhotos は含まない）
 function fbWrite() {
   if(!fbRef || fbMerging) return;
   showSpinner('送信中...');
@@ -3521,14 +3539,11 @@ function fbWrite() {
   fbWriteTimer = setTimeout(() => {
     if(!fbRef) { hideSpinner(); return; }
     const data = {
-      v:4, name:S.myName||'',
+      v:5, name:S.myName||'',
       q:S.geoQuestions, pts:S.totalPoints, sub:S.subjectPoints, cnt:S.geoSessionCount,
       pdfs:(S.pdfs||[]).map(p=>({id:p.id,name:p.name,subject:p.subject,date:p.date,size:p.size})),
       records:S.records||[], streak:S.streak||0, lastStudyDate:S.lastStudyDate||null,
       weeklyMinutes:S.weeklyMinutes||{}, tests:S.tests||[], goalMinutes:S.goalMinutes||60,
-      // newly synced fields
-      momMessage:S.momMessage||'', momMessageTs:S.momMessageTs||0,
-      sentPhotos:(S.sentPhotos||[]).slice(-8),
       rewards:S.rewards||[],
       exchangeRequests:S.exchangeRequests||[],
       missionIds:S.missionIds||[], missionsClaimed:S.missionsClaimed||[], missionsDate:S.missionsDate||null,
@@ -3543,6 +3558,26 @@ function fbWrite() {
       .catch(e=>{ fbIgnoreCount=Math.max(0,fbIgnoreCount-1); hideSpinner(); showToast('⚠️ 送信エラー: '+e.message); });
   }, 1500);
 }
+
+// ママのメッセージ専用書き込み（saveMomMessage から呼ぶ）
+function fbWriteMomMsg() {
+  if(!fbMomRef) return;
+  showSpinner('送信中...');
+  fbMomRef.set({ message: S.momMessage||'', ts: S.momMessageTs||Date.now() })
+    .then(()=>hideSpinner())
+    .catch(e=>{ hideSpinner(); showToast('⚠️ メッセージ送信エラー: '+e.message); });
+}
+
+// 送信写真専用書き込み（executeSendPhotos から呼ぶ）
+function fbWritePhotos() {
+  if(!fbPhotosRef) return;
+  showSpinner('送信中...');
+  fbPhotosRef.set((S.sentPhotos||[]).slice(-8))
+    .then(()=>hideSpinner())
+    .catch(e=>{ hideSpinner(); showToast('⚠️ 写真送信エラー: '+e.message); });
+}
+
+// メイン共有データ受信
 function fbOnRemote(snapshot) {
   if(fbIgnoreCount > 0) { fbIgnoreCount--; return; }
   const data = snapshot.val();
@@ -3574,42 +3609,61 @@ function fbOnRemote(snapshot) {
   (data.tests||[]).forEach(t=>{if(t.id&&!testIds.has(t.id)){S.tests.push(t);changed=true;}});
   // 目標
   if(data.goalMinutes&&data.goalMinutes!==S.goalMinutes){S.goalMinutes=data.goalMinutes;changed=true;}
-  // ママのメッセージ（タイムスタンプが新しければ上書き）
-  if((data.momMessageTs||0)>(S.momMessageTs||0)){S.momMessage=data.momMessage||'';S.momMessageTs=data.momMessageTs||0;changed=true;}
-  // 送信写真（IDで差分マージ）
-  const spIds=new Set((S.sentPhotos||[]).map(b=>b.id));
-  (data.sentPhotos||[]).forEach(b=>{if(b.id&&!spIds.has(b.id)){S.sentPhotos.push(b);changed=true;}});
-  // 報酬一覧（リモートに多ければ上書き）
+  // 報酬一覧
   if((data.rewards||[]).length>(S.rewards||[]).length){S.rewards=data.rewards;changed=true;}
-  // 交換申請（IDで差分マージ、ステータス更新も反映）
+  // 交換申請
   const reqIds=new Set((S.exchangeRequests||[]).map(r=>r.id));
   (data.exchangeRequests||[]).forEach(r=>{
     if(!r.id) return;
     if(!reqIds.has(r.id)){S.exchangeRequests.push(r);changed=true;}
     else{const ex=S.exchangeRequests.find(e=>e.id===r.id);if(ex&&ex.status!==r.status){ex.status=r.status;changed=true;}}
   });
-  // ミッション（今日の日付と一致する場合、クレーム済みをマージ）
+  // ミッション
   if(data.missionsDate&&data.missionsDate===todayStr()){
     if(data.missionIds&&data.missionIds.length&&JSON.stringify(data.missionIds)!==JSON.stringify(S.missionIds)){S.missionIds=data.missionIds;S.missionsDate=data.missionsDate;changed=true;}
-    const mc=new Set(S.missionsClaimed||[]);
-    let mcChanged=false;
+    const mc=new Set(S.missionsClaimed||[]);let mcChanged=false;
     (data.missionsClaimed||[]).forEach(id=>{if(!mc.has(id)){mc.add(id);mcChanged=true;}});
     if(mcChanged){S.missionsClaimed=[...mc];changed=true;}
   }
   // デイリーボーナス
   if(data.dailyBonusClaimed&&data.dailyBonusClaimed>=(S.dailyBonusClaimed||'')){if(data.dailyBonusClaimed!==S.dailyBonusClaimed){S.dailyBonusClaimed=data.dailyBonusClaimed;changed=true;}}
-  // マイタウン（タイル数が多い方を採用）
+  // マイタウン
   if(data.townTiles&&Object.keys(data.townTiles).length>Object.keys(S.townTiles||{}).length){S.townTiles=data.townTiles;changed=true;}
-  // シャッフル設定
+  // シャッフル
   if(data.geoShuffle!==undefined&&data.geoShuffle!==S.geoShuffle){S.geoShuffle=data.geoShuffle;changed=true;}
   // 相手の名前
   if(data.name&&data.name!==S.partnerName){S.partnerName=data.name;renderPartnerBanner();}
-  if(changed){
-    save(); renderAll();
-    showToast('🔄 ' + (data.name||'相手') + 'のデータを同期しました');
-  }
+  if(changed){ save(); renderAll(); showToast('🔄 ' + (data.name||'相手') + 'のデータを同期しました'); }
   fbMerging = false;
   hideSpinner();
+}
+
+// ママのメッセージ受信（専用パス）
+function fbOnMomMsg(snapshot) {
+  const data = snapshot.val();
+  if(!data) return;
+  if((data.ts||0) <= (S.momMessageTs||0)) return; // 既に持っているか同じなら無視
+  S.momMessage = data.message || '';
+  S.momMessageTs = data.ts || 0;
+  localStorage.setItem(KEY, JSON.stringify(S));
+  renderAll();
+  if(data.message) showToast('💌 ママからメッセージが届いたよ！');
+}
+
+// 送信写真受信（専用パス）
+function fbOnPhotos(snapshot) {
+  const arr = snapshot.val();
+  if(!arr || !Array.isArray(arr)) return;
+  const spIds = new Set((S.sentPhotos||[]).map(b=>b.id));
+  let changed = false;
+  arr.forEach(b => {
+    if(b && b.id && !spIds.has(b.id)) { S.sentPhotos.push(b); changed = true; }
+  });
+  if(changed) {
+    localStorage.setItem(KEY, JSON.stringify(S));
+    renderAll();
+    showToast('📷 新しい写真が届きました！');
+  }
 }
 function renderFbSettingsUI() {
   const el = document.getElementById('fb-settings-ui');
