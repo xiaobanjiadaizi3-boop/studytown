@@ -640,6 +640,28 @@ body.parent-mode #parent-nav{display:flex!important;}
 .start-opt-title{font-size:0.88rem;font-weight:700;}
 .start-opt-sub{font-size:0.72rem;color:var(--text2);margin-top:2px;}
 
+/* ===== MOM MESSAGE ===== */
+.mom-msg-banner{margin:10px 16px 0;padding:10px 14px;background:linear-gradient(135deg,#4a148c,#7b1fa2);border:1.5px solid rgba(206,147,216,0.45);border-radius:14px;display:flex;align-items:flex-start;gap:10px;}
+.mom-msg-icon{font-size:1.3rem;flex-shrink:0;}
+.mom-msg-text{flex:1;font-size:0.82rem;line-height:1.55;color:#f3e5f5;white-space:pre-wrap;}
+
+/* ===== GALLERY ===== */
+.gallery-overlay{position:fixed;inset:0;z-index:810;background:var(--bg);display:none;flex-direction:column;}
+.gallery-overlay.open{display:flex;}
+.gallery-header{padding:calc(12px + var(--safe-top)) 16px 10px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.gallery-grid{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;display:grid;grid-template-columns:repeat(3,1fr);gap:2px;padding:2px;}
+.gallery-thumb{position:relative;aspect-ratio:1;background:var(--card2);overflow:hidden;cursor:pointer;border-radius:2px;}
+.gallery-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+.gallery-thumb.selected::after{content:'✓';position:absolute;inset:0;background:rgba(245,200,66,0.45);display:flex;align-items:center;justify-content:center;font-size:1.8rem;font-weight:900;color:var(--gold);}
+.gallery-thumb .thumb-date{position:absolute;bottom:0;left:0;right:0;font-size:0.55rem;color:#fff;background:rgba(0,0,0,0.5);padding:2px 4px;text-align:right;}
+.gallery-footer{padding:10px 16px calc(10px + var(--safe-bot));border-top:1px solid var(--border);display:flex;gap:8px;flex-shrink:0;background:var(--bg);}
+.send-preview{display:flex;gap:6px;overflow-x:auto;padding:6px 0 10px;scrollbar-width:none;}
+.send-preview::-webkit-scrollbar{display:none;}
+.send-preview-img{width:72px;height:72px;flex-shrink:0;border-radius:8px;object-fit:cover;border:1.5px solid var(--border);}
+.received-photo-card{background:var(--card);border:1.5px solid var(--border);border-radius:12px;padding:10px;margin-bottom:10px;}
+.received-photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-top:8px;}
+.received-photo-grid img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:6px;cursor:pointer;}
+
 /* ===== INSTALL BANNER ===== */
 .install-banner{
   display:none;margin:8px 16px;background:linear-gradient(135deg,#0d2044,#152030);
@@ -750,6 +772,8 @@ body.parent-mode #parent-nav{display:flex!important;}
       </div>
     </div>
   </div>
+
+  <div id="mom-msg-display"></div>
 
   <div id="encourage-msg"></div>
 
@@ -925,8 +949,14 @@ body.parent-mode #parent-nav{display:flex!important;}
     </div>
   </div>
   <div class="settings-card">
+    <div class="settings-row danger" onclick="resetStudyData()">
+      <span class="settings-label danger">🔄 学習記録をリセット</span>
+      <span class="settings-arrow">›</span>
+    </div>
+  </div>
+  <div class="settings-card">
     <div class="settings-row danger" onclick="resetData()">
-      <span class="settings-label danger">🗑️ データをリセット</span>
+      <span class="settings-label danger">🗑️ すべてのデータをリセット</span>
       <span class="settings-arrow">›</span>
     </div>
   </div>
@@ -1016,6 +1046,18 @@ body.parent-mode #parent-nav{display:flex!important;}
     <div id="p-town-wrap"></div>
   </div>
 
+  <div class="sec-title" style="color:#ce93d8;border-color:#ce93d8;">💌 ママからのメッセージ</div>
+  <div class="card" style="margin-bottom:10px;">
+    <textarea id="p-mom-msg-input" class="form-textarea" placeholder="例：今日もよく頑張ったね！テストまで残り3日、一緒に頑張ろう！" style="min-height:70px;margin-bottom:8px;">${''}</textarea>
+    <button onclick="saveMomMessage()" style="width:100%;padding:10px;background:linear-gradient(135deg,#7b1fa2,#ce93d8);border:none;border-radius:12px;color:#fff;font-size:0.85rem;font-weight:700;cursor:pointer;">メッセージを更新する</button>
+    <div style="font-size:0.72rem;color:var(--text2);margin-top:6px;">子供のホーム画面に表示されます。空欄にすると非表示になります。</div>
+  </div>
+
+  <div class="sec-title" style="color:#ce93d8;border-color:#ce93d8;">📷 受信した写真</div>
+  <div class="card" style="margin-bottom:10px;" id="p-received-photos">
+    <div style="text-align:center;color:var(--text2);font-size:0.8rem;padding:8px 0;">まだ写真が届いていません</div>
+  </div>
+
   <button class="btn-secondary" style="margin-bottom:80px;" onclick="exitParentMode()">← 子どもモードに戻る</button>
 </div>
 
@@ -1043,6 +1085,7 @@ body.parent-mode #parent-nav{display:flex!important;}
   <div class="geo-subnav" id="geo-subnav">
     <div class="geo-subnav-item active" id="gtab-home" onclick="geoNav('home',this)">🏠 ホーム</div>
     <div class="geo-subnav-item" id="gtab-add" onclick="geoNav('add',this)">➕ 追加</div>
+    <div class="geo-subnav-item" id="gtab-pdf" onclick="geoNav('pdf',this)">📂 教材</div>
     <div class="geo-subnav-item" id="gtab-stats" onclick="geoNav('stats',this)">📊 統計</div>
   </div>
   <div id="geo-main"></div>
@@ -1052,9 +1095,7 @@ body.parent-mode #parent-nav{display:flex!important;}
 
 <!-- BOTTOM NAV -->
 <nav class="bottom-nav" id="bottom-nav">
-  <div class="nav-item" onclick="location.reload(true)"><span class="nav-icon">🔄</span>更新</div>
   <div class="nav-item active" onclick="switchScreen('home',this)"   id="nav-home"><span class="nav-icon">🏠</span>ホーム</div>
-  <div class="nav-item" onclick="switchScreen('pdf',this)"           id="nav-pdf"><span class="nav-icon">📂</span>教材</div>
   <div class="nav-item" onclick="switchScreen('geo',this)"           id="nav-geo"><span class="nav-icon">📝</span>学習</div>
   <div class="nav-item" onclick="switchScreen('town',this)"          id="nav-town"><span class="nav-icon">🏙️</span>タウン</div>
   <div class="nav-item" onclick="switchScreen('reward',this)"        id="nav-reward"><span class="nav-icon">🎁</span>報酬</div>
@@ -1063,7 +1104,6 @@ body.parent-mode #parent-nav{display:flex!important;}
 
 <!-- PARENT NAV -->
 <nav id="parent-nav" class="bottom-nav" style="border-top-color:var(--parent-border);">
-  <div class="nav-item" onclick="location.reload(true)"><span class="nav-icon">🔄</span>更新</div>
   <div class="nav-item active" id="pnav-dash" onclick="parentScrollTo('screen-parent')"><span class="nav-icon">📊</span>状況</div>
   <div class="nav-item" id="pnav-reward" onclick="parentScrollTo('p-requests')"><span class="nav-icon">🎁</span>報酬申請</div>
   <div class="nav-item" id="pnav-test" onclick="parentScrollTo('p-test-list')"><span class="nav-icon">📅</span>テスト</div>
@@ -1184,6 +1224,45 @@ body.parent-mode #parent-nav{display:flex!important;}
   </div>
 </div>
 
+<!-- CAMERA INPUT (hidden) -->
+<input type="file" id="camera-input" accept="image/*" capture="environment" style="display:none" onchange="handleCameraCapture(event)">
+<input type="file" id="gallery-add-input" accept="image/*" multiple style="display:none" onchange="handleGalleryAdd(event)">
+
+<!-- GALLERY OVERLAY -->
+<div class="gallery-overlay" id="gallery-overlay">
+  <div class="gallery-header">
+    <span style="font-size:1.2rem;cursor:pointer;" onclick="closeGallery()">✕</span>
+    <span style="font-family:'Zen Kaku Gothic New';font-size:1rem;font-weight:700;flex:1;">📷 ギャラリー</span>
+    <span id="gallery-sel-count" style="font-size:0.78rem;color:var(--gold);margin-right:8px;"></span>
+    <button onclick="document.getElementById('gallery-add-input').click()" style="background:none;border:1.5px solid var(--border);border-radius:8px;color:var(--text2);font-size:0.75rem;padding:5px 10px;cursor:pointer;">＋追加</button>
+  </div>
+  <div class="gallery-grid" id="gallery-grid"></div>
+  <div class="gallery-footer">
+    <button id="gallery-delete-btn" onclick="deleteSelectedPhotos()" style="flex:1;padding:12px;background:rgba(231,76,60,0.15);border:1.5px solid rgba(231,76,60,0.4);border-radius:12px;color:var(--red);font-size:0.85rem;font-weight:700;cursor:pointer;display:none;">🗑️ 削除</button>
+    <button id="gallery-send-btn" onclick="openSendModal()" style="flex:2;padding:12px;background:linear-gradient(135deg,#7b1fa2,#ce93d8);border:none;border-radius:12px;color:#fff;font-size:0.85rem;font-weight:700;cursor:pointer;display:none;">📨 ママに送る</button>
+    <button onclick="selectAllPhotos()" style="flex:1;padding:12px;background:var(--card);border:1.5px solid var(--border);border-radius:12px;color:var(--text2);font-size:0.82rem;font-weight:700;cursor:pointer;">全選択</button>
+  </div>
+</div>
+
+<!-- SEND PHOTO MODAL -->
+<div class="modal-overlay" id="send-photo-modal">
+  <div class="modal-sheet" style="padding-bottom:calc(20px + var(--safe-bot));">
+    <div class="modal-handle"></div>
+    <div class="modal-title">📨 ママに送る</div>
+    <div class="send-preview" id="send-preview-row"></div>
+    <label class="form-label">メッセージ（任意）</label>
+    <textarea id="send-msg-input" class="form-textarea" placeholder="例：今日の宿題やったよ！" style="min-height:70px;margin-bottom:12px;"></textarea>
+    <button onclick="executeSendPhotos()" style="width:100%;padding:14px;background:linear-gradient(135deg,#7b1fa2,#ce93d8);border:none;border-radius:14px;color:#fff;font-size:0.92rem;font-weight:700;cursor:pointer;">送信する</button>
+    <button onclick="document.getElementById('send-photo-modal').classList.remove('open')" style="width:100%;padding:12px;background:none;border:none;color:var(--text2);font-size:0.85rem;cursor:pointer;margin-top:6px;">キャンセル</button>
+  </div>
+</div>
+
+<!-- PHOTO LIGHTBOX -->
+<div id="photo-lightbox" style="display:none;position:fixed;inset:0;z-index:900;background:rgba(0,0,0,0.95);flex-direction:column;align-items:center;justify-content:center;">
+  <span onclick="closeLightbox()" style="position:absolute;top:calc(16px + var(--safe-top));right:18px;font-size:1.5rem;color:#fff;cursor:pointer;z-index:10;">✕</span>
+  <img id="lightbox-img" style="max-width:100%;max-height:85vh;object-fit:contain;border-radius:8px;">
+</div>
+
 <!-- FLOAT LAYER -->
 <div id="float-layer" style="position:fixed;inset:0;pointer-events:none;z-index:600;overflow:hidden;"></div>
 
@@ -1213,6 +1292,8 @@ function defaultState() {
     townTiles: null,
     geoQuestions:[], geoSessionCount:0, geoApiKey:null, geoShuffle:true,
     myName: null, partnerName: null,
+    momMessage: '',
+    sentPhotos: [],
   };
 }
 let S = (() => { try { const s=localStorage.getItem(KEY); return s?JSON.parse(s):defaultState(); } catch{return defaultState();} })();
@@ -1422,6 +1503,15 @@ function renderAll() {
   renderMissions();
   renderParent();
   document.getElementById('goal-val').textContent = S.goalMinutes+'分';
+  // mom message banner in child home
+  const mmEl = document.getElementById('mom-msg-display');
+  if(mmEl) {
+    if(S.momMessage && S.momMessage.trim()) {
+      mmEl.innerHTML = `<div class="mom-msg-banner"><span class="mom-msg-icon">💌</span><div><div style="font-size:0.68rem;color:rgba(243,229,245,0.7);margin-bottom:2px;">ママより</div><div class="mom-msg-text">${S.momMessage.trim().replace(/</g,'&lt;')}</div></div></div>`;
+    } else {
+      mmEl.innerHTML = '';
+    }
+  }
 }
 
 function renderTestAlertHome(){
@@ -1577,12 +1667,11 @@ function filterPdf(f,el){
   if(el) el.className='pdf-tag '+(colorMap[f]||'active-kokugo');
   renderPdfList();
 }
-function renderPdfList(){
+function renderPdfListInto(el){
+  if(!el) return;
   const list=S.pdfs.filter(p=>pdfFilter==='all'||p.subject===pdfFilter);
-  const tagClass={国語:'active-kokugo',英語:'active-eigo',数学:'active-math',理科:'active-rika',歴史:'active-rekishi',地理:'active-chiri',公民:'active-koumin'};
   const tagBg={国語:'rgba(58,134,255,0.2)',英語:'rgba(46,204,113,0.2)',数学:'rgba(230,126,34,0.2)',理科:'rgba(155,89,182,0.2)',歴史:'rgba(192,57,43,0.2)',地理:'rgba(231,76,60,0.2)',公民:'rgba(22,160,133,0.2)'};
   const tagColor={国語:'#7ab8ff',英語:'#7ae8a8',数学:'#f0a060',理科:'#c8a0e0',歴史:'#f08878',地理:'#f0a0a0',公民:'#70e0c0'};
-  const el=document.getElementById('pdf-list');
   if(!list.length){el.innerHTML='<div style="text-align:center;color:var(--text2);font-size:0.82rem;padding:24px 0;">まだ教材がありません<br>PDFを追加してポイントをゲット！</div>';return;}
   el.innerHTML=list.map(p=>`
     <div class="pdf-item">
@@ -1595,6 +1684,10 @@ function renderPdfList(){
       <span class="pdf-pt-badge">+50pt</span>
     </div>
   `).join('');
+}
+function renderPdfList(){
+  renderPdfListInto(document.getElementById('pdf-list'));
+  renderPdfListInto(document.getElementById('pdf-list-geo'));
 }
 
 // drag & drop
@@ -1913,6 +2006,28 @@ function renderParent(){
 
   // town (parent view)
   renderParentTown(document.getElementById('p-town-wrap'));
+
+  // mom message input
+  const msgInput = document.getElementById('p-mom-msg-input');
+  if(msgInput && document.activeElement !== msgInput) msgInput.value = S.momMessage || '';
+
+  // received photos
+  const rpEl = document.getElementById('p-received-photos');
+  if(rpEl) {
+    const photos = (S.sentPhotos || []).slice().reverse();
+    if(!photos.length) {
+      rpEl.innerHTML = '<div style="text-align:center;color:var(--text2);font-size:0.8rem;padding:8px 0;">まだ写真が届いていません</div>';
+    } else {
+      rpEl.innerHTML = photos.map(batch => `
+        <div class="received-photo-card">
+          <div style="font-size:0.72rem;color:var(--text2);margin-bottom:4px;">${batch.date}</div>
+          ${batch.message ? `<div style="font-size:0.82rem;margin-bottom:6px;line-height:1.5;">${batch.message.replace(/</g,'&lt;')}</div>` : ''}
+          <div class="received-photo-grid">
+            ${batch.photos.map(p=>`<img src="${p.data}" onclick="openLightbox('${p.data.replace(/'/g,"\\'")}' )" loading="lazy">`).join('')}
+          </div>
+        </div>`).join('');
+    }
+  }
 }
 
 // ==================== PARENT TOWN (mini read-only) ====================
@@ -2240,6 +2355,18 @@ function openGoalSetting(){
   const v=prompt('1日の目標学習時間（分）を入力してください',S.goalMinutes);
   if(v&&!isNaN(v)&&+v>0){S.goalMinutes=+v;save();renderAll();showToast(`🎯 目標を${v}分に設定しました`);}
 }
+function resetStudyData(){
+  showConfirm('学習記録をリセットしますか？','教材以外の学習データ（ポイント・記録・マイタウン・連続日数）が削除されます',()=>{
+    S.streak=0; S.lastStudyDate=null; S.totalPoints=0;
+    S.subjectPoints={国語:0,英語:0,数学:0,理科:0,歴史:0,地理:0,公民:0};
+    S.records=[]; S.weeklyMinutes={月:0,火:0,水:0,木:0,金:0,土:0,日:0};
+    S.dailyBonusClaimed=null; S.missionsDate=null; S.missionIds=[]; S.missionsClaimed=[];
+    S.townTiles=null; S.exchangeRequests=[]; S.geoSessionCount=0;
+    S.sentPhotos=[];
+    save(); renderAll();
+    showToast('学習記録をリセットしました');
+  });
+}
 function resetData(){
   showConfirm('本当にリセットしますか？','この操作は元に戻せません',()=>{
     localStorage.removeItem(KEY);
@@ -2264,7 +2391,7 @@ function switchScreen(name,navEl){
   if(name==='point')renderPointScreen();
   if(name==='calendar')renderCalendar();
   if(name==='parent')renderParent();
-  if(name==='pdf')renderPdfList();
+  if(name==='pdf'){switchScreen('geo',document.getElementById('nav-geo'));geoNav('pdf',null);return;}
   if(name==='reward')renderRewardScreen();
   if(name==='town')renderTownScreen(false);
   if(name==='geo'){geoNav(geoTab,null);}
@@ -2273,6 +2400,186 @@ function switchScreen(name,navEl){
     const ni=document.getElementById('settings-name-input'); if(ni)ni.value=S.myName||'';
     renderFbSettingsUI();
   }
+}
+
+// ==================== MOM MESSAGE ====================
+function saveMomMessage() {
+  const input = document.getElementById('p-mom-msg-input');
+  if(!input) return;
+  S.momMessage = input.value;
+  save(); renderAll();
+  showToast('💌 メッセージを更新しました');
+}
+
+// ==================== PHOTOS ====================
+const PHOTO_KEY = 'stPhotos';
+function loadPhotos() {
+  try { return JSON.parse(localStorage.getItem(PHOTO_KEY)) || []; } catch { return []; }
+}
+function savePhotos(arr) {
+  try { localStorage.setItem(PHOTO_KEY, JSON.stringify(arr)); } catch(e) { showToast('写真の保存に失敗しました（ストレージ不足）'); }
+}
+
+let gallerySelectedIds = new Set();
+
+async function compressImage(file, maxW=1200, quality=0.75) {
+  return new Promise(resolve => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const scale = Math.min(1, maxW / Math.max(img.width, img.height));
+      const w = Math.round(img.width * scale);
+      const h = Math.round(img.height * scale);
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      URL.revokeObjectURL(url);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
+    img.src = url;
+  });
+}
+
+function openCamera() {
+  document.getElementById('camera-input').click();
+}
+
+async function handleCameraCapture(event) {
+  const file = event.target.files[0];
+  event.target.value = '';
+  if(!file) return;
+  showToast('📸 保存中...');
+  const data = await compressImage(file);
+  if(!data) { showToast('写真の処理に失敗しました'); return; }
+  const photos = loadPhotos();
+  const id = Date.now().toString(36);
+  photos.push({id, data, date: new Date().toLocaleString('ja-JP',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})});
+  savePhotos(photos);
+  showToast('📸 写真を保存しました');
+  // offer to send immediately
+  gallerySelectedIds = new Set([id]);
+  openSendModal();
+}
+
+async function handleGalleryAdd(event) {
+  const files = [...event.target.files];
+  event.target.value = '';
+  if(!files.length) return;
+  showToast('📸 保存中...');
+  const photos = loadPhotos();
+  for(const file of files) {
+    const data = await compressImage(file);
+    if(!data) continue;
+    const id = Date.now().toString(36) + Math.random().toString(36).slice(2,5);
+    photos.push({id, data, date: new Date().toLocaleString('ja-JP',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})});
+  }
+  savePhotos(photos);
+  showToast(`📸 ${files.length}枚追加しました`);
+  renderGallery();
+}
+
+function openGallery() {
+  gallerySelectedIds = new Set();
+  document.getElementById('gallery-overlay').classList.add('open');
+  renderGallery();
+}
+
+function closeGallery() {
+  document.getElementById('gallery-overlay').classList.remove('open');
+  gallerySelectedIds = new Set();
+}
+
+function renderGallery() {
+  const photos = loadPhotos().slice().reverse();
+  const grid = document.getElementById('gallery-grid');
+  if(!photos.length) {
+    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px 20px;color:var(--text2);"><div style="font-size:2.5rem;margin-bottom:12px;">📷</div><div style="font-size:0.88rem;">まだ写真がありません<br>「撮影する」から追加しよう</div></div>';
+    updateGalleryFooter();
+    return;
+  }
+  grid.innerHTML = photos.map(p => `
+    <div class="gallery-thumb ${gallerySelectedIds.has(p.id)?'selected':''}" onclick="togglePhotoSelect('${p.id}')">
+      <img src="${p.data}" loading="lazy">
+      <div class="thumb-date">${p.date}</div>
+    </div>`).join('');
+  updateGalleryFooter();
+}
+
+function togglePhotoSelect(id) {
+  if(gallerySelectedIds.has(id)) gallerySelectedIds.delete(id);
+  else gallerySelectedIds.add(id);
+  renderGallery();
+}
+
+function selectAllPhotos() {
+  const photos = loadPhotos();
+  if(gallerySelectedIds.size === photos.length) gallerySelectedIds = new Set();
+  else gallerySelectedIds = new Set(photos.map(p=>p.id));
+  renderGallery();
+}
+
+function updateGalleryFooter() {
+  const n = gallerySelectedIds.size;
+  const cntEl = document.getElementById('gallery-sel-count');
+  const delBtn = document.getElementById('gallery-delete-btn');
+  const sendBtn = document.getElementById('gallery-send-btn');
+  if(cntEl) cntEl.textContent = n ? `${n}枚選択中` : '';
+  if(delBtn) delBtn.style.display = n ? '' : 'none';
+  if(sendBtn) sendBtn.style.display = n ? '' : 'none';
+}
+
+function deleteSelectedPhotos() {
+  if(!gallerySelectedIds.size) return;
+  const n = gallerySelectedIds.size;
+  showConfirm(`${n}枚の写真を削除しますか？`, 'この操作は元に戻せません', () => {
+    let photos = loadPhotos().filter(p => !gallerySelectedIds.has(p.id));
+    savePhotos(photos);
+    gallerySelectedIds = new Set();
+    renderGallery();
+    showToast(`🗑️ ${n}枚削除しました`);
+  });
+}
+
+function openSendModal() {
+  if(!gallerySelectedIds.size) { showToast('写真を選んでください'); return; }
+  const photos = loadPhotos();
+  const selected = photos.filter(p => gallerySelectedIds.has(p.id));
+  const prevRow = document.getElementById('send-preview-row');
+  prevRow.innerHTML = selected.map(p=>`<img class="send-preview-img" src="${p.data}">`).join('');
+  document.getElementById('send-msg-input').value = '';
+  document.getElementById('send-photo-modal').classList.add('open');
+}
+
+function executeSendPhotos() {
+  const photos = loadPhotos();
+  const selected = photos.filter(p => gallerySelectedIds.has(p.id));
+  if(!selected.length) return;
+  const message = document.getElementById('send-msg-input').value.trim();
+  const now = new Date();
+  const dateStr = now.toLocaleString('ja-JP',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+  if(!S.sentPhotos) S.sentPhotos = [];
+  S.sentPhotos.push({
+    id: Date.now().toString(36),
+    photos: selected.map(p=>({id:p.id, data:p.data})),
+    message,
+    date: dateStr
+  });
+  save();
+  document.getElementById('send-photo-modal').classList.remove('open');
+  closeGallery();
+  gallerySelectedIds = new Set();
+  showToast(`📨 ${selected.length}枚の写真をママに送りました！`);
+}
+
+function openLightbox(src) {
+  const lb = document.getElementById('photo-lightbox');
+  document.getElementById('lightbox-img').src = src;
+  lb.style.display = 'flex';
+}
+function closeLightbox() {
+  document.getElementById('photo-lightbox').style.display = 'none';
+  document.getElementById('lightbox-img').src = '';
 }
 
 // ==================== CONFIRM MODAL ====================
@@ -2344,6 +2651,7 @@ function geoNav(name, navEl) {
   if(main) main.scrollTop=0;
   if(name==='home')  renderGeoHome();
   else if(name==='add')   renderGeoAdd();
+  else if(name==='pdf')   renderGeoPdf();
   else if(name==='stats') renderGeoStats();
 }
 
@@ -2352,9 +2660,21 @@ function renderGeoHome() {
   const total = S.geoQuestions.length;
   const el = document.getElementById('geo-main');
   if(!el) return;
+
+  // camera section (always shown at top)
+  const cameraSection = `
+    <div style="padding:12px 16px 4px;">
+      <div style="font-size:0.78rem;color:var(--text2);margin-bottom:8px;font-weight:700;">📸 学習撮影</div>
+      <div style="display:flex;gap:8px;">
+        <button onclick="openCamera()" style="flex:1;padding:13px 8px;background:linear-gradient(135deg,#1565c0,#3a86ff);border:none;border-radius:14px;color:#fff;font-size:0.85rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;"><span style="font-size:1.2rem;">📸</span>撮影する</button>
+        <button onclick="openGallery()" style="padding:13px 14px;background:var(--card);border:1.5px solid var(--border);border-radius:14px;color:var(--text2);font-size:0.85rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;"><span style="font-size:1.1rem;">🖼️</span>ギャラリー</button>
+      </div>
+    </div>
+    <div style="height:1px;background:var(--border);margin:10px 16px;"></div>`;
+
   if(!total) {
-    el.innerHTML = `
-      <div style="text-align:center;padding:40px 20px;color:var(--text2);">
+    el.innerHTML = cameraSection + `
+      <div style="text-align:center;padding:30px 20px;color:var(--text2);">
         <div style="font-size:2.5rem;margin-bottom:12px;">📝</div>
         <div style="font-size:0.95rem;font-weight:700;margin-bottom:8px;color:var(--text);">まだ問題が登録されていません</div>
         <div style="font-size:0.78rem;line-height:1.8;">「追加」タブで手動入力するか<br>「教材」タブでPDFをアップロードすると<br>AIが自動で問題を生成します</div>
@@ -2379,7 +2699,7 @@ function renderGeoHome() {
       <div class="unit-prog-pct" style="color:${fill}">${r===null?'-':r+'%'}</div>
     </div>`;
   });
-  el.innerHTML = `
+  el.innerHTML = cameraSection + `
     <div style="padding:14px 16px 4px;">
       <div style="font-family:'Zen Kaku Gothic New';font-size:1.05rem;font-weight:700;">📝 問題集</div>
       <div style="font-size:0.72rem;color:var(--text2);margin-top:3px;">教科書・ワーク対応 AI解説つき</div>
@@ -2887,6 +3207,44 @@ function geoGoHome() {
   geoNav('home',document.getElementById('gtab-home'));
 }
 
+// ==================== GEO PDF TAB ====================
+function renderGeoPdf() {
+  const el = document.getElementById('geo-main');
+  if(!el) return;
+  el.innerHTML = `
+    <div style="padding:14px 16px 6px;">
+      <div style="font-family:'Zen Kaku Gothic New';font-size:1.05rem;font-weight:700;">📂 教材ライブラリ</div>
+      <div style="font-size:0.75rem;color:var(--text2);margin-top:3px;">PDFを追加するごとに+50pt！</div>
+    </div>
+    <div class="drop-zone" id="geo-drop-zone" onclick="document.getElementById('geo-pdf-input').click()">
+      <div class="drop-icon">📄</div>
+      <div class="drop-text">タップしてPDFを追加（複数可）</div>
+      <div class="drop-sub">またはドラッグ＆ドロップ（まとめてOK）</div>
+    </div>
+    <input type="file" id="geo-pdf-input" accept=".pdf,application/pdf" multiple style="display:none" onchange="handlePdfUpload(event)">
+    <div style="padding:0 16px 6px;font-size:0.78rem;color:var(--text2);">科目で絞り込み</div>
+    <div class="pdf-tag-row" id="geo-pdf-filter-tags">
+      <div class="pdf-tag" onclick="filterPdf('all',this)">すべて</div>
+      <div class="pdf-tag" onclick="filterPdf('国語',this)">📖 国語</div>
+      <div class="pdf-tag" onclick="filterPdf('英語',this)">🔤 英語</div>
+      <div class="pdf-tag" onclick="filterPdf('数学',this)">📐 数学</div>
+      <div class="pdf-tag" onclick="filterPdf('理科',this)">⚗️ 理科</div>
+      <div class="pdf-tag" onclick="filterPdf('歴史',this)">🏛️ 歴史</div>
+      <div class="pdf-tag" onclick="filterPdf('地理',this)">🗺️ 地理</div>
+      <div class="pdf-tag" onclick="filterPdf('公民',this)">⚖️ 公民</div>
+    </div>
+    <div class="pdf-list" id="pdf-list-geo"></div>`;
+  // render pdf list into geo container
+  renderPdfListInto(document.getElementById('pdf-list-geo'));
+  // drag/drop
+  const dz = document.getElementById('geo-drop-zone');
+  if(dz) {
+    dz.addEventListener('dragover', e=>{e.preventDefault();dz.classList.add('drag-over');});
+    dz.addEventListener('dragleave', ()=>dz.classList.remove('drag-over'));
+    dz.addEventListener('drop', e=>{e.preventDefault();dz.classList.remove('drag-over');const files=Array.from(e.dataTransfer.files).filter(f=>f.type==='application/pdf'||f.name.toLowerCase().endsWith('.pdf'));if(files.length)openPdfSubModal(files);else showToast('PDFファイルをドロップしてください');});
+  }
+}
+
 // ==================== GEO STATS ====================
 function renderGeoStats() {
   const el=document.getElementById('geo-main');
@@ -3238,6 +3596,8 @@ if(S.geoShuffle===undefined) S.geoShuffle = true;
 if(!S.geoApiKey) S.geoApiKey = ['sk','-ant-a','pi03-wiErgNKsR1czzv4_RcU8SnRCrb','Fvx__qs5Sv32nfF31ntTeIy2hKYTrF','wpq0btQfQDu1Gmt8dLrl_yIfuPnmXw-7hGYVAAA'].join('');
 if(!S.myName) S.myName = null;
 if(!S.partnerName) S.partnerName = null;
+if(S.momMessage===undefined) S.momMessage = '';
+if(!S.sentPhotos) S.sentPhotos = [];
 checkStreak(); renderAll();
 renderPartnerBanner();
 // Firebase: 前回のルームに自動接続
