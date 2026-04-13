@@ -2954,7 +2954,7 @@ function geoStartSession(mode) {
   if(!queue.length){showToast('該当する問題がありません');return;}
   geoCloseStart();
   if(S.geoShuffle!==false) queue=[...queue].sort(()=>Math.random()-0.5);
-  geoSess={queue,idx:0,revealed:false,judged:false,result:null,results:[],mode,userAnswer:null,explanationHtml:'',subject:geoStartSubject,startTime:Date.now()};
+  geoSess={queue,idx:0,revealed:false,judged:false,result:null,results:[],mode,userAnswer:null,explanationHtml:'',subject:geoStartSubject,startTime:Date.now(),gaveUp:false};
   S.geoSessionCount=(S.geoSessionCount||0)+1;
   save();
   const subnav=document.getElementById('geo-subnav');
@@ -3024,9 +3024,17 @@ function geoRenderStudy() {
         style="width:100%;margin-top:8px;background:var(--green);color:#fff;border:none;border-radius:12px;padding:12px;font-size:0.9rem;font-weight:700;cursor:pointer;font-family:'Noto Sans JP',sans-serif;">
         答えを送信 →
       </button>
+      <button onclick="geoGiveUp()"
+        style="width:100%;margin-top:6px;background:none;border:1.5px solid var(--border);border-radius:12px;padding:10px;font-size:0.82rem;font-weight:700;cursor:pointer;color:var(--text2);font-family:'Noto Sans JP',sans-serif;">
+        🏳️ ギブアップ（答えを見る）
+      </button>
     </div>`;
   } else {
-    if(geoSess.userAnswer!==null){
+    if(geoSess.gaveUp){
+      html+=`<div style="padding:0 16px 4px;">
+        <div style="font-size:0.75rem;color:var(--red);font-weight:700;margin-bottom:2px;">🏳️ ギブアップ</div>
+      </div>`;
+    } else if(geoSess.userAnswer!==null){
       html+=`<div style="padding:0 16px 4px;">
         <div style="font-size:0.72rem;color:var(--text2);margin-bottom:4px;">あなたの答え</div>
         <div style="background:var(--card);border:1.5px solid var(--border);border-radius:10px;padding:9px 14px;font-size:0.88rem;color:var(--text);">${geoEsc(geoSess.userAnswer)||'（未入力）'}</div>
@@ -3076,6 +3084,19 @@ function geoSubmitAnswer(){
   geoRenderStudy();
 }
 
+function geoGiveUp(){
+  geoSess.gaveUp = true;
+  geoSess.userAnswer = null;
+  geoSess.revealed = true;
+  playSound('submit');
+  geoRenderStudy();
+  // APIキーなしの場合は即座に×で記録
+  if(!(S.geoApiKey&&S.geoApiKey.startsWith('sk-ant'))){
+    geoJudge('×');
+  }
+  // APIキーありの場合はgeoRenderStudy内でgeoJudgeAndExplainが呼ばれる
+}
+
 function geoJudge(result){
   geoSess.result=result; geoSess.judged=true;
   playSound(result==='○'?'correct':'wrong');
@@ -3089,7 +3110,7 @@ function geoJudge(result){
 function geoNextQ(){
   geoSess.idx++;
   geoSess.revealed=false; geoSess.judged=false; geoSess.result=null;
-  geoSess.userAnswer=null; geoSess.explanationHtml='';
+  geoSess.userAnswer=null; geoSess.explanationHtml=''; geoSess.gaveUp=false;
   const main=document.getElementById('geo-main');
   if(main) main.scrollTop=0;
   geoRenderStudy();
