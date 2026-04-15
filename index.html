@@ -646,6 +646,23 @@ body.parent-mode #parent-nav{display:flex!important;}
 .spin-ring{width:16px;height:16px;border:2.5px solid rgba(255,255,255,0.15);border-top-color:var(--blue);border-radius:50%;animation:spin 0.7s linear infinite;flex-shrink:0;}
 .sync-spin-text{font-size:0.72rem;color:var(--text2);white-space:nowrap;}
 
+/* ===== SPACED REPETITION ===== */
+.review-item{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,0.05);}
+.review-item:last-child{border-bottom:none;}
+.review-round-badge{font-size:0.66rem;font-weight:900;padding:3px 8px;border-radius:99px;flex-shrink:0;}
+.r-badge-1{background:rgba(231,76,60,0.2);color:#ef9a9a;}
+.r-badge-2{background:rgba(230,126,34,0.2);color:#ffcc80;}
+.r-badge-3{background:rgba(245,200,66,0.2);color:var(--gold);}
+.r-badge-4{background:rgba(46,204,113,0.15);color:#a5d6a7;}
+.review-due-tag{font-size:0.68rem;font-weight:700;padding:2px 7px;border-radius:99px;flex-shrink:0;}
+.due-overdue{background:rgba(231,76,60,0.2);color:var(--red);}
+.due-today{background:rgba(245,200,66,0.2);color:var(--gold);}
+.due-soon{background:rgba(58,134,255,0.15);color:var(--blue);}
+.due-future{background:rgba(255,255,255,0.06);color:var(--text2);}
+.chunk-seg{display:flex;gap:5px;margin-bottom:12px;}
+.chunk-btn{flex:1;padding:8px 4px;background:var(--card);border:1.5px solid var(--border);border-radius:10px;color:var(--text2);font-size:0.8rem;font-weight:700;cursor:pointer;text-align:center;transition:all 0.15s;}
+.chunk-btn.active{border-color:var(--gold);background:rgba(245,200,66,0.12);color:var(--gold);}
+
 /* ===== MOM MESSAGE ===== */
 .mom-msg-banner{margin:10px 16px 0;padding:10px 14px;background:linear-gradient(135deg,#4a148c,#7b1fa2);border:1.5px solid rgba(206,147,216,0.45);border-radius:14px;display:flex;align-items:flex-start;gap:10px;}
 .mom-msg-icon{font-size:1.3rem;flex-shrink:0;}
@@ -1207,6 +1224,14 @@ body.parent-mode #parent-nav{display:flex!important;}
       <div style="font-size:0.78rem;color:var(--text2);margin-bottom:8px;">単元を絞り込む（任意）</div>
       <div class="unit-filter-row" id="geo-start-unit-filter" style="padding:0;flex-wrap:wrap;gap:6px;overflow:visible;"></div>
     </div>
+    <div style="margin-bottom:12px;">
+      <div style="font-size:0.78rem;color:var(--text2);margin-bottom:8px;">1セットの問題数</div>
+      <div class="chunk-seg" id="chunk-seg">
+        <div class="chunk-btn active" onclick="setChunkSize(10,this)">10問</div>
+        <div class="chunk-btn" onclick="setChunkSize(15,this)">15問</div>
+        <div class="chunk-btn" onclick="setChunkSize(0,this)">全問</div>
+      </div>
+    </div>
     <div id="geo-start-opt-all" class="start-option" onclick="geoStartSession('all')">
       <span class="start-opt-icon">📖</span>
       <div><div class="start-opt-title">全問題を学習</div><div class="start-opt-sub" id="geo-start-all-sub">0問</div></div>
@@ -1306,6 +1331,7 @@ function defaultState() {
     myName: null, partnerName: null,
     momMessage: '', momMessageTs: 0,
     sentPhotos: [],
+    reviewBatches: [],
   };
 }
 let S = (() => { try { const s=localStorage.getItem(KEY); return s?JSON.parse(s):defaultState(); } catch{return defaultState();} })();
@@ -2627,6 +2653,13 @@ let geoStartFilter = 'all';
 let geoStartSubject = null;
 let geoListFilter = 'all';
 let geoEditingId = null;
+let geoChunkSize = 10; // 0=all, 10, 15
+
+function setChunkSize(n, el) {
+  geoChunkSize = n;
+  document.querySelectorAll('.chunk-btn').forEach(b=>b.classList.remove('active'));
+  if(el) el.classList.add('active');
+}
 
 const geoUid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,5);
 const geoEsc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -2669,6 +2702,67 @@ function geoNav(name, navEl) {
   else if(name==='add')   renderGeoAdd();
   else if(name==='pdf')   renderGeoPdf();
   else if(name==='stats') renderGeoStats();
+}
+
+// ==================== REVIEW SCHEDULE ====================
+function renderReviewSchedule() {
+  const today = todayStr();
+  const pending = (S.reviewBatches||[]).filter(b=>!b.done);
+  if(!pending.length) return '';
+
+  // Sort: overdue/today first (by round asc then dueDate asc), then future (by dueDate asc then round asc)
+  const priority = b => {
+    const diff = b.dueDate <= today ? -1 : 1;
+    return diff;
+  };
+  const sorted = [...pending].sort((a,b) => {
+    const aOverdue = a.dueDate <= today;
+    const bOverdue = b.dueDate <= today;
+    if(aOverdue !== bOverdue) return aOverdue ? -1 : 1;
+    if(aOverdue) {
+      // Both overdue: earliest round first, then earliest due
+      if(a.round !== b.round) return a.round - b.round;
+      return a.dueDate < b.dueDate ? -1 : 1;
+    }
+    // Both future: earliest due first, then earliest round
+    if(a.dueDate !== b.dueDate) return a.dueDate < b.dueDate ? -1 : 1;
+    return a.round - b.round;
+  });
+
+  const roundLabel = {1:'Round 1', 2:'Round 2', 3:'Round 3', 4:'Round 4'};
+  const roundColor = {1:'#3a86ff', 2:'#2ecc71', 3:'#e67e22', 4:'#9b59b6'};
+
+  let items = '';
+  sorted.forEach(b => {
+    const isOverdue = b.dueDate < today;
+    const isToday   = b.dueDate === today;
+    const diffDays  = Math.round((new Date(b.dueDate) - new Date(today)) / 86400000);
+    let dateLabel, dateColor;
+    if(isOverdue)     { dateLabel = `${-diffDays}日超過`; dateColor = 'var(--red)'; }
+    else if(isToday)  { dateLabel = '今日';               dateColor = 'var(--gold)'; }
+    else              { dateLabel = `${diffDays}日後`;    dateColor = 'var(--text2)'; }
+
+    const subjectLabel = b.subject ? `[${b.subject}] ` : '';
+    items += `<div class="review-item" onclick="startScheduledReview('${b.id}')" style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--card);border-radius:12px;margin-bottom:8px;cursor:pointer;border:1.5px solid ${isOverdue||isToday?'rgba(255,255,255,0.12)':'var(--border)'};${isOverdue?'border-color:rgba(231,76,60,0.4);':isToday?'border-color:rgba(245,200,66,0.35);':''}">
+      <div style="width:8px;height:8px;border-radius:50%;background:${roundColor[b.round]||'var(--blue)'};flex-shrink:0;"></div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:0.82rem;font-weight:700;color:var(--text);">${subjectLabel}${b.questionIds.length}問</div>
+        <div style="font-size:0.72rem;color:var(--text2);margin-top:2px;">${roundLabel[b.round]||'復習'}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0;">
+        <div style="font-size:0.78rem;font-weight:700;color:${dateColor};">${dateLabel}</div>
+        <div style="font-size:0.65rem;color:var(--text2);margin-top:2px;">▶ タップして開始</div>
+      </div>
+    </div>`;
+  });
+
+  const overdueCount = sorted.filter(b=>b.dueDate<=today).length;
+  return `<div style="padding:0 16px 4px;">
+    <div style="font-family:'Zen Kaku Gothic New';font-size:0.9rem;font-weight:700;margin-bottom:10px;">
+      🔔 復習スケジュール${overdueCount>0?` <span style="background:var(--red);color:#fff;font-size:0.68rem;border-radius:10px;padding:1px 7px;vertical-align:middle;">${overdueCount}件待ち</span>`:''}
+    </div>
+    ${items}
+  </div>`;
 }
 
 // ==================== GEO HOME ====================
@@ -2728,6 +2822,7 @@ function renderGeoHome() {
     </div>
     <button class="btn-main" onclick="geoOpenStartModal()">▶ 学習をスタート</button>
     ${weak>0?`<button class="btn-secondary" onclick="geoOpenStartModal('review')">🔁 苦手問題だけ復習</button>`:''}
+    ${renderReviewSchedule()}
     <div class="sec-title">📚 単元別 正答率</div>
     <div style="padding:0 16px 20px;">${progHtml}</div>`;
 }
@@ -2954,7 +3049,8 @@ function geoStartSession(mode) {
   if(!queue.length){showToast('該当する問題がありません');return;}
   geoCloseStart();
   if(S.geoShuffle!==false) queue=[...queue].sort(()=>Math.random()-0.5);
-  geoSess={queue,idx:0,revealed:false,judged:false,result:null,results:[],mode,userAnswer:null,explanationHtml:'',subject:geoStartSubject,startTime:Date.now(),gaveUp:false};
+  if(geoChunkSize>0) queue=queue.slice(0,geoChunkSize);
+  geoSess={queue,idx:0,revealed:false,judged:false,result:null,results:[],mode,userAnswer:null,explanationHtml:'',subject:geoStartSubject,startTime:Date.now(),gaveUp:false,isReview:false,reviewRound:0,reviewBatchId:null};
   S.geoSessionCount=(S.geoSessionCount||0)+1;
   save();
   const subnav=document.getElementById('geo-subnav');
@@ -3204,36 +3300,127 @@ function autoRecordGeoSession() {
 
 function geoRenderResult() {
   playSound('complete');
-  autoRecordGeoSession();
-  const el=document.getElementById('geo-main');
-  const results=geoSess.results;
-  const ok=results.filter(r=>r.result==='○').length;
-  const ng=results.filter(r=>r.result==='×').length;
-  const total=results.length;
-  const pct=total?Math.round(ok/total*100):0;
-  const color=pct===100?'var(--green)':pct>=70?'var(--gold)':pct>=40?'var(--orange)':'var(--red)';
-  const msg=pct===100?'🎉 全問正解！完璧です！':pct>=80?'👍 すばらしい成績！':pct>=60?'💪 あと少し！苦手を復習しよう':'📖 復習して定着させよう！';
-  const wrongList=results.filter(r=>r.result==='×').map(r=>`<div class="wrong-item"><div class="wrong-q">Q. ${geoEsc(r.q.question)}</div><div class="wrong-a">→ ${geoEsc(r.q.answer)}</div></div>`).join('');
-  el.innerHTML=`<div style="padding:14px 0 0;">
-    <div class="result-hero">
-      <div class="result-pct" style="color:${color}">${pct}%</div>
-      <div class="result-label">${ok}問正解 / ${total}問</div>
-      <div class="result-msg">${msg}</div>
-    </div>
-    ${ng>0?`<div class="sec-title">❌ 間違えた問題（${ng}問）</div><div class="card" style="padding:8px 14px;">${wrongList}</div>`:''}
-    ${ng>0?`<button class="btn-main" onclick="geoRetryWrong()">🔁 今すぐ間違いを復習</button>`:''}
-    <button class="btn-secondary" onclick="geoGoHome()">🏠 ホームに戻る</button>
-  </div>`;
+  const el = document.getElementById('geo-main');
+  const results = geoSess.results;
+  const ok = results.filter(r=>r.result==='○').length;
+  const ng = results.filter(r=>r.result==='×').length;
+  const total = results.length;
+  const pct = total ? Math.round(ok/total*100) : 0;
+  const color = pct===100?'var(--green)':pct>=70?'var(--gold)':pct>=40?'var(--orange)':'var(--red)';
+  const wrongIds = results.filter(r=>r.result==='×').map(r=>r.q.id);
+  const wrongList = results.filter(r=>r.result==='×').map(r=>`<div class="wrong-item"><div class="wrong-q">Q. ${geoEsc(r.q.question)}</div><div class="wrong-a">→ ${geoEsc(r.q.answer)}</div></div>`).join('');
+
+  if(!geoSess.isReview) {
+    // ── 初回セット完了 ──
+    autoRecordGeoSession();
+    if(ng > 0) {
+      el.innerHTML = `<div style="padding:14px 0 0;">
+        <div class="result-hero">
+          <div class="result-pct" style="color:${color}">${pct}%</div>
+          <div class="result-label">${ok}問正解 / ${total}問</div>
+        </div>
+        <div class="sec-title" style="color:var(--orange);">🔁 Round 1 復習タイム！</div>
+        <div class="card" style="padding:10px 14px;margin-bottom:10px;">
+          <div style="font-size:0.84rem;font-weight:700;margin-bottom:4px;">間違えた <span style="color:var(--red);">${ng}問</span> を今すぐやり直そう</div>
+          <div style="font-size:0.72rem;color:var(--text2);line-height:1.7;">Round 1：今すぐ　Round 2：24時間後<br>Round 3：4日後　Round 4：30日後</div>
+        </div>
+        <div class="sec-title">❌ 間違えた問題</div>
+        <div class="card" style="padding:8px 14px;margin-bottom:10px;">${wrongList}</div>
+        <button class="btn-main" onclick="geoStartRound1Review()">▶ Round 1 復習スタート（${ng}問）</button>
+        <button class="btn-secondary" onclick="geoGoHome()">後で復習する</button>
+      </div>`;
+    } else {
+      el.innerHTML = `<div style="padding:14px 0 0;">
+        <div class="result-hero">
+          <div class="result-pct" style="color:var(--green)">100%</div>
+          <div class="result-label">${ok}問全正解！</div>
+          <div class="result-msg">🎉 完璧！復習の必要なし！</div>
+        </div>
+        <button class="btn-secondary" onclick="geoGoHome()">🏠 ホームに戻る</button>
+      </div>`;
+    }
+  } else {
+    // ── 復習ラウンド完了 ──
+    const round = geoSess.reviewRound;
+    const batchId = geoSess.reviewBatchId;
+    completeReview(batchId, wrongIds, round, geoSess.subject);
+    const nextRound = round + 1;
+    const nextLabels = {2:'24時間後',3:'4日後',4:'30日後'};
+    el.innerHTML = `<div style="padding:14px 0 0;">
+      <div class="result-hero">
+        <div class="result-pct" style="color:${color}">${pct}%</div>
+        <div class="result-label">Round ${round} 完了　${ok}問正解 / ${total}問</div>
+        <div class="result-msg">${pct===100?'🎉 全問正解！':'💪 お疲れ様！'}</div>
+      </div>
+      ${ng>0&&round<4?`<div class="card" style="padding:10px 14px;margin:0 16px 12px;background:rgba(245,200,66,0.07);border-color:rgba(245,200,66,0.3);">
+        <div style="font-size:0.82rem;font-weight:700;color:var(--gold);">📅 Round ${nextRound} をスケジュール</div>
+        <div style="font-size:0.72rem;color:var(--text2);margin-top:3px;">${ng}問　${nextLabels[nextRound]}に出題されます</div>
+      </div>`:''}
+      ${ng===0?`<div class="card" style="padding:10px 14px;margin:0 16px 12px;background:rgba(46,204,113,0.07);border-color:rgba(46,204,113,0.3);">
+        <div style="font-size:0.82rem;font-weight:700;color:var(--green);">✅ 全問正解！次ラウンドなし</div>
+      </div>`:''}
+      ${round===4&&ng>0?`<div class="card" style="padding:10px 14px;margin:0 16px 12px;background:rgba(46,204,113,0.07);border-color:rgba(46,204,113,0.3);">
+        <div style="font-size:0.82rem;font-weight:700;color:var(--green);">🏆 Round 4 完了！全ラウンド終了</div>
+      </div>`:''}
+      <button class="btn-secondary" onclick="geoGoHome()">🏠 ホームに戻る</button>
+    </div>`;
+  }
 }
 
-function geoRetryWrong() {
-  const wrongIds=new Set(geoSess.results.filter(r=>r.result==='×').map(r=>r.q.id));
-  const queue=S.geoQuestions.filter(q=>wrongIds.has(q.id)).sort(()=>Math.random()-0.5);
-  if(!queue.length){geoGoHome();return;}
-  geoSess={queue,idx:0,revealed:false,judged:false,result:null,results:[],mode:'review'};
-  S.geoSessionCount=(S.geoSessionCount||0)+1; save();
-  const main=document.getElementById('geo-main');
-  if(main) main.scrollTop=0;
+// ── 復習スケジュール管理 ──
+function scheduleReviewBatch(questionIds, round, subject) {
+  if(!questionIds.length || round > 4) return;
+  const daysAhead = round===2?1 : round===3?4 : 30;
+  const due = new Date(Date.now() + daysAhead*24*60*60*1000);
+  if(!S.reviewBatches) S.reviewBatches = [];
+  S.reviewBatches.push({
+    id: Date.now().toString(36)+Math.random().toString(36).slice(2,5),
+    round, questionIds, subject,
+    dueDate: due.toISOString().slice(0,10),
+    done: false, createdDate: todayStr()
+  });
+  save();
+}
+
+function completeReview(batchId, stillWrongIds, round, subject) {
+  if(batchId) {
+    const b = (S.reviewBatches||[]).find(b=>b.id===batchId);
+    if(b) b.done = true;
+  }
+  if(stillWrongIds.length && round < 4) scheduleReviewBatch(stillWrongIds, round+1, subject);
+  else save();
+}
+
+function geoStartRound1Review() {
+  const wrongIds = new Set(geoSess.results.filter(r=>r.result==='×').map(r=>r.q.id));
+  const queue = S.geoQuestions.filter(q=>wrongIds.has(q.id)).sort(()=>Math.random()-0.5);
+  const subject = geoSess.subject;
+  if(!queue.length) { geoGoHome(); return; }
+  geoSess = {queue, idx:0, revealed:false, judged:false, result:null, results:[], mode:'review',
+    userAnswer:null, explanationHtml:'', subject, startTime:Date.now(),
+    gaveUp:false, isReview:true, reviewRound:1, reviewBatchId:null};
+  S.geoSessionCount = (S.geoSessionCount||0)+1; save();
+  const main = document.getElementById('geo-main');
+  if(main) main.scrollTop = 0;
+  geoRenderStudy();
+}
+
+function startScheduledReview(batchId) {
+  const batch = (S.reviewBatches||[]).find(b=>b.id===batchId);
+  if(!batch||batch.done) return;
+  const questions = S.geoQuestions.filter(q=>batch.questionIds.includes(q.id));
+  if(!questions.length) { batch.done=true; save(); renderGeoHome(); return; }
+  geoSess = {
+    queue: [...questions].sort(()=>Math.random()-0.5),
+    idx:0, revealed:false, judged:false, result:null, results:[], mode:'review',
+    userAnswer:null, explanationHtml:'', subject:batch.subject, startTime:Date.now(),
+    gaveUp:false, isReview:true, reviewRound:batch.round, reviewBatchId:batchId
+  };
+  S.geoSessionCount = (S.geoSessionCount||0)+1; save();
+  const subnav = document.getElementById('geo-subnav');
+  if(subnav) subnav.style.display = 'none';
+  const main = document.getElementById('geo-main');
+  if(main) main.scrollTop = 0;
   geoRenderStudy();
 }
 
@@ -3571,6 +3758,7 @@ function fbWrite() {
       dailyBonusClaimed:S.dailyBonusClaimed||null,
       townTiles:S.townTiles||null,
       geoShuffle:S.geoShuffle!==undefined?S.geoShuffle:true,
+      reviewBatches:S.reviewBatches||[],
       ts:Date.now()
     };
     fbIgnoreCount++;
@@ -3652,6 +3840,16 @@ function fbOnRemote(snapshot) {
   if(data.townTiles&&Object.keys(data.townTiles).length>Object.keys(S.townTiles||{}).length){S.townTiles=data.townTiles;changed=true;}
   // シャッフル
   if(data.geoShuffle!==undefined&&data.geoShuffle!==S.geoShuffle){S.geoShuffle=data.geoShuffle;changed=true;}
+  // 復習バッチ
+  if(data.reviewBatches&&data.reviewBatches.length){
+    if(!S.reviewBatches) S.reviewBatches=[];
+    const rbIds=new Set(S.reviewBatches.map(b=>b.id));
+    data.reviewBatches.forEach(b=>{
+      if(!b.id) return;
+      if(!rbIds.has(b.id)){S.reviewBatches.push(b);changed=true;}
+      else{const ex=S.reviewBatches.find(e=>e.id===b.id);if(ex&&b.done&&!ex.done){ex.done=true;changed=true;}}
+    });
+  }
   // 相手の名前
   if(data.name&&data.name!==S.partnerName){S.partnerName=data.name;renderPartnerBanner();}
   if(changed){ save(); renderAll(); showToast('🔄 ' + (data.name||'相手') + 'のデータを同期しました'); }
@@ -3752,6 +3950,7 @@ if(!S.partnerName) S.partnerName = null;
 if(S.momMessage===undefined) S.momMessage = '';
 if(!S.momMessageTs) S.momMessageTs = 0;
 if(!S.sentPhotos) S.sentPhotos = [];
+if(!S.reviewBatches) S.reviewBatches = [];
 checkStreak(); renderAll();
 renderPartnerBanner();
 // Firebase: 前回のルームに自動接続
