@@ -1220,34 +1220,39 @@ body.parent-mode #parent-nav{display:flex!important;}
         <div class="unit-tag" data-sub="公民" onclick="geoSelectSubject('公民',this)">⚖️ 公民</div>
       </div>
     </div>
-    <div style="margin-bottom:10px;">
-      <div style="font-size:0.78rem;color:var(--text2);margin-bottom:8px;">単元を絞り込む（任意）</div>
-      <div class="unit-filter-row" id="geo-start-unit-filter" style="padding:0;flex-wrap:wrap;gap:6px;overflow:visible;"></div>
-    </div>
-    <div style="margin-bottom:12px;">
-      <div style="font-size:0.78rem;color:var(--text2);margin-bottom:8px;">1セットの問題数</div>
-      <div class="chunk-seg" id="chunk-seg">
-        <div class="chunk-btn active" onclick="setChunkSize(10,this)">10問</div>
-        <div class="chunk-btn" onclick="setChunkSize(15,this)">15問</div>
-        <div class="chunk-btn" onclick="setChunkSize(0,this)">全問</div>
+    <div id="geo-start-unit-section" style="display:none;">
+      <div style="margin-bottom:10px;">
+        <div style="font-size:0.78rem;color:var(--text2);margin-bottom:8px;">単元を絞り込む（任意）</div>
+        <div class="unit-filter-row" id="geo-start-unit-filter" style="padding:0;flex-wrap:wrap;gap:6px;overflow:visible;"></div>
+      </div>
+      <div style="margin-bottom:12px;">
+        <div style="font-size:0.78rem;color:var(--text2);margin-bottom:8px;">1セットの問題数</div>
+        <div class="chunk-seg" id="chunk-seg">
+          <div class="chunk-btn active" onclick="setChunkSize(10,this)">10問</div>
+          <div class="chunk-btn" onclick="setChunkSize(15,this)">15問</div>
+          <div class="chunk-btn" onclick="setChunkSize(20,this)">20問</div>
+          <div class="chunk-btn" onclick="setChunkSize(0,this)">全問</div>
+        </div>
       </div>
     </div>
-    <div id="geo-start-opt-all" class="start-option" onclick="geoStartSession('all')">
-      <span class="start-opt-icon">📖</span>
-      <div><div class="start-opt-title">全問題を学習</div><div class="start-opt-sub" id="geo-start-all-sub">0問</div></div>
-    </div>
-    <div id="geo-start-opt-new" class="start-option" onclick="geoStartSession('new')">
-      <span class="start-opt-icon">✨</span>
-      <div><div class="start-opt-title">まだやっていない問題</div><div class="start-opt-sub" id="geo-start-new-sub">0問</div></div>
-    </div>
-    <div id="geo-start-opt-review" class="start-option" onclick="geoStartSession('review')">
-      <span class="start-opt-icon">🔁</span>
-      <div><div class="start-opt-title">苦手のみ復習（×問題）</div><div class="start-opt-sub" id="geo-start-review-sub">0問</div></div>
-    </div>
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 4px 2px;border-top:1px solid var(--border);margin-top:8px;">
-      <span style="font-size:0.82rem;color:var(--text2);">🔀 出題順をランダムにする</span>
-      <button id="geo-shuffle-btn" onclick="toggleGeoShuffle()"
-        style="padding:5px 14px;border-radius:99px;border:1.5px solid var(--border);font-size:0.78rem;font-weight:700;cursor:pointer;transition:all 0.2s;background:var(--green);color:#fff;">ON</button>
+    <div id="geo-start-mode-section" style="display:none;">
+      <div id="geo-start-opt-all" class="start-option" onclick="geoStartSession('all')">
+        <span class="start-opt-icon">📖</span>
+        <div><div class="start-opt-title">全問題を学習</div><div class="start-opt-sub" id="geo-start-all-sub">0問</div></div>
+      </div>
+      <div id="geo-start-opt-new" class="start-option" onclick="geoStartSession('new')">
+        <span class="start-opt-icon">✨</span>
+        <div><div class="start-opt-title">まだやっていない問題</div><div class="start-opt-sub" id="geo-start-new-sub">0問</div></div>
+      </div>
+      <div id="geo-start-opt-review" class="start-option" onclick="geoStartSession('review')">
+        <span class="start-opt-icon">🔁</span>
+        <div><div class="start-opt-title">苦手のみ復習（×問題）</div><div class="start-opt-sub" id="geo-start-review-sub">0問</div></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 4px 2px;border-top:1px solid var(--border);margin-top:8px;">
+        <span style="font-size:0.82rem;color:var(--text2);">🔀 出題順をランダムにする</span>
+        <button id="geo-shuffle-btn" onclick="toggleGeoShuffle()"
+          style="padding:5px 14px;border-radius:99px;border:1.5px solid var(--border);font-size:0.78rem;font-weight:700;cursor:pointer;transition:all 0.2s;background:var(--green);color:#fff;">ON</button>
+      </div>
     </div>
   </div>
 </div>
@@ -2649,6 +2654,7 @@ function showToast(msg){
 // ==================== GEO STUDY ====================
 let geoSess = null;
 let geoTab = 'home';
+let geoAddSubject = null; // 手動追加時の教科
 let geoStartFilter = 'all';
 let geoStartSubject = null;
 let geoListFilter = 'all';
@@ -2665,9 +2671,10 @@ const geoUid = () => Date.now().toString(36) + Math.random().toString(36).slice(
 const geoEsc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const geoEscAttr = s => String(s).replace(/'/g,"\\'").replace(/"/g,'&quot;');
 
-function geoGetUnits() {
+function geoGetUnits(subjectFilter) {
+  const qs = subjectFilter ? S.geoQuestions.filter(q => !q.subject || q.subject === subjectFilter) : S.geoQuestions;
   const seen = new Set(), arr = [];
-  S.geoQuestions.forEach(q => { if(!seen.has(q.unit)){ seen.add(q.unit); arr.push(q.unit); } });
+  qs.forEach(q => { if(!seen.has(q.unit)){ seen.add(q.unit); arr.push(q.unit); } });
   return arr;
 }
 function geoGetRate(q) {
@@ -2682,8 +2689,10 @@ function geoIsWeak(q) {
   return h.slice(-2).every(x=>x.r==='×');
 }
 function geoFilterQ(unit) {
-  if(!unit||unit==='all') return [...S.geoQuestions];
-  return S.geoQuestions.filter(q=>q.unit===unit);
+  let qs = [...S.geoQuestions];
+  if(geoStartSubject) qs = qs.filter(q => !q.subject || q.subject === geoStartSubject);
+  if(unit && unit !== 'all') qs = qs.filter(q => q.unit === unit);
+  return qs;
 }
 function geoWeakQ(unit) { return geoFilterQ(unit).filter(geoIsWeak); }
 function geoNewQ(unit) { return geoFilterQ(unit).filter(q=>!q.history||!q.history.length); }
@@ -2710,27 +2719,16 @@ function renderReviewSchedule() {
   const pending = (S.reviewBatches||[]).filter(b=>!b.done);
   if(!pending.length) return '';
 
-  // Sort: overdue/today first (by round asc then dueDate asc), then future (by dueDate asc then round asc)
-  const priority = b => {
-    const diff = b.dueDate <= today ? -1 : 1;
-    return diff;
-  };
+  // Sort by round (1→4) first, then by dueDate
   const sorted = [...pending].sort((a,b) => {
-    const aOverdue = a.dueDate <= today;
-    const bOverdue = b.dueDate <= today;
-    if(aOverdue !== bOverdue) return aOverdue ? -1 : 1;
-    if(aOverdue) {
-      // Both overdue: earliest round first, then earliest due
-      if(a.round !== b.round) return a.round - b.round;
-      return a.dueDate < b.dueDate ? -1 : 1;
-    }
-    // Both future: earliest due first, then earliest round
-    if(a.dueDate !== b.dueDate) return a.dueDate < b.dueDate ? -1 : 1;
-    return a.round - b.round;
+    if(a.round !== b.round) return a.round - b.round;
+    return a.dueDate < b.dueDate ? -1 : 1;
   });
 
-  const roundLabel = {1:'Round 1', 2:'Round 2', 3:'Round 3', 4:'Round 4'};
-  const roundColor = {1:'#3a86ff', 2:'#2ecc71', 3:'#e67e22', 4:'#9b59b6'};
+  const roundLabel  = {1:'Round 1（即時）', 2:'Round 2（24時間後）', 3:'Round 3（4日後）', 4:'Round 4（30日後）'};
+  const roundColor  = {1:'#3a86ff', 2:'#2ecc71', 3:'#e67e22', 4:'#9b59b6'};
+  const roundBg     = {1:'rgba(58,134,255,0.15)', 2:'rgba(46,204,113,0.15)', 3:'rgba(230,126,34,0.15)', 4:'rgba(155,89,182,0.15)'};
+  const roundBorder = {1:'rgba(58,134,255,0.4)', 2:'rgba(46,204,113,0.4)', 3:'rgba(230,126,34,0.4)', 4:'rgba(155,89,182,0.4)'};
 
   let items = '';
   sorted.forEach(b => {
@@ -2742,24 +2740,27 @@ function renderReviewSchedule() {
     else if(isToday)  { dateLabel = '今日';               dateColor = 'var(--gold)'; }
     else              { dateLabel = `${diffDays}日後`;    dateColor = 'var(--text2)'; }
 
-    const subjectLabel = b.subject ? `[${b.subject}] ` : '';
-    items += `<div class="review-item" onclick="startScheduledReview('${b.id}')" style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--card);border-radius:12px;margin-bottom:8px;cursor:pointer;border:1.5px solid ${isOverdue||isToday?'rgba(255,255,255,0.12)':'var(--border)'};${isOverdue?'border-color:rgba(231,76,60,0.4);':isToday?'border-color:rgba(245,200,66,0.35);':''}">
-      <div style="width:8px;height:8px;border-radius:50%;background:${roundColor[b.round]||'var(--blue)'};flex-shrink:0;"></div>
+    const rc = roundColor[b.round]||'var(--blue)';
+    const rb = roundBg[b.round]||'rgba(58,134,255,0.1)';
+    const rbd = roundBorder[b.round]||'rgba(58,134,255,0.3)';
+    const subjectLabel = b.subject ? `${b.subject} · ` : '';
+    items += `<div onclick="startScheduledReview('${b.id}')" style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:${rb};border-radius:12px;margin-bottom:8px;cursor:pointer;border:1.5px solid ${isOverdue?'rgba(231,76,60,0.5)':isToday?'rgba(245,200,66,0.5)':rbd};">
+      <div style="flex-shrink:0;width:36px;height:36px;border-radius:10px;background:${rc};display:flex;align-items:center;justify-content:center;font-size:0.78rem;font-weight:900;color:#fff;">R${b.round}</div>
       <div style="flex:1;min-width:0;">
         <div style="font-size:0.82rem;font-weight:700;color:var(--text);">${subjectLabel}${b.questionIds.length}問</div>
-        <div style="font-size:0.72rem;color:var(--text2);margin-top:2px;">${roundLabel[b.round]||'復習'}</div>
+        <div style="font-size:0.68rem;color:${rc};margin-top:2px;font-weight:700;">${roundLabel[b.round]||'復習'}</div>
       </div>
       <div style="text-align:right;flex-shrink:0;">
-        <div style="font-size:0.78rem;font-weight:700;color:${dateColor};">${dateLabel}</div>
-        <div style="font-size:0.65rem;color:var(--text2);margin-top:2px;">▶ タップして開始</div>
+        <div style="font-size:0.8rem;font-weight:700;color:${dateColor};">${dateLabel}</div>
+        <div style="font-size:0.62rem;color:var(--text2);margin-top:3px;">▶ タップ</div>
       </div>
     </div>`;
   });
 
-  const overdueCount = sorted.filter(b=>b.dueDate<=today).length;
+  const urgentCount = sorted.filter(b=>b.dueDate<=today).length;
   return `<div style="padding:0 16px 4px;">
     <div style="font-family:'Zen Kaku Gothic New';font-size:0.9rem;font-weight:700;margin-bottom:10px;">
-      🔔 復習スケジュール${overdueCount>0?` <span style="background:var(--red);color:#fff;font-size:0.68rem;border-radius:10px;padding:1px 7px;vertical-align:middle;">${overdueCount}件待ち</span>`:''}
+      🔔 復習スケジュール${urgentCount>0?` <span style="background:var(--red);color:#fff;font-size:0.68rem;border-radius:10px;padding:1px 7px;vertical-align:middle;">${urgentCount}件今すぐ！</span>`:''}
     </div>
     ${items}
   </div>`;
@@ -2798,15 +2799,23 @@ function renderGeoHome() {
   const units = geoGetUnits();
   let progHtml = '';
   units.forEach(unit => {
-    const qs=S.geoQuestions.filter(q=>q.unit===unit);
-    const a=qs.filter(q=>q.history&&q.history.length);
-    const o=qs.filter(q=>{const l=(q.history||[]).slice(-1)[0];return l&&l.r==='○';}).length;
-    const r=a.length?Math.round(o/qs.length*100):null;
-    const fill=r===null?'rgba(255,255,255,0.2)':r>=70?'var(--green)':r>=40?'var(--orange)':'var(--red)';
-    progHtml+=`<div class="unit-prog-row">
-      <div class="unit-prog-label" title="${geoEsc(unit)}">${geoEsc(unit)}</div>
-      <div class="unit-prog-bar"><div class="unit-prog-fill" style="width:${r||0}%;background:${fill}"></div></div>
-      <div class="unit-prog-pct" style="color:${fill}">${r===null?'-':r+'%'}</div>
+    const qs = S.geoQuestions.filter(q=>q.unit===unit);
+    const total_u = qs.length;
+    const attempted = qs.filter(q=>q.history&&q.history.length).length;
+    const ok_u = qs.filter(q=>{const l=(q.history||[]).slice(-1)[0];return l&&l.r==='○';}).length;
+    const completePct = Math.round(attempted/total_u*100);
+    const accuracyPct = attempted ? Math.round(ok_u/attempted*100) : null;
+    // 充電バー: fill color by completion, glow effect
+    const fillColor = completePct>=80?'var(--green)':completePct>=40?'var(--gold)':completePct>0?'var(--orange)':'rgba(255,255,255,0.12)';
+    const glowColor = completePct>=80?'rgba(46,204,113,0.5)':completePct>=40?'rgba(245,200,66,0.5)':completePct>0?'rgba(230,126,34,0.5)':'transparent';
+    progHtml+=`<div style="margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
+        <div style="font-size:0.78rem;font-weight:700;color:var(--text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${geoEsc(unit)}</div>
+        <div style="font-size:0.7rem;color:var(--text2);margin-left:8px;white-space:nowrap;flex-shrink:0;">${attempted}/${total_u}問${accuracyPct!==null?' · ✅'+accuracyPct+'%':''}</div>
+      </div>
+      <div style="height:12px;background:rgba(255,255,255,0.06);border-radius:99px;overflow:hidden;border:1px solid rgba(255,255,255,0.08);position:relative;">
+        <div style="height:100%;width:${completePct}%;background:${fillColor};border-radius:99px;transition:width 0.7s;${completePct>0?'box-shadow:0 0 6px '+glowColor+';':''}"></div>
+      </div>
     </div>`;
   });
   el.innerHTML = cameraSection + `
@@ -2823,7 +2832,7 @@ function renderGeoHome() {
     <button class="btn-main" onclick="geoOpenStartModal()">▶ 学習をスタート</button>
     ${weak>0?`<button class="btn-secondary" onclick="geoOpenStartModal('review')">🔁 苦手問題だけ復習</button>`:''}
     ${renderReviewSchedule()}
-    <div class="sec-title">📚 単元別 正答率</div>
+    <div class="sec-title">📚 単元別 学習進捗</div>
     <div style="padding:0 16px 20px;">${progHtml}</div>`;
 }
 
@@ -2842,6 +2851,12 @@ function renderGeoAdd() {
       <div style="font-family:'Zen Kaku Gothic New';font-size:1rem;font-weight:700;">➕ 問題を追加</div>
     </div>
     <div style="padding:12px 16px 0;">
+      <div style="margin-bottom:12px;">
+        <label class="form-label">教科 <span style="color:var(--red);">*</span></label>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;" id="geo-add-subjects">
+          ${[['国語','📖'],['英語','🔤'],['数学','📐'],['理科','⚗️'],['歴史','🏛️'],['地理','🗺️'],['公民','⚖️']].map(([s,e])=>`<div class="unit-tag${geoAddSubject===s?' active':''}" onclick="geoSetAddSubject('${s}',this)">${e} ${s}</div>`).join('')}
+        </div>
+      </div>
       <div style="margin-bottom:12px;">
         <label class="form-label">単元・章</label>
         <div style="display:flex;gap:8px;">
@@ -2869,6 +2884,11 @@ function renderGeoAdd() {
   geoRenderQList();
 }
 
+function geoSetAddSubject(sub, el) {
+  geoAddSubject = sub;
+  document.querySelectorAll('#geo-add-subjects .unit-tag').forEach(t=>t.classList.remove('active'));
+  if(el) el.classList.add('active');
+}
 function geoOnUnitChange() { const el=document.getElementById('geo-unit-new'); if(el)el.style.display='none'; }
 function geoShowNewUnit() {
   const ni=document.getElementById('geo-unit-new');
@@ -2891,13 +2911,13 @@ function geoAddQuestion() {
   if(!answer)   { showToast('正解を入力してください'); return; }
   if(geoEditingId) {
     const q=S.geoQuestions.find(x=>x.id===geoEditingId);
-    if(q){ q.unit=unit; q.question=question; q.answer=answer; }
+    if(q){ q.unit=unit; q.subject=geoAddSubject||q.subject||null; q.question=question; q.answer=answer; }
     geoEditingId=null;
     showToast('✏️ 問題を更新しました');
     document.getElementById('geo-add-btn').textContent='この問題を追加する';
     document.getElementById('geo-cancel-edit-btn').style.display='none';
   } else {
-    S.geoQuestions.push({id:geoUid(), unit, question, answer, history:[]});
+    S.geoQuestions.push({id:geoUid(), unit, subject:geoAddSubject||null, question, answer, history:[]});
     showToast('✅ 問題を追加しました（'+S.geoQuestions.length+'問）');
   }
   save();
@@ -3012,8 +3032,10 @@ function geoCloseStart() { document.getElementById('geo-start-modal').classList.
 function geoCloseStartIfBg(e) { if(e.target===document.getElementById('geo-start-modal')) geoCloseStart(); }
 function geoSelectSubject(sub, el) {
   geoStartSubject = sub;
+  geoStartFilter = 'all';
   document.querySelectorAll('#geo-start-subjects .unit-tag').forEach(t => t.classList.remove('active'));
   if(el) el.classList.add('active');
+  geoUpdateStartModal();
 }
 function geoUpdateStartModal() {
   const u=geoStartFilter;
@@ -3028,7 +3050,12 @@ function geoUpdateStartModal() {
     const cnt=m==='all'?geoFilterQ(u).length:m==='new'?geoNewQ(u).length:geoWeakQ(u).length;
     if(el) el.classList.toggle('disabled',cnt===0);
   });
-  const units=geoGetUnits();
+  // unit filter & mode options only appear after subject is selected
+  const unitSec=document.getElementById('geo-start-unit-section');
+  const modeSec=document.getElementById('geo-start-mode-section');
+  if(unitSec) unitSec.style.display = geoStartSubject ? '' : 'none';
+  if(modeSec) modeSec.style.display = geoStartSubject ? '' : 'none';
+  const units=geoGetUnits(geoStartSubject);
   const ef=document.getElementById('geo-start-unit-filter');
   if(ef) ef.innerHTML=`<div class="unit-tag${u==='all'?' active':''}" onclick="geoSetStartFilter('all',this)">すべて</div>`
     +units.map(un=>`<div class="unit-tag${u===un?' active':''}" onclick="geoSetStartFilter('${geoEscAttr(un)}',this)">${geoEsc(un)}</div>`).join('');
@@ -3618,7 +3645,7 @@ async function geoProcessPdfFile(file, unit, subject='') {
     let added = 0;
     questions.forEach(q=>{
       if(q.question&&q.answer){
-        S.geoQuestions.push({id:geoUid(), unit, question:String(q.question).trim(), answer:String(q.answer).trim(), history:[]});
+        S.geoQuestions.push({id:geoUid(), unit, subject:subject||null, question:String(q.question).trim(), answer:String(q.answer).trim(), history:[]});
         added++;
       }
     });
@@ -3953,6 +3980,17 @@ if(!S.sentPhotos) S.sentPhotos = [];
 if(!S.reviewBatches) S.reviewBatches = [];
 checkStreak(); renderAll();
 renderPartnerBanner();
+
+// Enterキーで次の問題に進む
+document.addEventListener('keydown', function(e) {
+  if(e.key !== 'Enter') return;
+  const active = document.activeElement;
+  if(active && (active.tagName==='INPUT'||active.tagName==='TEXTAREA'||active.tagName==='SELECT')) return;
+  if(geoSess && geoSess.judged && document.getElementById('geo-btn-next')) {
+    e.preventDefault();
+    geoNextQ();
+  }
+});
 // Firebase: 前回のルームに自動接続
 if(fbRoomId) { try { fbConnect(fbRoomId); } catch(e) { console.error('Firebase auto-connect error', e); } }
 // モード復元：localStorageに保存されていれば選択画面をスキップ
