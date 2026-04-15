@@ -1238,15 +1238,27 @@ body.parent-mode #parent-nav{display:flex!important;}
     <div id="geo-start-mode-section" style="display:none;">
       <div id="geo-start-opt-all" class="start-option" onclick="geoStartSession('all')">
         <span class="start-opt-icon">📖</span>
-        <div><div class="start-opt-title">全問題を学習</div><div class="start-opt-sub" id="geo-start-all-sub">0問</div></div>
+        <div style="flex:1;">
+          <div class="start-opt-title">全問題を学習</div>
+          <div class="start-opt-sub" id="geo-start-all-sub">0問</div>
+          <div id="geo-start-chunk-info-all" style="font-size:0.65rem;color:var(--gold);margin-top:2px;display:none;"></div>
+        </div>
       </div>
       <div id="geo-start-opt-new" class="start-option" onclick="geoStartSession('new')">
         <span class="start-opt-icon">✨</span>
-        <div><div class="start-opt-title">まだやっていない問題</div><div class="start-opt-sub" id="geo-start-new-sub">0問</div></div>
+        <div style="flex:1;">
+          <div class="start-opt-title">まだやっていない問題</div>
+          <div class="start-opt-sub" id="geo-start-new-sub">0問</div>
+          <div id="geo-start-chunk-info-new" style="font-size:0.65rem;color:var(--gold);margin-top:2px;display:none;"></div>
+        </div>
       </div>
       <div id="geo-start-opt-review" class="start-option" onclick="geoStartSession('review')">
         <span class="start-opt-icon">🔁</span>
-        <div><div class="start-opt-title">苦手のみ復習（×問題）</div><div class="start-opt-sub" id="geo-start-review-sub">0問</div></div>
+        <div style="flex:1;">
+          <div class="start-opt-title">苦手のみ復習（×問題）</div>
+          <div class="start-opt-sub" id="geo-start-review-sub">0問</div>
+          <div id="geo-start-chunk-info-review" style="font-size:0.65rem;color:var(--gold);margin-top:2px;display:none;"></div>
+        </div>
       </div>
       <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 4px 2px;border-top:1px solid var(--border);margin-top:8px;">
         <span style="font-size:0.82rem;color:var(--text2);">🔀 出題順をランダムにする</span>
@@ -1337,6 +1349,7 @@ function defaultState() {
     momMessage: '', momMessageTs: 0,
     sentPhotos: [],
     reviewBatches: [],
+    geoChunkCursors: {},
   };
 }
 let S = (() => { try { const s=localStorage.getItem(KEY); return s?JSON.parse(s):defaultState(); } catch{return defaultState();} })();
@@ -3047,8 +3060,21 @@ function geoUpdateStartModal() {
   if(revEl) revEl.textContent=geoWeakQ(u).length+'問';
   ['all','new','review'].forEach(m=>{
     const el=document.getElementById('geo-start-opt-'+m);
-    const cnt=m==='all'?geoFilterQ(u).length:m==='new'?geoNewQ(u).length:geoWeakQ(u).length;
+    const fullQ=m==='all'?geoFilterQ(u):m==='new'?geoNewQ(u):geoWeakQ(u);
+    const cnt=fullQ.length;
     if(el) el.classList.toggle('disabled',cnt===0);
+    // 次のセット情報を表示
+    const infoEl=document.getElementById('geo-start-chunk-info-'+m);
+    if(infoEl && geoStartSubject && geoChunkSize>0 && cnt>0) {
+      const key=geoChunkKey(m, u);
+      const cursor=(S.geoChunkCursors||{})[key]||0;
+      const adjCursor=cursor>=cnt?0:cursor;
+      const setNum=Math.floor(adjCursor/geoChunkSize)+1;
+      const totalSets=Math.ceil(cnt/geoChunkSize);
+      const from=adjCursor+1, to=Math.min(adjCursor+geoChunkSize, cnt);
+      infoEl.textContent=`次: セット${setNum}/${totalSets} (${from}〜${to}問目)`;
+      infoEl.style.display='';
+    } else if(infoEl) { infoEl.style.display='none'; }
   });
   // unit filter & mode options only appear after subject is selected
   const unitSec=document.getElementById('geo-start-unit-section');
@@ -3066,19 +3092,45 @@ function toggleGeoShuffle(){
   const btn=document.getElementById('geo-shuffle-btn');
   if(btn){ btn.textContent=S.geoShuffle?'ON':'OFF'; btn.style.background=S.geoShuffle?'var(--green)':'var(--card)'; btn.style.color=S.geoShuffle?'#fff':'var(--text2)'; }
 }
+function geoChunkKey(mode, unit) {
+  return (geoStartSubject||'all') + '_' + (unit||'all') + '_' + mode;
+}
 function geoStartSession(mode) {
   if(!geoStartSubject) { showToast('教科を選んでください'); return; }
-  const u=geoStartFilter;
-  let queue;
-  if(mode==='all')      queue=geoFilterQ(u);
-  else if(mode==='new') queue=geoNewQ(u);
-  else                  queue=geoWeakQ(u);
-  if(!queue.length){showToast('該当する問題がありません');return;}
+  const u = geoStartFilter;
+  let fullQueue;
+  if(mode==='all')      fullQueue = geoFilterQ(u);
+  else if(mode==='new') fullQueue = geoNewQ(u);
+  else                  fullQueue = geoWeakQ(u);
+  if(!fullQueue.length){showToast('該当する問題がありません');return;}
+
+  let queue, chunkStart=0, chunkTotal=fullQueue.length;
+  if(geoChunkSize > 0) {
+    // 順番に消化：カーソル位置から次のN問を取る
+    const key = geoChunkKey(mode, u);
+    if(!S.geoChunkCursors) S.geoChunkCursors = {};
+    let cursor = S.geoChunkCursors[key] || 0;
+    if(cursor >= fullQueue.length) cursor = 0; // 全問終わったら先頭に戻る
+    const end = Math.min(cursor + geoChunkSize, fullQueue.length);
+    queue = fullQueue.slice(cursor, end);
+    chunkStart = cursor;
+    // カーソルを進める（次回はこの続きから）
+    S.geoChunkCursors[key] = end >= fullQueue.length ? 0 : end;
+    save();
+  } else {
+    // 全問モード：シャッフルして全問
+    queue = S.geoShuffle!==false ? [...fullQueue].sort(()=>Math.random()-0.5) : [...fullQueue];
+  }
+
   geoCloseStart();
-  if(S.geoShuffle!==false) queue=[...queue].sort(()=>Math.random()-0.5);
-  if(geoChunkSize>0) queue=queue.slice(0,geoChunkSize);
-  geoSess={queue,idx:0,revealed:false,judged:false,result:null,results:[],mode,userAnswer:null,explanationHtml:'',subject:geoStartSubject,startTime:Date.now(),gaveUp:false,isReview:false,reviewRound:0,reviewBatchId:null};
-  S.geoSessionCount=(S.geoSessionCount||0)+1;
+  geoSess = {
+    queue, idx:0, revealed:false, judged:false, result:null, results:[],
+    mode, userAnswer:null, explanationHtml:'', subject:geoStartSubject,
+    startTime:Date.now(), gaveUp:false,
+    isReview:false, reviewRound:0, reviewBatchId:null,
+    chunkStart, chunkTotal, chunkSize:geoChunkSize,
+  };
+  S.geoSessionCount = (S.geoSessionCount||0)+1;
   save();
   const subnav=document.getElementById('geo-subnav');
   if(subnav) subnav.style.display='none';
@@ -3116,7 +3168,19 @@ function geoRenderStudy() {
   const total=geoSess.queue.length, cur=geoSess.idx+1;
   const pct=Math.round(geoSess.idx/total*100);
   const engVocab = isEnglishVocab(q.question);
+  // チャンク進捗表示（全問モード以外）
+  let chunkInfoHtml = '';
+  if(!geoSess.isReview && geoSess.chunkSize > 0 && geoSess.chunkTotal > 0) {
+    const setNum = Math.floor(geoSess.chunkStart / geoSess.chunkSize) + 1;
+    const totalSets = Math.ceil(geoSess.chunkTotal / geoSess.chunkSize);
+    const from = geoSess.chunkStart + 1;
+    const to = geoSess.chunkStart + total;
+    chunkInfoHtml = `<div style="text-align:center;font-size:0.68rem;color:var(--gold);font-weight:700;margin-bottom:4px;padding:0 16px;">
+      📦 セット ${setNum} / ${totalSets} &nbsp;（全${geoSess.chunkTotal}問中 ${from}〜${to}問目）
+    </div>`;
+  }
   let html=`<div style="padding:14px 0 0;">
+    ${chunkInfoHtml}
     <div class="q-progress-wrap">
       <div class="q-progress-bar"><div class="q-progress-fill" style="width:${pct}%"></div></div>
       <div class="q-count">${cur} / ${total}</div>
@@ -3786,6 +3850,7 @@ function fbWrite() {
       townTiles:S.townTiles||null,
       geoShuffle:S.geoShuffle!==undefined?S.geoShuffle:true,
       reviewBatches:S.reviewBatches||[],
+      geoChunkCursors:S.geoChunkCursors||{},
       ts:Date.now()
     };
     fbIgnoreCount++;
@@ -3867,6 +3932,13 @@ function fbOnRemote(snapshot) {
   if(data.townTiles&&Object.keys(data.townTiles).length>Object.keys(S.townTiles||{}).length){S.townTiles=data.townTiles;changed=true;}
   // シャッフル
   if(data.geoShuffle!==undefined&&data.geoShuffle!==S.geoShuffle){S.geoShuffle=data.geoShuffle;changed=true;}
+  // チャンクカーソル（より進んでいる方を採用）
+  if(data.geoChunkCursors&&Object.keys(data.geoChunkCursors).length){
+    if(!S.geoChunkCursors) S.geoChunkCursors={};
+    Object.entries(data.geoChunkCursors).forEach(([k,v])=>{
+      if((v||0)>(S.geoChunkCursors[k]||0)){S.geoChunkCursors[k]=v;changed=true;}
+    });
+  }
   // 復習バッチ
   if(data.reviewBatches&&data.reviewBatches.length){
     if(!S.reviewBatches) S.reviewBatches=[];
@@ -3978,6 +4050,7 @@ if(S.momMessage===undefined) S.momMessage = '';
 if(!S.momMessageTs) S.momMessageTs = 0;
 if(!S.sentPhotos) S.sentPhotos = [];
 if(!S.reviewBatches) S.reviewBatches = [];
+if(!S.geoChunkCursors) S.geoChunkCursors = {};
 checkStreak(); renderAll();
 renderPartnerBanner();
 
