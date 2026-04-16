@@ -1693,7 +1693,7 @@ function confirmPdfSubject(sub){
     S.pdfs.push({id,name:file.name,subject:sub,date:todayStr(),size:kb+'KB'});
     S.totalPoints+=50; S.subjectPoints[sub]=(S.subjectPoints[sub]||0)+50;
     const unit=file.name.replace(/\.pdf$/i,'').slice(0,40)||sub;
-    pdfProcessQueue.push({file,unit,subject:sub});
+    pdfProcessQueue.push({file,unit,subject:sub,pdfId:id});
   });
   save(); renderAll();
   playSound('upload');
@@ -1705,8 +1705,8 @@ function confirmPdfSubject(sub){
 async function drainPdfQueue(){
   if(isPdfProcessing||!pdfProcessQueue.length)return;
   isPdfProcessing=true;
-  const {file,unit,subject}=pdfProcessQueue.shift();
-  await geoProcessPdfFile(file,unit,subject||'');
+  const {file,unit,subject,pdfId}=pdfProcessQueue.shift();
+  await geoProcessPdfFile(file,unit,subject||'',pdfId||null);
   isPdfProcessing=false;
   if(pdfProcessQueue.length){
     showToast(`🤖 残り${pdfProcessQueue.length}件を処理中...`);
@@ -1748,12 +1748,28 @@ function renderPdfList(){
 function deletePdf(id) {
   const p = S.pdfs.find(x=>x.id===id);
   if(!p) return;
-  showConfirm('教材を削除しますか？', `「${p.name}」を削除します。この教材から生成した問題は残ります。`, () => {
+  // この教材から生成した問題数を事前に確認
+  const linkedQs = S.geoQuestions.filter(q=>q.pdfId===id);
+  const detail = linkedQs.length > 0
+    ? `「${p.name}」と、この教材から生成した${linkedQs.length}問の問題・学習記録をすべて削除します。`
+    : `「${p.name}」を削除します。`;
+  showConfirm('教材を削除しますか？', detail, () => {
+    // 教材から生成した問題IDを収集
+    const removedIds = new Set(linkedQs.map(q=>q.id));
+    // 問題を削除
+    S.geoQuestions = S.geoQuestions.filter(q=>q.pdfId!==id);
+    // 復習バッチから削除した問題IDを除去（空になったバッチはdone扱い）
+    (S.reviewBatches||[]).forEach(b=>{
+      b.questionIds = (b.questionIds||[]).filter(qid=>!removedIds.has(qid));
+      if(!b.questionIds.length) b.done=true;
+    });
+    // 教材自体を削除
     S.pdfs = S.pdfs.filter(x=>x.id!==id);
     save();
     renderPdfList();
-    if(typeof renderGeoPdf==='function' && document.getElementById('geo-main')) renderGeoPdf();
-    showToast('🗑️ 教材を削除しました');
+    if(geoTab==='home'||geoTab==='pdf') renderGeoPdf();
+    renderGeoHome();
+    showToast(`🗑️ 教材と${removedIds.size}問を削除しました`);
   });
 }
 
@@ -3668,7 +3684,7 @@ function buildPdfPrompt(subject) {
   return base+`\n\n【問題形式のバリエーション（混ぜて作成）】\n・一問一答：「○○とは何か？」→答え\n・穴埋め：「_____は〜の性質がある。」→答え\n・その他：内容に応じた形式\nanswerは簡潔に。`;
 }
 
-async function geoProcessPdfFile(file, unit, subject='') {
+async function geoProcessPdfFile(file, unit, subject='', pdfId=null) {
   if(!window.pdfjsLib) { showToast('⚠️ PDF処理モジュールを読み込み中です。しばらくしてから再試行してください'); return; }
   try {
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
@@ -3720,7 +3736,7 @@ async function geoProcessPdfFile(file, unit, subject='') {
     let added = 0;
     questions.forEach(q=>{
       if(q.question&&q.answer){
-        S.geoQuestions.push({id:geoUid(), unit, subject:subject||null, question:String(q.question).trim(), answer:String(q.answer).trim(), history:[]});
+        S.geoQuestions.push({id:geoUid(), unit, subject:subject||null, pdfId:pdfId||null, question:String(q.question).trim(), answer:String(q.answer).trim(), history:[]});
         added++;
       }
     });
