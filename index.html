@@ -1737,13 +1737,24 @@ function renderPdfListInto(el){
         <div class="pdf-meta">${p.date} · ${p.size}</div>
         <span class="pdf-tag-badge" style="background:${tagBg[p.subject]};color:${tagColor[p.subject]}">${p.subject}</span>
       </div>
-      <span class="pdf-pt-badge">+50pt</span>
+      <button onclick="deletePdf('${p.id}')" style="margin-left:8px;flex-shrink:0;background:rgba(231,76,60,0.12);border:1.5px solid rgba(231,76,60,0.35);border-radius:10px;color:var(--red);font-size:0.8rem;padding:6px 10px;cursor:pointer;font-weight:700;">🗑️</button>
     </div>
   `).join('');
 }
 function renderPdfList(){
   renderPdfListInto(document.getElementById('pdf-list'));
   renderPdfListInto(document.getElementById('pdf-list-geo'));
+}
+function deletePdf(id) {
+  const p = S.pdfs.find(x=>x.id===id);
+  if(!p) return;
+  showConfirm('教材を削除しますか？', `「${p.name}」を削除します。この教材から生成した問題は残ります。`, () => {
+    S.pdfs = S.pdfs.filter(x=>x.id!==id);
+    save();
+    renderPdfList();
+    if(typeof renderGeoPdf==='function' && document.getElementById('geo-main')) renderGeoPdf();
+    showToast('🗑️ 教材を削除しました');
+  });
 }
 
 // drag & drop
