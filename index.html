@@ -663,6 +663,31 @@ body.parent-mode #parent-nav{display:flex!important;}
 .chunk-btn{flex:1;padding:8px 4px;background:var(--card);border:1.5px solid var(--border);border-radius:10px;color:var(--text2);font-size:0.8rem;font-weight:700;cursor:pointer;text-align:center;transition:all 0.15s;}
 .chunk-btn.active{border-color:var(--gold);background:rgba(245,200,66,0.12);color:var(--gold);}
 
+/* ===== PC MODE ===== */
+.pc-sidebar{display:none;width:200px;min-width:200px;flex-direction:column;background:var(--bg2);border-right:1.5px solid var(--border);height:100dvh;overflow:hidden;flex-shrink:0;position:sticky;top:0;}
+body.pc-mode{max-width:1200px;width:100%;flex-direction:row;align-items:stretch;overflow:hidden;}
+body.pc-mode .pc-sidebar{display:flex;}
+body.pc-mode .bottom-nav{display:none!important;}
+body.pc-mode #parent-nav{display:none!important;}
+body.pc-mode .main-scroll{flex:1;max-width:none;padding-bottom:20px;}
+.pc-sidebar-header{padding:20px 16px 14px;border-bottom:1.5px solid var(--border);flex-shrink:0;}
+.pc-sidebar-title{font-family:'Zen Kaku Gothic New';font-size:1.1rem;font-weight:900;color:var(--gold);}
+.pc-sidebar-sub{font-size:0.65rem;color:var(--text2);margin-top:2px;}
+.pc-nav-section{padding:10px 0;border-bottom:1.5px solid var(--border);flex-shrink:0;}
+.pc-nav-item{display:flex;align-items:center;gap:10px;padding:11px 18px;font-size:0.82rem;font-weight:700;color:var(--text2);cursor:pointer;transition:all 0.15s;border-left:3px solid transparent;white-space:nowrap;}
+.pc-nav-item:hover{color:var(--text);background:rgba(255,255,255,0.04);}
+.pc-nav-item.active{color:var(--gold);border-left-color:var(--gold);background:rgba(245,200,66,0.07);}
+body.parent-mode .pc-nav-item.active{color:#ce93d8;border-left-color:#ce93d8;background:rgba(206,147,216,0.07);}
+.pc-sidebar-stats{padding:12px 14px;border-bottom:1.5px solid var(--border);flex-shrink:0;}
+.pc-sidebar-stat-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+.pc-sidebar-stat-row:last-child{margin-bottom:0;}
+.pc-sidebar-stat-label{font-size:0.68rem;color:var(--text2);}
+.pc-sidebar-stat-val{font-size:0.8rem;font-weight:700;color:var(--gold);}
+.pc-sidebar-town{flex:1;overflow:hidden;position:relative;}
+.pc-sidebar-footer{padding:10px 16px 14px;font-size:0.6rem;color:var(--text2);text-align:center;flex-shrink:0;}
+.pc-mode-btn{display:none;}
+body:not(.no-mobile-check) .pc-mode-btn{display:block;}
+
 /* ===== MOM MESSAGE ===== */
 .mom-msg-banner{margin:10px 16px 0;padding:10px 14px;background:linear-gradient(135deg,#4a148c,#7b1fa2);border:1.5px solid rgba(206,147,216,0.45);border-radius:14px;display:flex;align-items:flex-start;gap:10px;}
 .mom-msg-icon{font-size:1.3rem;flex-shrink:0;}
@@ -771,6 +796,50 @@ body.parent-mode #parent-nav{display:flex!important;}
   </div>
   <button class="install-btn" id="install-btn">追加する</button>
   <span class="install-close" onclick="document.getElementById('install-banner').classList.remove('show')">✕</span>
+</div>
+
+<!-- ==================== PC SIDEBAR ==================== -->
+<div class="pc-sidebar" id="pc-sidebar">
+  <div class="pc-sidebar-header">
+    <div class="pc-sidebar-title">🏙️ StudyTown</div>
+    <div class="pc-sidebar-sub">学習を楽しく続けよう</div>
+  </div>
+  <div class="pc-nav-section">
+    <div class="pc-nav-item active" id="pc-nav-home"    onclick="switchScreen('home',this)"><span>🏠</span>ホーム</div>
+    <div class="pc-nav-item"        id="pc-nav-geo"     onclick="switchScreen('geo',this)"><span>📝</span>学習</div>
+    <div class="pc-nav-item"        id="pc-nav-town"    onclick="switchScreen('town',this)"><span>🏙️</span>マイタウン</div>
+    <div class="pc-nav-item"        id="pc-nav-reward"  onclick="switchScreen('reward',this)"><span>🎁</span>報酬</div>
+    <div class="pc-nav-item"        id="pc-nav-settings" onclick="switchScreen('settings',this)"><span>⚙️</span>設定</div>
+  </div>
+  <div class="pc-sidebar-stats" id="pc-sidebar-stats"></div>
+  <div class="pc-sidebar-town" id="pc-sidebar-town">
+    <div style="width:100%;height:100%;background:linear-gradient(180deg,#0a1628 0%,#0d2044 40%,#1a3a5c 70%,#2d5a3d 100%);position:relative;overflow:hidden;">
+      <div style="position:absolute;inset:0;opacity:0.6;" id="pc-town-canvas"></div>
+      <svg width="100%" height="100%" viewBox="0 0 200 300" style="position:absolute;bottom:0;">
+        <rect x="20" y="200" width="25" height="60" rx="3" fill="rgba(58,134,255,0.35)" stroke="rgba(58,134,255,0.6)" stroke-width="1"/>
+        <rect x="24" y="220" width="5" height="7" fill="rgba(245,200,66,0.5)"/>
+        <rect x="33" y="220" width="5" height="7" fill="rgba(245,200,66,0.5)"/>
+        <rect x="50" y="220" width="20" height="40" rx="2" fill="rgba(155,89,182,0.35)" stroke="rgba(155,89,182,0.6)" stroke-width="1"/>
+        <rect x="55" y="235" width="4" height="6" fill="rgba(245,200,66,0.4)"/>
+        <rect x="63" y="235" width="4" height="6" fill="rgba(245,200,66,0.4)"/>
+        <rect x="80" y="210" width="30" height="50" rx="2" fill="rgba(46,204,113,0.3)" stroke="rgba(46,204,113,0.5)" stroke-width="1"/>
+        <rect x="120" y="225" width="22" height="35" rx="2" fill="rgba(230,126,34,0.35)" stroke="rgba(230,126,34,0.5)" stroke-width="1"/>
+        <rect x="155" y="215" width="28" height="45" rx="2" fill="rgba(58,134,255,0.28)" stroke="rgba(58,134,255,0.5)" stroke-width="1"/>
+        <rect x="0" y="258" width="200" height="42" fill="rgba(30,60,30,0.8)"/>
+        <circle cx="40" cy="252" r="8" fill="rgba(46,130,40,0.7)"/>
+        <circle cx="140" cy="255" r="6" fill="rgba(46,130,40,0.6)"/>
+        <circle cx="170" cy="250" r="9" fill="rgba(46,130,40,0.65)"/>
+        <circle cx="30" cy="60" r="1.5" fill="white" opacity="0.8"/>
+        <circle cx="80" cy="30" r="1" fill="white" opacity="0.7"/>
+        <circle cx="130" cy="50" r="1.5" fill="white" opacity="0.9"/>
+        <circle cx="160" cy="20" r="1" fill="white" opacity="0.6"/>
+        <circle cx="60" cy="80" r="1" fill="white" opacity="0.5"/>
+        <circle cx="100" cy="15" r="1.5" fill="white" opacity="0.8"/>
+      </svg>
+      <div style="position:absolute;bottom:8px;left:0;right:0;text-align:center;font-size:0.6rem;color:rgba(255,255,255,0.4);">マイタウン</div>
+    </div>
+  </div>
+  <div class="pc-sidebar-footer">StudyTown v3.0</div>
 </div>
 
 <!-- ==================== HOME SCREEN ==================== -->
@@ -969,6 +1038,15 @@ body.parent-mode #parent-nav{display:flex!important;}
         oninput="document.getElementById('geo-api-key-input').style.borderColor='rgba(245,200,66,0.4)'">
       <button onclick="saveGeoApiKey()" style="margin-top:8px;width:100%;padding:10px;background:linear-gradient(135deg,var(--blue),#5fa0ff);border:none;border-radius:10px;color:white;font-size:0.85rem;font-weight:700;cursor:pointer;">保存する</button>
       <div style="font-size:0.68rem;color:var(--text2);margin-top:5px;">Anthropic公式サイトで取得できます</div>
+    </div>
+  </div>
+  <div class="settings-card pc-mode-btn" id="pc-mode-card" style="display:none;">
+    <div class="settings-row" onclick="togglePcMode()">
+      <span class="settings-label">🖥️ PCモード</span>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span class="settings-val" id="pc-mode-val">OFF</span>
+        <span class="settings-arrow">›</span>
+      </div>
     </div>
   </div>
   <div class="settings-card">
@@ -1543,6 +1621,7 @@ function renderTown() {
 
 // ==================== RENDER ALL ====================
 function renderAll() {
+  renderPcSidebarStats();
   document.getElementById('streak-count').textContent = S.streak;
   ['国語','英語','数学','理科','歴史','地理','公民'].forEach(s => {
     const el=document.getElementById('pt-'+s);
@@ -2464,12 +2543,51 @@ function resetData(){
   });
 }
 
+// ==================== PC MODE ====================
+function isDesktop() {
+  return window.innerWidth >= 800 && !/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+}
+let pcModeOn = localStorage.getItem('stPcMode') === '1';
+
+function applyPcMode() {
+  if(pcModeOn && isDesktop()) {
+    document.body.classList.add('pc-mode');
+  } else {
+    document.body.classList.remove('pc-mode');
+  }
+  const val = document.getElementById('pc-mode-val');
+  if(val) val.textContent = (pcModeOn && isDesktop()) ? 'ON' : 'OFF';
+  renderPcSidebarStats();
+}
+function togglePcMode() {
+  if(!isDesktop()) { showToast('PCでのみ使用できます'); return; }
+  pcModeOn = !pcModeOn;
+  localStorage.setItem('stPcMode', pcModeOn ? '1' : '0');
+  applyPcMode();
+  showToast(pcModeOn ? '🖥️ PCモードON' : '📱 PCモードOFF');
+}
+function renderPcSidebarStats() {
+  const el = document.getElementById('pc-sidebar-stats');
+  if(!el) return;
+  el.innerHTML = `
+    <div class="pc-sidebar-stat-row"><span class="pc-sidebar-stat-label">🔥 連続日数</span><span class="pc-sidebar-stat-val">${S.streak||0}日</span></div>
+    <div class="pc-sidebar-stat-row"><span class="pc-sidebar-stat-label">⭐ ポイント</span><span class="pc-sidebar-stat-val">${S.totalPoints||0}pt</span></div>
+    <div class="pc-sidebar-stat-row"><span class="pc-sidebar-stat-label">📝 問題数</span><span class="pc-sidebar-stat-val">${S.geoQuestions.length}問</span></div>`;
+}
+function syncPcSidebarNav(screenName) {
+  const map = {home:'pc-nav-home',geo:'pc-nav-geo',town:'pc-nav-town',reward:'pc-nav-reward',settings:'pc-nav-settings'};
+  document.querySelectorAll('.pc-nav-item').forEach(n=>n.classList.remove('active'));
+  const id = map[screenName];
+  if(id) { const el=document.getElementById(id); if(el) el.classList.add('active'); }
+}
+
 // ==================== SCREEN SWITCH ====================
 function switchScreen(name,navEl){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById('screen-'+name).classList.add('active');
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   if(navEl)navEl.classList.add('active');
+  syncPcSidebarNav(name);
   const ms = document.querySelector('.main-scroll');
   ms.style.overflowY = (name==='town'||name==='geo') ? 'hidden' : '';
   ms.scrollTop=0;
@@ -4082,6 +4200,15 @@ if(!S.reviewBatches) S.reviewBatches = [];
 if(!S.geoChunkCursors) S.geoChunkCursors = {};
 checkStreak(); renderAll();
 renderPartnerBanner();
+
+// PCモード初期化
+if(isDesktop()) {
+  const card = document.getElementById('pc-mode-card');
+  if(card) card.style.display = '';
+  applyPcMode();
+}
+const val = document.getElementById('pc-mode-val');
+if(val) val.textContent = (pcModeOn && isDesktop()) ? 'ON' : 'OFF';
 
 // Enterキーで次の問題に進む
 document.addEventListener('keydown', function(e) {
