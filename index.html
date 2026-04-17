@@ -1690,9 +1690,9 @@ function confirmPdfSubject(sub){
   files.forEach((file,i)=>{
     const id=(Date.now()+i).toString();
     const kb=Math.round(file.size/1024);
-    S.pdfs.push({id,name:file.name,subject:sub,date:todayStr(),size:kb+'KB'});
-    S.totalPoints+=50; S.subjectPoints[sub]=(S.subjectPoints[sub]||0)+50;
     const unit=file.name.replace(/\.pdf$/i,'').slice(0,40)||sub;
+    S.pdfs.push({id,name:file.name,subject:sub,unit,date:todayStr(),size:kb+'KB'});
+    S.totalPoints+=50; S.subjectPoints[sub]=(S.subjectPoints[sub]||0)+50;
     pdfProcessQueue.push({file,unit,subject:sub,pdfId:id});
   });
   save(); renderAll();
@@ -1748,17 +1748,19 @@ function renderPdfList(){
 function deletePdf(id) {
   const p = S.pdfs.find(x=>x.id===id);
   if(!p) return;
-  // この教材から生成した問題数を事前に確認
-  const linkedQs = S.geoQuestions.filter(q=>q.pdfId===id);
+  // pdfId一致 または (pdfIdなし＋subject＋unit一致) で紐付き問題を特定
+  const isLinked = q =>
+    q.pdfId === id ||
+    (!q.pdfId && q.subject === p.subject && p.unit && q.unit === p.unit);
+  const linkedQs = S.geoQuestions.filter(isLinked);
   const detail = linkedQs.length > 0
     ? `「${p.name}」と、この教材から生成した${linkedQs.length}問の問題・学習記録をすべて削除します。`
-    : `「${p.name}」を削除します。`;
+    : `「${p.name}」を削除します（紐付いた問題は見つかりませんでした）。`;
   showConfirm('教材を削除しますか？', detail, () => {
-    // 教材から生成した問題IDを収集
     const removedIds = new Set(linkedQs.map(q=>q.id));
     // 問題を削除
-    S.geoQuestions = S.geoQuestions.filter(q=>q.pdfId!==id);
-    // 復習バッチから削除した問題IDを除去（空になったバッチはdone扱い）
+    S.geoQuestions = S.geoQuestions.filter(q=>!isLinked(q));
+    // 復習バッチから削除した問題IDを除去
     (S.reviewBatches||[]).forEach(b=>{
       b.questionIds = (b.questionIds||[]).filter(qid=>!removedIds.has(qid));
       if(!b.questionIds.length) b.done=true;
