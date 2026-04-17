@@ -3676,7 +3676,7 @@ async function geoRenderPagesToImages(pdf, maxPages) {
 function buildPdfPrompt(subject) {
   const social = ['歴史','地理','公民'];
   const english = ['英語'];
-  const base = `あなたは中学生向けの問題を作成するベテランの先生です。以下の内容から問題を10問作成してください。\n必ずJSON配列のみで返してください（説明文・マークダウン不要）：\n[{"question":"問題文","answer":"答え"},...]`;
+  const base = `あなたは中学生向けの問題を作成するベテランの先生です。以下の内容からできるだけ多くの問題を抽出・作成してください（問題集・ワークなら全問抽出）。\n必ずJSON配列のみで返してください（説明文・マークダウン不要）：\n[{"question":"問題文","answer":"答え"},...]`;
   if(english.includes(subject)){
     return base+`\n\n【英語の特別ルール】questionには英単語・熟語そのものだけ（質問形式にしない）、answerには日本語の意味。例：{"question":"look for","answer":"～を探す"}`;
   }
@@ -3709,10 +3709,10 @@ async function geoProcessPdfFile(file, unit, subject='', pdfId=null) {
     let messageContent;
     const prompt = buildPdfPrompt(subject);
     if(text.length >= 50) {
-      messageContent = [{role:'user', content: prompt+`\n\n【テキスト】\n${text.slice(0,8000)}`}];
+      messageContent = [{role:'user', content: prompt+`\n\n【テキスト】\n${text.slice(0,30000)}`}];
     } else {
       showToast('🔍 スキャンPDFを画像として読み取り中...');
-      const images = await geoRenderPagesToImages(pdf, 5);
+      const images = await geoRenderPagesToImages(pdf, 20);
       if(!images.length){ showToast('⚠️ PDFページの読み取りに失敗しました'); return; }
       const contentBlocks = [];
       images.forEach((b64, idx) => {
@@ -3726,7 +3726,7 @@ async function geoProcessPdfFile(file, unit, subject='', pdfId=null) {
     const res = await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-haiku-4-5',max_tokens:3000,messages: messageContent})
+      body:JSON.stringify({model:'claude-haiku-4-5',max_tokens:8000,messages: messageContent})
     });
     if(!res.ok){const err=await res.json().catch(()=>({}));throw new Error(err.error?.message||`APIエラー (${res.status})`);}
     const data = await res.json();
