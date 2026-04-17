@@ -1040,7 +1040,7 @@ body:not(.no-mobile-check) .pc-mode-btn{display:block;}
       <div style="font-size:0.68rem;color:var(--text2);margin-top:5px;">Anthropic公式サイトで取得できます</div>
     </div>
   </div>
-  <div class="settings-card pc-mode-btn" id="pc-mode-card" style="display:none;">
+  <div class="settings-card" id="pc-mode-card">
     <div class="settings-row" onclick="togglePcMode()">
       <span class="settings-label">🖥️ PCモード</span>
       <div style="display:flex;align-items:center;gap:8px;">
@@ -2550,17 +2550,16 @@ function isDesktop() {
 let pcModeOn = localStorage.getItem('stPcMode') === '1';
 
 function applyPcMode() {
-  if(pcModeOn && isDesktop()) {
+  if(pcModeOn) {
     document.body.classList.add('pc-mode');
   } else {
     document.body.classList.remove('pc-mode');
   }
   const val = document.getElementById('pc-mode-val');
-  if(val) val.textContent = (pcModeOn && isDesktop()) ? 'ON' : 'OFF';
+  if(val) val.textContent = pcModeOn ? 'ON' : 'OFF';
   renderPcSidebarStats();
 }
 function togglePcMode() {
-  if(!isDesktop()) { showToast('PCでのみ使用できます'); return; }
   pcModeOn = !pcModeOn;
   localStorage.setItem('stPcMode', pcModeOn ? '1' : '0');
   applyPcMode();
@@ -4202,13 +4201,7 @@ checkStreak(); renderAll();
 renderPartnerBanner();
 
 // PCモード初期化
-if(isDesktop()) {
-  const card = document.getElementById('pc-mode-card');
-  if(card) card.style.display = '';
-  applyPcMode();
-}
-const val = document.getElementById('pc-mode-val');
-if(val) val.textContent = (pcModeOn && isDesktop()) ? 'ON' : 'OFF';
+applyPcMode();
 
 // Enterキーで次の問題に進む
 document.addEventListener('keydown', function(e) {
