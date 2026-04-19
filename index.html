@@ -748,15 +748,17 @@ body.pc-mode .pdf-icon{font-size:1.3rem;}
 body.pc-mode .pdf-info{width:100%;}
 body.pc-mode .pdf-info .pdf-name{font-size:0.7rem;white-space:normal;word-break:break-all;}
 /* ---- PARENT SCREEN PC — 2 column masonry ---- */
-body.pc-mode #screen-parent.active{display:block!important;columns:2;column-gap:14px;padding:12px 20px 20px;overflow-y:auto;}
+body.pc-mode #screen-parent.active{display:block!important;columns:2;column-gap:14px;padding:0 20px 20px;overflow-y:auto;}
 body.pc-mode #screen-parent.active>*{break-inside:avoid;margin-bottom:14px;display:block;}
 body.pc-mode #screen-parent.active>.sec-title{break-after:avoid;margin-bottom:2px;}
-body.pc-mode #screen-parent.active>:first-child,
+body.pc-mode #screen-parent.active>.parent-screen-header,
 body.pc-mode #screen-parent.active>.parent-stat-grid,
 body.pc-mode #screen-parent.active>.parent-alert{column-span:all;}
+body.pc-mode #screen-parent.active>.parent-screen-header{background:linear-gradient(135deg,#2d0050,#4a0080);border-bottom:1.5px solid var(--parent-border);padding:14px 20px;margin:0 -20px 14px;font-size:1.1rem;}
 body.pc-mode #screen-parent .parent-stat-grid{grid-template-columns:repeat(4,1fr);}
 body.pc-mode #screen-parent .btn-secondary{display:none;}
 /* ---- PARENT MODE — PC sidebar ---- */
+body.parent-mode.pc-mode .parent-banner{display:none;}
 body.parent-mode.pc-mode .pc-nav-section:not(#pc-parent-nav-section){display:none;}
 body.parent-mode.pc-mode #pc-parent-nav-section{display:block;}
 body.parent-mode.pc-mode .pc-sidebar-stats{display:none;}
@@ -1158,8 +1160,8 @@ body.parent-mode.pc-mode .pc-sidebar-stats{display:none;}
 
 <!-- ==================== PARENT SCREEN ==================== -->
 <div id="screen-parent" class="screen">
-  <div style="padding:14px 16px 6px;">
-    <div style="font-family:'Zen Kaku Gothic New';font-size:1.05rem;font-weight:700;color:#ce93d8;">👩 保護者ダッシュボード</div>
+  <div class="parent-screen-header">
+    <div style="font-family:'Zen Kaku Gothic New';font-size:1.05rem;font-weight:700;color:#ce93d8;">👩 お母さんモード（管理者）</div>
     <div style="font-size:0.73rem;color:var(--text2);margin-top:3px;">お子さんの学習状況をここで確認できます</div>
   </div>
 
