@@ -3554,7 +3554,7 @@ async function geoJudgeAndExplain(q, userAnswer) {
     const res=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-haiku-4-5',max_tokens:700,messages:[{role:'user',content:`あなたは中学生を教えるベテランの先生です。\n生徒の答えを採点し、JSON形式で返してください。\n\n単元：${q.unit}\n問題：${q.question}\n正解：${q.answer}\n生徒の答え：${userAnswer||'（未記入）'}\n\n採点基準：意味が合っていれば正解。表現が多少違っても内容が正しければ正解。\n\n必ずJSON形式のみで返してください（説明文・マークダウン不要）：\n{"correct":true,"explanation":"解説文","examples":["例文1","例文2","例文3"]}\n\nルール：\n・解説は100字以内、記号（*、#、**など）は使わない\n・英語または国語（日本語の語彙・慣用句・文法など）の問題の場合のみ、正解の語句を使った自然な例文を3つexamplesに入れる\n・英語の例文は「英文（日本語訳）」の形式にする\n・それ以外の教科（数学・理科・歴史・地理・公民など）はexamples:[]にする`}]})
+      body:JSON.stringify({model:'claude-haiku-4-5',max_tokens:900,messages:[{role:'user',content:`あなたは中学生を教えるベテランの先生です。\n生徒の答えを採点し、さらに登録されている「正解」が事実として正しいかも確認してください。\n\n単元：${q.unit}\n問題：${q.question}\n登録された正解：${q.answer}\n生徒の答え：${userAnswer||'（未記入）'}\n\n採点基準：意味が合っていれば正解。表現が多少違っても内容が正しければ正解。\n\n必ずJSON形式のみで返してください（説明文・マークダウン不要）：\n{"correct":true,"explanation":"解説文","examples":[],"answerCorrect":true,"correctAnswer":""}\n\nルール：\n・correct: 生徒の答えが正しいかどうか\n・explanation: 解説は100字以内、記号（*、#、**など）は使わない\n・examples: 英語または国語の問題のみ正解語句を使った例文を3つ（英語は「英文（日本語訳）」形式）、それ以外は[]\n・answerCorrect: 登録された正解が事実として正確かどうか。明らかに間違っている場合のみfalse\n・correctAnswer: answerCorrectがfalseの場合のみ正しい答えを記入、それ以外は""`}]})
     });
     if(!res.ok){const err=await res.json().catch(()=>({}));throw new Error(err.error?.message||`APIエラー (${res.status})`);}
     const data=await res.json();
@@ -3569,6 +3569,21 @@ async function geoJudgeAndExplain(q, userAnswer) {
     q.history.push({d:todayStr(),r:result});
     geoSess.results.push({q,result});
     let html='';
+    // 登録済み正解が間違っていた場合は自動修正
+    if(parsed.answerCorrect===false && parsed.correctAnswer){
+      const origQ=S.geoQuestions.find(x=>x.id===q.id);
+      if(origQ){
+        const oldAns=origQ.answer;
+        origQ.answer=parsed.correctAnswer;
+        q.answer=parsed.correctAnswer;
+        save();
+        html+=`<div class="explanation-box" style="border-color:rgba(245,200,66,0.4);background:rgba(245,200,66,0.06);">
+          <div class="explanation-label" style="color:var(--gold);">⚠️ 登録された正解を自動修正しました</div>
+          <div style="font-size:0.76rem;color:var(--text2);margin-bottom:3px;">旧: ${geoEsc(oldAns)}</div>
+          <div style="font-size:0.82rem;color:var(--gold);font-weight:700;">新: ${geoEsc(parsed.correctAnswer)}</div>
+        </div>`;
+      }
+    }
     if(parsed.explanation){
       html+=`<div class="explanation-box"><div class="explanation-label">🤖 <span style="color:var(--purple)">Claude</span> の解説</div><div class="explanation-text">${geoEsc(parsed.explanation)}</div></div>`;
     }
