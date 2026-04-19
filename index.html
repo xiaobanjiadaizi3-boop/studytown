@@ -664,15 +664,17 @@ body.parent-mode #parent-nav{display:flex!important;}
 .chunk-btn.active{border-color:var(--gold);background:rgba(245,200,66,0.12);color:var(--gold);}
 
 /* ===== PC MODE ===== */
-.pc-sidebar{display:none;width:200px;min-width:200px;flex-direction:column;background:var(--bg2);border-right:1.5px solid var(--border);height:100dvh;overflow:hidden;flex-shrink:0;position:sticky;top:0;}
-body.pc-mode{max-width:1200px;width:100%;flex-direction:row;align-items:stretch;overflow:hidden;}
+.pc-sidebar{display:none;width:220px;min-width:220px;flex-direction:column;background:var(--bg2);border-right:1.5px solid var(--border);height:100dvh;overflow:hidden;flex-shrink:0;position:sticky;top:0;}
+body.pc-mode{max-width:none;width:100%;flex-direction:row;align-items:stretch;overflow:hidden;}
 body.pc-mode .pc-sidebar{display:flex;}
 body.pc-mode .bottom-nav{display:none!important;}
 body.pc-mode #parent-nav{display:none!important;}
-body.pc-mode .main-scroll{flex:1;max-width:none;padding-bottom:20px;}
-.pc-sidebar-header{padding:20px 16px 14px;border-bottom:1.5px solid var(--border);flex-shrink:0;}
+body.pc-mode .main-scroll{flex:1;max-width:none;padding-bottom:20px;overflow-y:auto;}
+.pc-sidebar-header{padding:18px 16px 12px;border-bottom:1.5px solid var(--border);flex-shrink:0;}
 .pc-sidebar-title{font-family:'Zen Kaku Gothic New';font-size:1.1rem;font-weight:900;color:var(--gold);}
 .pc-sidebar-sub{font-size:0.65rem;color:var(--text2);margin-top:2px;}
+.pc-sidebar-partner{font-size:0.68rem;font-weight:700;color:var(--blue);margin-top:8px;padding:5px 10px;background:rgba(58,134,255,0.1);border:1px solid rgba(58,134,255,0.25);border-radius:8px;display:none;}
+.pc-sidebar-partner.show{display:block;}
 .pc-nav-section{padding:10px 0;border-bottom:1.5px solid var(--border);flex-shrink:0;}
 .pc-nav-item{display:flex;align-items:center;gap:10px;padding:11px 18px;font-size:0.82rem;font-weight:700;color:var(--text2);cursor:pointer;transition:all 0.15s;border-left:3px solid transparent;white-space:nowrap;}
 .pc-nav-item:hover{color:var(--text);background:rgba(255,255,255,0.04);}
@@ -687,6 +689,57 @@ body.parent-mode .pc-nav-item.active{color:#ce93d8;border-left-color:#ce93d8;bac
 .pc-sidebar-footer{padding:10px 16px 14px;font-size:0.6rem;color:var(--text2);text-align:center;flex-shrink:0;}
 .pc-mode-btn{display:none;}
 body:not(.no-mobile-check) .pc-mode-btn{display:block;}
+/* Partner overlay on town scene — only visible in PC mode */
+#pc-town-partner{display:none;position:absolute;top:10px;right:14px;z-index:10;
+  background:rgba(10,15,40,0.82);border:1px solid rgba(58,134,255,0.45);
+  border-radius:8px;padding:5px 12px;font-size:0.7rem;font-weight:700;color:var(--blue);
+  backdrop-filter:blur(6px);}
+body.pc-mode #pc-town-partner.show{display:block;}
+/* Partner banner hidden in PC mode */
+body.pc-mode #partner-banner{display:none!important;}
+/* ---- HOME SCREEN PC ---- */
+body.pc-mode #screen-home.active{display:grid!important;grid-template-columns:1fr 1fr;padding:0;align-items:start;}
+body.pc-mode #screen-home .town-scene{grid-column:1/-1;grid-row:1;display:block!important;height:220px;}
+body.pc-mode #screen-home .streak-wrap{grid-column:1;grid-row:2;text-align:left;padding:12px 20px 8px;}
+body.pc-mode #screen-home #encourage-msg{grid-column:2;grid-row:2;display:flex;align-items:center;padding:12px 20px 8px;}
+body.pc-mode #screen-home #mom-msg-display{grid-column:1/-1;grid-row:3;}
+body.pc-mode #screen-home #mission-section{grid-column:1;grid-row:4;}
+body.pc-mode #screen-home .subjects-wrap{grid-column:2;grid-row:4;background:var(--card);border:1.5px solid var(--border);border-radius:16px;padding:16px;margin:0 16px 12px 0;flex-direction:column;gap:6px;overflow-x:hidden;}
+body.pc-mode #screen-home .subjects-wrap-title{display:block!important;}
+body.pc-mode #screen-home .subject-badge{width:100%;flex-shrink:0;flex-direction:row;align-items:center;justify-content:flex-start;gap:10px;padding:9px 12px;border-radius:10px;min-width:unset;}
+body.pc-mode #screen-home .sub-icon{font-size:1.1rem;}
+body.pc-mode #screen-home .sub-name{font-size:0.78rem;font-weight:700;}
+body.pc-mode #screen-home .sub-pt{margin-left:auto;font-size:0.78rem;}
+body.pc-mode #screen-home .sec-title{grid-column:1/-1;grid-row:5;}
+body.pc-mode #screen-home .card{grid-column:1/-1;grid-row:6;}
+/* ---- GEO SCREEN PC — vertical tabs ---- */
+body.pc-mode #screen-geo.active{height:100dvh!important;flex-direction:row!important;}
+body.pc-mode .geo-subnav{flex-direction:column;width:130px;min-width:130px;border-right:1px solid var(--border);border-bottom:none;height:100%;overflow-y:auto;background:var(--bg2);}
+body.pc-mode .geo-subnav-item{flex:none;text-align:left;border-bottom:none!important;border-right:3px solid transparent;padding:14px 16px;font-size:0.78rem;}
+body.pc-mode .geo-subnav-item.active{border-bottom-color:transparent!important;border-right-color:var(--gold);}
+.pc-geo-grid{display:grid;grid-template-columns:1fr 1fr;height:100%;overflow:hidden;}
+.pc-geo-left{overflow-y:auto;height:100%;}
+.pc-geo-right{overflow-y:auto;height:100%;border-left:1px solid var(--border);}
+/* ---- TOWN SCREEN PC ---- */
+body.pc-mode #screen-town.active{height:100dvh!important;}
+body.pc-mode #town-hex-container{display:flex;align-items:center;justify-content:center;}
+/* ---- REWARD SCREEN PC — header full width, rewards 2x2 grid, history in right col ---- */
+body.pc-mode #screen-reward.active{display:grid!important;grid-template-columns:1fr 1fr;gap:0 20px;padding:0 20px 20px;align-items:start;}
+body.pc-mode #screen-reward.active>*{grid-column:1;}
+body.pc-mode #screen-reward #reward-header,
+body.pc-mode #screen-reward #reward-pts-card{grid-column:1/-1;}
+body.pc-mode #screen-reward #exchange-history-title,
+body.pc-mode #screen-reward #exchange-history{grid-column:2;}
+body.pc-mode #reward-pts-card{margin:0 0 12px;}
+body.pc-mode .reward-list{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0;}
+body.pc-mode .reward-item{flex-direction:column;align-items:center;text-align:center;margin-bottom:0;padding:18px 12px;}
+body.pc-mode .reward-emoji{font-size:2.4rem;}
+body.pc-mode .reward-info{width:100%;text-align:center;}
+body.pc-mode .reward-redeem-btn{width:100%;margin-top:10px;}
+/* ---- SETTINGS SCREEN PC — 2 column Roblox-style ---- */
+body.pc-mode #screen-settings.active{display:grid!important;grid-template-columns:1fr 1fr;gap:14px;padding:16px 20px 20px;align-items:start;overflow-y:auto;}
+body.pc-mode #screen-settings.active>:first-child,
+body.pc-mode #screen-settings.active>:last-child{grid-column:1/-1;}
 
 /* ===== MOM MESSAGE ===== */
 .mom-msg-banner{margin:10px 16px 0;padding:10px 14px;background:linear-gradient(135deg,#4a148c,#7b1fa2);border:1.5px solid rgba(206,147,216,0.45);border-radius:14px;display:flex;align-items:flex-start;gap:10px;}
@@ -803,6 +856,7 @@ body:not(.no-mobile-check) .pc-mode-btn{display:block;}
   <div class="pc-sidebar-header">
     <div class="pc-sidebar-title">🏙️ StudyTown</div>
     <div class="pc-sidebar-sub">学習を楽しく続けよう</div>
+    <div id="pc-sidebar-partner" class="pc-sidebar-partner"></div>
   </div>
   <div class="pc-nav-section">
     <div class="pc-nav-item active" id="pc-nav-home"    onclick="switchScreen('home',this)"><span>🏠</span>ホーム</div>
@@ -846,6 +900,7 @@ body:not(.no-mobile-check) .pc-mode-btn{display:block;}
 <div class="main-scroll">
 <div id="screen-home" class="screen active">
   <div class="town-scene">
+    <div id="pc-town-partner"></div>
     <div class="stars"></div>
     <div class="shooting-star"></div>
     <svg class="town-svg" viewBox="0 0 430 160" xmlns="http://www.w3.org/2000/svg" id="town-svg">
@@ -878,6 +933,7 @@ body:not(.no-mobile-check) .pc-mode-btn{display:block;}
   <div id="mission-section"></div>
 
   <div class="subjects-wrap">
+    <div class="subjects-wrap-title" style="display:none;font-family:'Zen Kaku Gothic New';font-size:0.85rem;font-weight:900;color:var(--gold);margin-bottom:4px;padding-bottom:8px;border-bottom:1px solid var(--border);">📊 教科別ポイント</div>
     <div class="subject-badge s-kokugo"><span class="sub-icon">📖</span><span class="sub-name">国語</span><span class="sub-pt" id="pt-国語">0pt</span></div>
     <div class="subject-badge s-eigo"><span class="sub-icon">🔤</span><span class="sub-name">英語</span><span class="sub-pt" id="pt-英語">0pt</span></div>
     <div class="subject-badge s-math"><span class="sub-icon">📐</span><span class="sub-name">数学</span><span class="sub-pt" id="pt-数学">0pt</span></div>
@@ -970,11 +1026,11 @@ body:not(.no-mobile-check) .pc-mode-btn{display:block;}
 
 <!-- ==================== REWARD SCREEN ==================== -->
 <div id="screen-reward" class="screen">
-  <div style="padding:14px 16px 6px;">
+  <div id="reward-header" style="padding:14px 16px 6px;">
     <div style="font-family:'Zen Kaku Gothic New';font-size:1.05rem;font-weight:700;">🎁 報酬交換</div>
     <div style="font-size:0.75rem;color:var(--text2);margin-top:3px;">ポイントを使って報酬と交換しよう！</div>
   </div>
-  <div style="margin:0 16px 12px;background:var(--card);border:1.5px solid var(--border);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:12px;">
+  <div id="reward-pts-card" style="margin:0 16px 12px;background:var(--card);border:1.5px solid var(--border);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:12px;">
     <div style="font-size:1.8rem;">🪙</div>
     <div>
       <div style="font-size:0.75rem;color:var(--text2);">現在のポイント</div>
@@ -984,7 +1040,7 @@ body:not(.no-mobile-check) .pc-mode-btn{display:block;}
   <div id="test-alert-home"></div>
   <div class="sec-title">🎁 報酬一覧</div>
   <div class="reward-list" id="reward-list"></div>
-  <div class="sec-title">📋 交換履歴</div>
+  <div class="sec-title" id="exchange-history-title">📋 交換履歴</div>
   <div class="exchange-history" id="exchange-history" style="margin-bottom:80px;">
     <div style="text-align:center;color:var(--text2);font-size:0.8rem;padding:12px 0;">まだ交換履歴がありません</div>
   </div>
@@ -1935,11 +1991,17 @@ function saveNameFromSettings() {
 }
 function renderPartnerBanner() {
   const banner = document.getElementById('partner-banner');
+  const pcPartner = document.getElementById('pc-sidebar-partner');
+  const townPartner = document.getElementById('pc-town-partner');
   if(S.partnerName) {
     document.getElementById('partner-banner-text').textContent = '👤 ' + S.partnerName;
     banner.style.display='block';
+    if(pcPartner){ pcPartner.textContent='👤 '+S.partnerName+' と共有中'; pcPartner.classList.add('show'); }
+    if(townPartner){ townPartner.textContent='👤 '+S.partnerName+' と共有中'; townPartner.classList.add('show'); }
   } else {
     banner.style.display='none';
+    if(pcPartner){ pcPartner.textContent=''; pcPartner.classList.remove('show'); }
+    if(townPartner){ townPartner.textContent=''; townPartner.classList.remove('show'); }
   }
 }
 
@@ -2557,6 +2619,8 @@ function applyPcMode() {
   }
   const val = document.getElementById('pc-mode-val');
   if(val) val.textContent = pcModeOn ? 'ON' : 'OFF';
+  const townSvg = document.getElementById('town-svg');
+  if(townSvg) townSvg.setAttribute('preserveAspectRatio', pcModeOn ? 'xMidYMax slice' : 'xMidYMid meet');
   renderPcSidebarStats();
 }
 function togglePcMode() {
@@ -2977,7 +3041,7 @@ function renderGeoHome() {
       </div>
     </div>`;
   });
-  el.innerHTML = cameraSection + `
+  const statsHtml = `
     <div style="padding:14px 16px 4px;">
       <div style="font-family:'Zen Kaku Gothic New';font-size:1.05rem;font-weight:700;">📝 問題集</div>
       <div style="font-size:0.72rem;color:var(--text2);margin-top:3px;">教科書・ワーク対応 AI解説つき</div>
@@ -2990,9 +3054,16 @@ function renderGeoHome() {
     </div>
     <button class="btn-main" onclick="geoOpenStartModal()">▶ 学習をスタート</button>
     ${weak>0?`<button class="btn-secondary" onclick="geoOpenStartModal('review')">🔁 苦手問題だけ復習</button>`:''}
-    ${renderReviewSchedule()}
-    <div class="sec-title">📚 単元別 学習進捗</div>
-    <div style="padding:0 16px 20px;">${progHtml}</div>`;
+    ${renderReviewSchedule()}`;
+  const progSection = `<div class="sec-title">📚 単元別 学習進捗</div><div style="padding:0 16px 20px;">${progHtml}</div>`;
+  if(pcModeOn) {
+    el.innerHTML = `<div class="pc-geo-grid">
+      <div class="pc-geo-left">${statsHtml}</div>
+      <div class="pc-geo-right">${cameraSection}${progSection}</div>
+    </div>`;
+  } else {
+    el.innerHTML = cameraSection + statsHtml + progSection;
+  }
 }
 
 // ==================== GEO ADD ====================
