@@ -1430,6 +1430,17 @@ body.parent-mode.pc-mode .pc-sidebar-stats{display:none;}
   </div>
 </div>
 
+<!-- GEO RESUME MODAL -->
+<div class="modal-overlay" id="geo-resume-modal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">⚔️ 途中の学習があります</div>
+    <div id="geo-resume-info" style="text-align:center;padding:4px 0 18px;"></div>
+    <button class="btn-main" style="margin-bottom:10px;" onclick="geoResumeSession()">▶ 続きから再開する</button>
+    <button class="btn-secondary" onclick="geoCancelResume()">✕ やめてホームに戻る</button>
+  </div>
+</div>
+
 <!-- GEO DETAIL MODAL -->
 <div class="modal-overlay" id="geo-detail-modal" onclick="geoCloseDetailIfBg(event)">
   <div class="modal-sheet">
@@ -2673,6 +2684,7 @@ function syncPcSidebarNav(screenName) {
 
 // ==================== SCREEN SWITCH ====================
 function switchScreen(name,navEl){
+  if(name!=='geo' && geoSess) geoSaveSession();
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById('screen-'+name).classList.add('active');
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
@@ -2904,6 +2916,81 @@ function showToast(msg){
 // ==================== GEO STUDY ====================
 let geoSess = null;
 let geoTab = 'home';
+
+// ---- セッション途中保存 / 復元 ----
+function geoSaveSession() {
+  if(!geoSess || geoSess.idx >= geoSess.queue.length) return;
+  S.geoSavedSession = {
+    queueIds: geoSess.queue.map(q => q.id),
+    idx: geoSess.idx,
+    mode: geoSess.mode,
+    subject: geoSess.subject,
+    startTime: geoSess.startTime,
+    isReview: geoSess.isReview,
+    reviewRound: geoSess.reviewRound,
+    reviewBatchId: geoSess.reviewBatchId,
+    chunkStart: geoSess.chunkStart,
+    chunkTotal: geoSess.chunkTotal,
+    chunkSize: geoSess.chunkSize,
+    savedAt: Date.now(),
+  };
+  save();
+}
+function geoClearSavedSession() {
+  if(S.geoSavedSession) { delete S.geoSavedSession; save(); }
+}
+function geoRestoreSession() {
+  const saved = S.geoSavedSession;
+  if(!saved || !saved.queueIds) return false;
+  const qMap = {};
+  S.geoQuestions.forEach(q => qMap[q.id] = q);
+  const queue = saved.queueIds.map(id => qMap[id]).filter(Boolean);
+  if(!queue.length || saved.idx >= queue.length) { geoClearSavedSession(); return false; }
+  geoSess = {
+    queue, idx: saved.idx,
+    revealed: false, judged: false, result: null, results: [],
+    mode: saved.mode, userAnswer: null, explanationHtml: '',
+    subject: saved.subject, startTime: saved.startTime || Date.now(),
+    gaveUp: false, isReview: saved.isReview || false,
+    reviewRound: saved.reviewRound || 0, reviewBatchId: saved.reviewBatchId || null,
+    chunkStart: saved.chunkStart || 0, chunkTotal: saved.chunkTotal || queue.length,
+    chunkSize: saved.chunkSize || 0,
+  };
+  geoClearSavedSession();
+  return true;
+}
+function geoShowResumeModal() {
+  const saved = S.geoSavedSession;
+  if(!saved) return;
+  const total = saved.queueIds.length;
+  const cur = saved.idx + 1;
+  const subj = saved.subject || '';
+  const mins = Math.round((Date.now() - saved.savedAt) / 60000);
+  const timeStr = mins < 1 ? 'さっき' : mins < 60 ? `${mins}分前` : `${Math.round(mins/60)}時間前`;
+  document.getElementById('geo-resume-info').innerHTML =
+    `<div style="font-size:2rem;margin-bottom:8px;">📖</div>
+     <div style="font-size:0.92rem;font-weight:700;color:var(--text);margin-bottom:4px;">${subj} — ${cur}問目 / ${total}問</div>
+     <div style="font-size:0.75rem;color:var(--text2);">${timeStr}に中断</div>`;
+  document.getElementById('geo-resume-modal').classList.add('open');
+}
+function geoResumeSession() {
+  document.getElementById('geo-resume-modal').classList.remove('open');
+  if(!geoRestoreSession()) { renderGeoHome(); return; }
+  const subnav = document.getElementById('geo-subnav');
+  if(subnav) subnav.style.display = 'none';
+  const main = document.getElementById('geo-main');
+  if(main) main.scrollTop = 0;
+  geoRenderStudy();
+}
+function geoCancelResume() {
+  document.getElementById('geo-resume-modal').classList.remove('open');
+  geoClearSavedSession();
+  geoSess = null;
+  renderGeoHome();
+}
+// タブ切り替え・アプリ終了時に保存
+document.addEventListener('visibilitychange', () => { if(document.hidden && geoSess) geoSaveSession(); });
+window.addEventListener('beforeunload', () => { if(geoSess) geoSaveSession(); });
 let geoAddSubject = null; // 手動追加時の教科
 let geoStartFilter = 'all';
 let geoStartSubject = null;
@@ -2957,7 +3044,10 @@ function geoNav(name, navEl) {
   if(subnav) subnav.style.display='';
   const main = document.getElementById('geo-main');
   if(main) main.scrollTop=0;
-  if(name==='home')  renderGeoHome();
+  if(name==='home') {
+    if(S.geoSavedSession) { geoShowResumeModal(); return; }
+    renderGeoHome();
+  }
   else if(name==='add')   renderGeoAdd();
   else if(name==='pdf')   renderGeoPdf();
   else if(name==='stats') renderGeoStats();
@@ -3366,6 +3456,7 @@ function geoStartSession(mode) {
     queue = S.geoShuffle!==false ? [...fullQueue].sort(()=>Math.random()-0.5) : [...fullQueue];
   }
 
+  geoClearSavedSession();
   geoCloseStart();
   geoSess = {
     queue, idx:0, revealed:false, judged:false, result:null, results:[],
@@ -3649,6 +3740,7 @@ function autoRecordGeoSession() {
 }
 
 function geoRenderResult() {
+  geoClearSavedSession();
   playSound('complete');
   const el = document.getElementById('geo-main');
   const results = geoSess.results;
