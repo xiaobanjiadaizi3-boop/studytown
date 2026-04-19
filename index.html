@@ -747,6 +747,19 @@ body.pc-mode .pdf-item{flex-direction:column;align-items:flex-start;gap:6px;padd
 body.pc-mode .pdf-icon{font-size:1.3rem;}
 body.pc-mode .pdf-info{width:100%;}
 body.pc-mode .pdf-info .pdf-name{font-size:0.7rem;white-space:normal;word-break:break-all;}
+/* ---- PARENT SCREEN PC — 2 column masonry ---- */
+body.pc-mode #screen-parent.active{display:block!important;columns:2;column-gap:14px;padding:12px 20px 20px;overflow-y:auto;}
+body.pc-mode #screen-parent.active>*{break-inside:avoid;margin-bottom:14px;display:block;}
+body.pc-mode #screen-parent.active>.sec-title{break-after:avoid;margin-bottom:2px;}
+body.pc-mode #screen-parent.active>:first-child,
+body.pc-mode #screen-parent.active>.parent-stat-grid,
+body.pc-mode #screen-parent.active>.parent-alert{column-span:all;}
+body.pc-mode #screen-parent .parent-stat-grid{grid-template-columns:repeat(4,1fr);}
+body.pc-mode #screen-parent .btn-secondary{display:none;}
+/* ---- PARENT MODE — PC sidebar ---- */
+body.parent-mode.pc-mode .pc-nav-section:not(#pc-parent-nav-section){display:none;}
+body.parent-mode.pc-mode #pc-parent-nav-section{display:block;}
+body.parent-mode.pc-mode .pc-sidebar-stats{display:none;}
 
 /* ===== MOM MESSAGE ===== */
 .mom-msg-banner{margin:10px 16px 0;padding:10px 14px;background:linear-gradient(135deg,#4a148c,#7b1fa2);border:1.5px solid rgba(206,147,216,0.45);border-radius:14px;display:flex;align-items:flex-start;gap:10px;}
@@ -871,6 +884,13 @@ body.pc-mode .pdf-info .pdf-name{font-size:0.7rem;white-space:normal;word-break:
     <div class="pc-nav-item"        id="pc-nav-town"    onclick="switchScreen('town',this)"><span>🏙️</span>マイタウン</div>
     <div class="pc-nav-item"        id="pc-nav-reward"  onclick="switchScreen('reward',this)"><span>🎁</span>報酬</div>
     <div class="pc-nav-item"        id="pc-nav-settings" onclick="switchScreen('settings',this)"><span>⚙️</span>設定</div>
+  </div>
+  <div class="pc-nav-section" id="pc-parent-nav-section" style="display:none;">
+    <div style="padding:7px 18px 4px;font-size:0.62rem;font-weight:900;color:#ce93d8;letter-spacing:1px;">👩 保護者モード</div>
+    <div class="pc-nav-item active" id="pc-pnav-dash"    onclick="parentScrollTo('screen-parent')"><span>📊</span>状況</div>
+    <div class="pc-nav-item"        id="pc-pnav-reward"  onclick="parentScrollTo('p-requests')"><span>🎁</span>報酬申請</div>
+    <div class="pc-nav-item"        id="pc-pnav-test"    onclick="parentScrollTo('p-test-list')"><span>📅</span>テスト</div>
+    <div class="pc-nav-item"        onclick="exitParentMode()"><span>◀</span>子どもモードへ</div>
   </div>
   <div class="pc-sidebar-stats" id="pc-sidebar-stats"></div>
   <div class="pc-sidebar-town" id="pc-sidebar-town">
@@ -2113,8 +2133,8 @@ function parentScrollTo(id) {
   if(!el) return;
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById('screen-parent').classList.add('active');
-  document.querySelectorAll('#parent-nav .nav-item').forEach(n=>n.classList.remove('active'));
-  event.currentTarget.classList.add('active');
+  document.querySelectorAll('#parent-nav .nav-item, #pc-parent-nav-section .pc-nav-item').forEach(n=>n.classList.remove('active'));
+  if(event && event.currentTarget) event.currentTarget.classList.add('active');
   setTimeout(()=>el.scrollIntoView({behavior:'smooth',block:'start'}),50);
 }
 function parentGoSettings() {
