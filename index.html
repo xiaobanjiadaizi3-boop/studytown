@@ -556,6 +556,48 @@ body.parent-mode #parent-nav{display:flex!important;}
 }
 #town-palette::-webkit-scrollbar { display: none; }
 .hex-avail-glow { animation: hexGlow 1.4s ease-in-out infinite alternate; }
+/* ===== TOWN SUBNAV ===== */
+.town-subnav{display:flex;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--bg2);}
+.town-tab{flex:1;padding:10px 4px;text-align:center;font-size:0.76rem;font-weight:700;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;transition:all 0.15s;}
+.town-tab.active{color:var(--gold);border-bottom-color:var(--gold);background:rgba(245,200,66,0.05);}
+#town-view{display:flex;flex-direction:column;flex:1;overflow:hidden;}
+/* ===== GACHA ===== */
+.gacha-machine{text-align:center;padding:20px 16px 10px;}
+.gacha-emoji{font-size:5rem;display:block;filter:drop-shadow(0 0 18px rgba(245,200,66,0.5));animation:gachaBounce 2s ease-in-out infinite;}
+@keyframes gachaBounce{0%,100%{transform:translateY(0);}50%{transform:translateY(-8px);}}
+.gacha-pts-display{font-family:'Zen Kaku Gothic New';font-size:1.5rem;font-weight:900;color:var(--gold);margin:8px 0 2px;}
+.gacha-pull-btns{display:flex;gap:10px;padding:0 16px 12px;}
+.gacha-btn-1{flex:1;padding:14px 8px;background:linear-gradient(135deg,#1a3a6c,#2b5797);border:1.5px solid rgba(58,134,255,0.5);border-radius:16px;color:#fff;font-family:'Zen Kaku Gothic New';font-size:0.88rem;font-weight:900;cursor:pointer;transition:all 0.15s;line-height:1.4;}
+.gacha-btn-10{flex:2;padding:14px 8px;background:linear-gradient(135deg,#4a0080,#7b1fa2);border:1.5px solid rgba(206,147,216,0.5);border-radius:16px;color:#fff;font-family:'Zen Kaku Gothic New';font-size:0.88rem;font-weight:900;cursor:pointer;transition:all 0.15s;line-height:1.4;}
+.gacha-btn-1:disabled,.gacha-btn-10:disabled{opacity:0.4;cursor:not-allowed;}
+.gacha-result-single{text-align:center;padding:8px 16px 12px;}
+.gacha-result-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;padding:8px 16px 12px;}
+.gacha-card{background:var(--card);border:1.5px solid var(--border);border-radius:14px;padding:12px 6px 10px;text-align:center;}
+.gacha-card.reveal{animation:gachaReveal 0.4s ease-out both;}
+@keyframes gachaReveal{0%{transform:scale(0.5) rotateY(90deg);opacity:0;}100%{transform:scale(1) rotateY(0deg);opacity:1;}}
+.gacha-card-emoji{font-size:2rem;display:block;margin-bottom:4px;}
+.gacha-card-rarity{font-size:0.6rem;font-weight:900;letter-spacing:0.5px;padding:2px 7px;border-radius:99px;display:inline-block;}
+.gacha-rate-table{margin:0 16px 16px;background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
+.gacha-rate-row{display:flex;justify-content:space-between;align-items:center;padding:9px 14px;border-bottom:1px solid var(--border);font-size:0.78rem;}
+.gacha-rate-row:last-child{border-bottom:none;}
+/* ===== COLLECTION ===== */
+.coll-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:12px 16px 8px;}
+.coll-stat{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px;text-align:center;}
+.coll-stat-num{font-family:'Zen Kaku Gothic New';font-size:1.3rem;font-weight:900;color:var(--gold);}
+.coll-stat-label{font-size:0.62rem;color:var(--text2);margin-top:2px;}
+.coll-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;padding:8px 16px 20px;}
+.coll-card{background:var(--card);border:1.5px solid var(--border);border-radius:12px;padding:10px 4px 8px;text-align:center;position:relative;}
+.coll-card-emoji{font-size:1.8rem;display:block;}
+.coll-card-count{position:absolute;top:3px;right:6px;font-size:0.58rem;color:var(--text2);font-weight:700;}
+.coll-card-rarity{font-size:0.55rem;font-weight:900;margin-top:3px;display:block;}
+/* Rarity colors */
+.r-common  {border-color:rgba(136,146,176,0.3)!important;}
+.r-uncommon{border-color:rgba(46,204,113,0.35)!important;}
+.r-rare    {border-color:rgba(58,134,255,0.4)!important;}
+.r-epic    {border-color:rgba(155,89,182,0.5)!important;}
+.r-legend  {border-color:rgba(243,156,18,0.55)!important;box-shadow:0 0 6px rgba(243,156,18,0.18)!important;}
+.r-ultra   {border-color:rgba(231,76,60,0.6)!important;box-shadow:0 0 10px rgba(231,76,60,0.25)!important;}
+.r-fortune {border-color:rgba(255,107,53,0.7)!important;box-shadow:0 0 14px rgba(255,107,53,0.35)!important;}
 @keyframes hexGlow {
   from { opacity: 0.45; }
   to   { opacity: 1; }
@@ -1253,21 +1295,30 @@ body.parent-mode.pc-mode .pc-sidebar-stats{display:none;}
 
 <!-- ==================== TOWN SCREEN ==================== -->
 <div id="screen-town" class="screen">
-  <div style="padding:10px 16px 8px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;border-bottom:1px solid var(--border);">
-    <div>
-      <div style="font-family:'Zen Kaku Gothic New';font-size:1.05rem;font-weight:700;">🏙️ マイタウン</div>
-      <div style="font-size:0.7rem;color:var(--text2);margin-top:1px;" id="town-tile-count">タイル 1枚配置済み</div>
-    </div>
-    <div style="text-align:right;">
-      <div style="font-size:0.7rem;color:var(--text2);">使えるポイント</div>
-      <div style="font-family:'Zen Kaku Gothic New';font-size:1.2rem;font-weight:900;color:var(--gold);" id="town-pts">0pt</div>
-    </div>
+  <div class="town-subnav" id="town-subnav">
+    <div class="town-tab active" id="ttab-town"       onclick="townNav('town',this)">🏙️ タウン</div>
+    <div class="town-tab"        id="ttab-gacha"      onclick="townNav('gacha',this)">🎰 ガチャ</div>
+    <div class="town-tab"        id="ttab-collection" onclick="townNav('collection',this)">💼 コレクション</div>
   </div>
-  <div id="town-hex-container"><svg id="town-svg-grid" style="display:block;"></svg></div>
-  <div style="text-align:center;font-size:0.72rem;color:var(--text2);padding:5px 8px;flex-shrink:0;background:var(--bg2);" id="town-hint">
-    ⬇ タイルを選んで、光っているマスをタップして配置しよう
+  <div id="town-view">
+    <div style="padding:10px 16px 8px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;border-bottom:1px solid var(--border);">
+      <div>
+        <div style="font-family:'Zen Kaku Gothic New';font-size:1.05rem;font-weight:700;">🏙️ マイタウン</div>
+        <div style="font-size:0.7rem;color:var(--text2);margin-top:1px;" id="town-tile-count">タイル 1枚配置済み</div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:0.7rem;color:var(--text2);">使えるポイント</div>
+        <div style="font-family:'Zen Kaku Gothic New';font-size:1.2rem;font-weight:900;color:var(--gold);" id="town-pts">0pt</div>
+      </div>
+    </div>
+    <div id="town-hex-container"><svg id="town-svg-grid" style="display:block;"></svg></div>
+    <div style="text-align:center;font-size:0.72rem;color:var(--text2);padding:5px 8px;flex-shrink:0;background:var(--bg2);" id="town-hint">
+      ⬇ タイルを選んで、光っているマスをタップして配置しよう
+    </div>
+    <div id="town-palette"></div>
   </div>
-  <div id="town-palette"></div>
+  <div id="gacha-view"      style="display:none;flex:1;overflow-y:auto;"></div>
+  <div id="collection-view" style="display:none;flex:1;overflow-y:auto;"></div>
 </div>
 
 <!-- ==================== GEO STUDY SCREEN ==================== -->
@@ -1522,6 +1573,7 @@ function defaultState() {
     sentPhotos: [],
     reviewBatches: [],
     geoChunkCursors: {},
+    gachaCollection: {},
   };
 }
 let S = (() => { try { const s=localStorage.getItem(KEY); return s?JSON.parse(s):defaultState(); } catch{return defaultState();} })();
@@ -2698,7 +2750,7 @@ function switchScreen(name,navEl){
   if(name==='parent')renderParent();
   if(name==='pdf'){switchScreen('geo',document.getElementById('nav-geo'));geoNav('pdf',null);return;}
   if(name==='reward')renderRewardScreen();
-  if(name==='town')renderTownScreen(false);
+  if(name==='town')townNav(townTab,null);
   if(name==='geo'){geoNav(geoTab,null);}
   if(name==='settings'){
     const el=document.getElementById('geo-api-key-input'); if(el)el.value=S.geoApiKey||'';
@@ -3715,6 +3767,145 @@ async function geoJudgeAndExplain(q, userAnswer) {
     const nextBtn=document.getElementById('geo-btn-next');
     if(nextBtn){nextBtn.disabled=false;nextBtn.style.opacity='1';}
   }
+}
+
+// ==================== GACHA SYSTEM ====================
+let townTab = 'town';
+const GACHA_COST_1 = 100, GACHA_COST_10 = 900;
+const GACHA_RARITIES = [
+  {id:'common',   label:'コモン',         color:'#8892b0', prob:0.40},
+  {id:'uncommon', label:'アンコモン',     color:'#2ecc71', prob:0.25},
+  {id:'rare',     label:'レア',           color:'#3a86ff', prob:0.15},
+  {id:'epic',     label:'エピック',       color:'#9b59b6', prob:0.10},
+  {id:'legend',   label:'レジェンド',     color:'#f39c12', prob:0.06},
+  {id:'ultra',    label:'ウルトラ',       color:'#e74c3c', prob:0.03},
+  {id:'fortune',  label:'フォーチューン', color:'#ff6b35', prob:0.01},
+];
+const GACHA_POOL = {
+  common:   ['🐱','🐶','🐰','🐸','🐻','🐼','🐨','🐥','🐢','🦆','🌸','🌼','🌻','🌺','🍀','🎵','🎈','🎀','🍭','⭐','🌈','🌿','🍃','🍉','🍓','🐝','🌱','🎨','🏠','🌙'],
+  uncommon: ['🦊','🦄','🦜','🦉','🦝','🐬','🦈','🐙','🦑','🌊','🌠','🎭','🔮','🎃','🎡','🌅','🌄','🎯','🎸','🎺','🎻','🛸','🦋','🏄','🌴','🎑','🦩','🦚','🐿️','🦔'],
+  rare:     ['🐉','🦁','🐯','🐺','🦅','⚡','🔥','🌟','💫','🗡️','🏹','🏆','🎆','🎇','💥','🌀','☄️','🌋','🌌','🦂'],
+  epic:     ['⚔️','🛡️','🔱','💠','👑','💎','✨','🌑','🌒','🔮','🌃','🏯','💀','🌌','🌠','💥','☄️','🌀','🐲','🗺️'],
+  legend:   ['🌟','💫','⚡','🔥','👑','💎','⚔️','🔱','💠','🐉','✨','🌌','🌠','💥','☄️','🏆','🌈','🌋','🔮','🌀'],
+  ultra:    ['☄️','🌌','⚡','💥','🔱','💠','🐉','🌟','✨','👑','💎','🌠','⚔️','🔥','💫'],
+  fortune:  ['🍀','☯️','🌟','💫','✨','🌌','⚡','🔱','💠','🐲','👑','💎','☄️','🌈','🎴'],
+};
+const RARITY_INFO = Object.fromEntries(GACHA_RARITIES.map(r=>[r.id,r]));
+const RARITY_ORDER = ['fortune','ultra','legend','epic','rare','uncommon','common'];
+
+function gachaRoll() {
+  let r = Math.random(), cum = 0;
+  for(const rar of GACHA_RARITIES) {
+    cum += rar.prob;
+    if(r < cum) {
+      const pool = GACHA_POOL[rar.id];
+      return {emoji: pool[Math.floor(Math.random()*pool.length)], rarity:rar.id, label:rar.label, color:rar.color};
+    }
+  }
+  const p = GACHA_POOL.common;
+  return {emoji:p[0], rarity:'common', label:'コモン', color:'#8892b0'};
+}
+function gachaAddToCollection(res) {
+  if(!S.gachaCollection) S.gachaCollection = {};
+  const k = res.emoji;
+  if(S.gachaCollection[k]) S.gachaCollection[k].count++;
+  else S.gachaCollection[k] = {rarity:res.rarity, count:1, firstDate:todayStr()};
+}
+function doPull(count) {
+  const cost = count===1 ? GACHA_COST_1 : GACHA_COST_10;
+  if((S.totalPoints||0) < cost) { showToast(`ポイントが足りません（必要: ${cost}pt）`); return; }
+  S.totalPoints -= cost;
+  const results = Array.from({length:count}, ()=>{ const r=gachaRoll(); gachaAddToCollection(r); return r; });
+  save();
+  renderGachaView(results);
+}
+function townNav(name, navEl) {
+  townTab = name;
+  document.querySelectorAll('.town-tab').forEach(t=>t.classList.remove('active'));
+  if(navEl) navEl.classList.add('active');
+  else { const el=document.getElementById('ttab-'+name); if(el) el.classList.add('active'); }
+  document.getElementById('town-view').style.display        = name==='town'       ? 'flex'  : 'none';
+  document.getElementById('gacha-view').style.display       = name==='gacha'      ? 'block' : 'none';
+  document.getElementById('collection-view').style.display  = name==='collection' ? 'block' : 'none';
+  if(name==='town') renderTownScreen(false);
+  else if(name==='gacha') renderGachaView(null);
+  else if(name==='collection') renderCollectionView();
+}
+function renderGachaView(results) {
+  const el = document.getElementById('gacha-view'); if(!el) return;
+  const pts = S.totalPoints||0;
+  let resultHtml = '';
+  if(results && results.length) {
+    if(results.length===1) {
+      const r = results[0];
+      const cnt = S.gachaCollection[r.emoji]?.count||0;
+      resultHtml = `<div class="gacha-result-single">
+        <div class="gacha-card reveal" style="display:inline-block;min-width:120px;border-color:${r.color};box-shadow:0 0 22px ${r.color}44;">
+          <span class="gacha-card-emoji" style="font-size:3rem;">${r.emoji}</span>
+          <div style="margin:6px 0 4px;"><span class="gacha-card-rarity" style="background:${r.color}22;color:${r.color};">${r.label}</span></div>
+          <div style="font-size:0.68rem;font-weight:700;color:${cnt>1?'var(--text2)':'var(--green)'};">${cnt>1?cnt+'個目':'✨ NEW！'}</div>
+        </div></div>`;
+    } else {
+      resultHtml = `<div class="gacha-result-grid">${results.map((r,i)=>{
+        const cnt=S.gachaCollection[r.emoji]?.count||0;
+        return `<div class="gacha-card reveal r-${r.rarity}" style="animation-delay:${i*55}ms">
+          <span class="gacha-card-emoji">${r.emoji}</span>
+          <span class="gacha-card-rarity" style="background:${r.color}22;color:${r.color};">${r.label}</span>
+          ${cnt===1?'<div style="font-size:0.55rem;color:var(--green);font-weight:900;">NEW!</div>':''}
+        </div>`;
+      }).join('')}</div>`;
+    }
+  }
+  el.innerHTML = `
+    <div class="gacha-machine">
+      <span class="gacha-emoji">🎰</span>
+      <div class="gacha-pts-display">${pts.toLocaleString()} pt</div>
+      <div style="font-size:0.7rem;color:var(--text2);">所持ポイント</div>
+    </div>
+    ${resultHtml}
+    <div class="gacha-pull-btns">
+      <button class="gacha-btn-1"  ${pts>=GACHA_COST_1 ?'':'disabled'} onclick="doPull(1)">🎰 1回まわす<br><span style="font-size:0.72rem;opacity:0.85;">${GACHA_COST_1}pt</span></button>
+      <button class="gacha-btn-10" ${pts>=GACHA_COST_10?'':'disabled'} onclick="doPull(10)">💎 10回まわす<br><span style="font-size:0.72rem;opacity:0.85;">${GACHA_COST_10}pt（お得！）</span></button>
+    </div>
+    <div style="padding:0 16px 6px;font-size:0.76rem;color:var(--text2);font-weight:700;">排出確率</div>
+    <div class="gacha-rate-table">${GACHA_RARITIES.map(r=>`
+      <div class="gacha-rate-row">
+        <span style="font-weight:700;color:${r.color};">${r.label}</span>
+        <span style="color:var(--text2);">${(r.prob*100).toFixed(0)}%</span>
+      </div>`).join('')}</div>`;
+}
+function renderCollectionView() {
+  const el = document.getElementById('collection-view'); if(!el) return;
+  if(!S.gachaCollection) S.gachaCollection = {};
+  const entries = Object.entries(S.gachaCollection);
+  const total = entries.reduce((s,[,v])=>s+v.count, 0);
+  const unique = entries.length;
+  const poolTotal = Object.values(GACHA_POOL).reduce((s,a)=>s+a.length, 0);
+  const sorted = [...entries].sort((a,b)=>{
+    const ai=RARITY_ORDER.indexOf(a[1].rarity), bi=RARITY_ORDER.indexOf(b[1].rarity);
+    return ai!==bi ? ai-bi : (a[1].firstDate<b[1].firstDate?-1:1);
+  });
+  const breakdown = RARITY_ORDER.map(rid=>{
+    const ri=RARITY_INFO[rid]; const n=entries.filter(([,v])=>v.rarity===rid).length;
+    return n ? `<span style="color:${ri.color};font-weight:700;font-size:0.72rem;">${ri.label} ${n}</span>` : '';
+  }).filter(Boolean).join('&ensp;');
+  el.innerHTML = `
+    <div class="coll-stats">
+      <div class="coll-stat"><div class="coll-stat-num">${total}</div><div class="coll-stat-label">総ガチャ数</div></div>
+      <div class="coll-stat"><div class="coll-stat-num">${unique}</div><div class="coll-stat-label">種類</div></div>
+      <div class="coll-stat"><div class="coll-stat-num">${poolTotal}</div><div class="coll-stat-label">全種類数</div></div>
+    </div>
+    ${breakdown?`<div style="padding:2px 16px 10px;text-align:center;">${breakdown}</div>`:''}
+    ${unique===0
+      ? `<div style="text-align:center;color:var(--text2);font-size:0.85rem;padding:40px 20px;">まだコレクションがありません<br>ガチャをまわしてみよう！</div>`
+      : `<div class="coll-grid">${sorted.map(([emoji,data])=>{
+          const ri=RARITY_INFO[data.rarity]||{color:'#888',label:data.rarity};
+          return `<div class="coll-card r-${data.rarity}">
+            <span class="coll-card-emoji">${emoji}</span>
+            ${data.count>1?`<span class="coll-card-count">×${data.count}</span>`:''}
+            <span class="coll-card-rarity" style="color:${ri.color};">${ri.label}</span>
+          </div>`;
+        }).join('')}</div>`}`;
 }
 
 // ==================== GEO RESULT ====================
