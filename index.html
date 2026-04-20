@@ -2932,6 +2932,8 @@ function geoSaveSession() {
     chunkStart: geoSess.chunkStart,
     chunkTotal: geoSess.chunkTotal,
     chunkSize: geoSess.chunkSize,
+    chunkKey: geoSess.chunkKey,
+    chunkNextCursor: geoSess.chunkNextCursor,
     savedAt: Date.now(),
   };
   save();
@@ -2955,6 +2957,7 @@ function geoRestoreSession() {
     reviewRound: saved.reviewRound || 0, reviewBatchId: saved.reviewBatchId || null,
     chunkStart: saved.chunkStart || 0, chunkTotal: saved.chunkTotal || queue.length,
     chunkSize: saved.chunkSize || 0,
+    chunkKey: saved.chunkKey || null, chunkNextCursor: saved.chunkNextCursor || 0,
   };
   geoClearSavedSession();
   return true;
@@ -3445,19 +3448,18 @@ function geoStartSession(mode) {
   else                  fullQueue = geoWeakQ(u);
   if(!fullQueue.length){showToast('該当する問題がありません');return;}
 
-  let queue, chunkStart=0, chunkTotal=fullQueue.length;
+  let queue, chunkStart=0, chunkTotal=fullQueue.length, chunkKey=null, chunkNextCursor=0;
   if(geoChunkSize > 0) {
     // 順番に消化：カーソル位置から次のN問を取る
-    const key = geoChunkKey(mode, u);
+    chunkKey = geoChunkKey(mode, u);
     if(!S.geoChunkCursors) S.geoChunkCursors = {};
-    let cursor = S.geoChunkCursors[key] || 0;
-    if(cursor >= fullQueue.length) cursor = 0; // 全問終わったら先頭に戻る
+    let cursor = S.geoChunkCursors[chunkKey] || 0;
+    if(cursor >= fullQueue.length) cursor = 0;
     const end = Math.min(cursor + geoChunkSize, fullQueue.length);
     queue = fullQueue.slice(cursor, end);
     chunkStart = cursor;
-    // カーソルを進める（次回はこの続きから）
-    S.geoChunkCursors[key] = end >= fullQueue.length ? 0 : end;
-    save();
+    chunkNextCursor = end >= fullQueue.length ? 0 : end;
+    // カーソルは完了時に進める（途中放棄でセットが進まないように）
   } else {
     // 全問モード：シャッフルして全問
     queue = S.geoShuffle!==false ? [...fullQueue].sort(()=>Math.random()-0.5) : [...fullQueue];
@@ -3471,6 +3473,7 @@ function geoStartSession(mode) {
     startTime:Date.now(), gaveUp:false,
     isReview:false, reviewRound:0, reviewBatchId:null,
     chunkStart, chunkTotal, chunkSize:geoChunkSize,
+    chunkKey, chunkNextCursor,
   };
   S.geoSessionCount = (S.geoSessionCount||0)+1;
   save();
@@ -3760,7 +3763,12 @@ function geoRenderResult() {
   const wrongList = results.filter(r=>r.result==='×').map(r=>`<div class="wrong-item"><div class="wrong-q">Q. ${geoEsc(r.q.question)}</div><div class="wrong-a">→ ${geoEsc(r.q.answer)}</div></div>`).join('');
 
   if(!geoSess.isReview) {
-    // ── 初回セット完了 ──
+    // ── 初回セット完了 ── カーソルをここで進める
+    if(geoSess.chunkKey) {
+      if(!S.geoChunkCursors) S.geoChunkCursors = {};
+      S.geoChunkCursors[geoSess.chunkKey] = geoSess.chunkNextCursor;
+      save();
+    }
     autoRecordGeoSession();
     if(ng > 0) {
       el.innerHTML = `<div style="padding:14px 0 0;">
