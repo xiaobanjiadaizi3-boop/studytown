@@ -3036,6 +3036,13 @@ function geoNewQ(unit) { return geoFilterQ(unit).filter(q=>!q.history||!q.histor
 
 // Sub-navigation
 function geoNav(name, navEl) {
+  // セッション進行中は study ビューを維持し、タブ切り替えで中断しない
+  if(geoSess && name === 'home') {
+    const subnav = document.getElementById('geo-subnav');
+    if(subnav) subnav.style.display = 'none';
+    geoRenderStudy();
+    return;
+  }
   geoTab = name;
   document.querySelectorAll('.geo-subnav-item').forEach(n=>n.classList.remove('active'));
   if(navEl) navEl.classList.add('active');
