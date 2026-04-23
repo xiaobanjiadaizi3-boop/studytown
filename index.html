@@ -1481,6 +1481,20 @@ body.parent-mode.pc-mode .pc-sidebar-stats{display:none;}
   </div>
 </div>
 
+<!-- JOIN CONFIRM MODAL -->
+<div class="modal-overlay" id="fb-join-confirm-modal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">⚠️ ルームに参加しますか？</div>
+    <div style="background:rgba(231,76,60,0.08);border:1.5px solid rgba(231,76,60,0.3);border-radius:14px;padding:14px 16px;margin-bottom:16px;">
+      <div style="font-size:0.82rem;color:var(--text);margin-bottom:6px;font-weight:700;">ルームID：<span id="fb-join-confirm-id" style="color:var(--gold);font-family:monospace;letter-spacing:2px;"></span></div>
+      <div style="font-size:0.78rem;color:var(--text2);line-height:1.7;">参加すると、あなたの<strong style="color:var(--red);">ポイント・問題・記録・タウンなどのデータがすべて削除</strong>され、ルームのデータに置き換えられます。<br>名前・パスコード・APIキーは保持されます。</div>
+    </div>
+    <button class="btn-main" style="margin-bottom:10px;background:linear-gradient(135deg,#c0392b,#e74c3c);" onclick="fbJoinConfirm()">参加してデータを上書きする</button>
+    <button class="btn-secondary" onclick="fbJoinCancel()">キャンセル</button>
+  </div>
+</div>
+
 <!-- GEO RESUME MODAL -->
 <div class="modal-overlay" id="geo-resume-modal">
   <div class="modal-sheet">
@@ -4341,6 +4355,7 @@ function reloadApp() {
 let fbDb = null, fbRef = null, fbMomRef = null, fbPhotosRef = null;
 let fbWriteTimer = null, fbMerging = false, fbIgnoreCount = 0;
 let fbRoomId = localStorage.getItem('stFamilyRoom') || null;
+let fbIsJoining = false; // 参加時は最初の受信で完全上書きする
 
 function fbGetDb() {
   if(fbDb) return fbDb;
@@ -4348,11 +4363,12 @@ function fbGetDb() {
   fbDb = firebase.database();
   return fbDb;
 }
-function fbConnect(roomId) {
+function fbConnect(roomId, isJoin = false) {
   if(fbRef) { fbRef.off(); fbRef = null; }
   if(fbMomRef) { fbMomRef.off(); fbMomRef = null; }
   if(fbPhotosRef) { fbPhotosRef.off(); fbPhotosRef = null; }
   fbRoomId = roomId.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,8);
+  fbIsJoining = isJoin;
   localStorage.setItem('stFamilyRoom', fbRoomId);
   const db = fbGetDb();
   fbRef      = db.ref('families/' + fbRoomId + '/data');
@@ -4363,9 +4379,9 @@ function fbConnect(roomId) {
   fbMomRef.on('value',    fbOnMomMsg,   e => console.warn('fbMomRef error', e));
   fbPhotosRef.on('value', fbOnPhotos,   e => console.warn('fbPhotosRef error', e));
   fbIgnoreCount = 0;
-  fbWrite();
+  if(!isJoin) fbWrite(); // 参加時は自分のデータをアップしない
   renderFbSettingsUI();
-  showToast('✅ ルーム ' + fbRoomId + ' に接続しました');
+  showToast(isJoin ? '🔗 接続中… ルームのデータを受信します' : '✅ ルーム ' + fbRoomId + ' に接続しました');
 }
 function fbDisconnect() {
   if(fbRef)       { fbRef.off();       fbRef = null; }
@@ -4384,7 +4400,18 @@ function fbJoinRoom() {
   const el = document.getElementById('fb-join-input');
   const id = (el?.value||'').trim();
   if(!id) { showToast('ルームIDを入力してください'); return; }
-  fbConnect(id);
+  document.getElementById('fb-join-confirm-id').textContent = id.toUpperCase();
+  document.getElementById('fb-join-confirm-modal').classList.add('open');
+}
+function fbJoinConfirm() {
+  const el = document.getElementById('fb-join-input');
+  const id = (el?.value||'').trim();
+  document.getElementById('fb-join-confirm-modal').classList.remove('open');
+  if(!id) return;
+  fbConnect(id, true);
+}
+function fbJoinCancel() {
+  document.getElementById('fb-join-confirm-modal').classList.remove('open');
 }
 
 // メイン共有データ書き込み（momMessage/sentPhotos は含まない）
@@ -4408,6 +4435,7 @@ function fbWrite() {
       geoShuffle:S.geoShuffle!==undefined?S.geoShuffle:true,
       reviewBatches:S.reviewBatches||[],
       geoChunkCursors:S.geoChunkCursors||{},
+      gachaCollection:S.gachaCollection||{},
       ts:Date.now()
     };
     fbIgnoreCount++;
@@ -4439,9 +4467,53 @@ function fbWritePhotos() {
 function fbOnRemote(snapshot) {
   if(fbIgnoreCount > 0) { fbIgnoreCount--; return; }
   const data = snapshot.val();
-  if(!data) return;
+  if(!data) { hideSpinner(); return; }
   showSpinner('受信中...');
   fbMerging = true;
+
+  // ===== 参加時：名前・パスコード・APIキー以外を完全上書き =====
+  if(fbIsJoining) {
+    fbIsJoining = false;
+    const myName    = S.myName;
+    const passcode  = S.passcode;
+    const geoApiKey = S.geoApiKey;
+    S = Object.assign(defaultState(), {
+      geoQuestions:    data.q               || [],
+      totalPoints:     data.pts             || 0,
+      subjectPoints:   data.sub             || {国語:0,英語:0,数学:0,理科:0,歴史:0,地理:0,公民:0},
+      geoSessionCount: data.cnt             || 0,
+      pdfs:            data.pdfs            || [],
+      records:         data.records         || [],
+      streak:          data.streak          || 0,
+      lastStudyDate:   data.lastStudyDate   || null,
+      weeklyMinutes:   data.weeklyMinutes   || {},
+      tests:           data.tests           || [],
+      goalMinutes:     data.goalMinutes     || 60,
+      rewards:         data.rewards         || defaultState().rewards,
+      exchangeRequests:data.exchangeRequests|| [],
+      missionIds:      data.missionIds      || [],
+      missionsClaimed: data.missionsClaimed || [],
+      missionsDate:    data.missionsDate    || null,
+      dailyBonusClaimed:data.dailyBonusClaimed||null,
+      townTiles:       data.townTiles       || null,
+      geoShuffle:      data.geoShuffle      !== undefined ? data.geoShuffle : true,
+      reviewBatches:   data.reviewBatches   || [],
+      geoChunkCursors: data.geoChunkCursors || {},
+      gachaCollection: data.gachaCollection || {},
+      // 個人設定は保持
+      myName, passcode, geoApiKey,
+      partnerName: data.name || null,
+    });
+    localStorage.setItem(KEY, JSON.stringify(S));
+    fbMerging = false;
+    hideSpinner();
+    renderAll();
+    renderPartnerBanner();
+    showToast('✅ ' + (data.name||'ルーム') + ' のデータに同期しました');
+    fbWrite(); // 自分の名前などを書き込む
+    return;
+  }
+
   let changed = false;
   // 問題
   const qIds = new Set(S.geoQuestions.map(q=>q.id));
@@ -4504,6 +4576,14 @@ function fbOnRemote(snapshot) {
       if(!b.id) return;
       if(!rbIds.has(b.id)){S.reviewBatches.push(b);changed=true;}
       else{const ex=S.reviewBatches.find(e=>e.id===b.id);if(ex&&b.done&&!ex.done){ex.done=true;changed=true;}}
+    });
+  }
+  // ガチャコレクション（マージ：多い方の数を採用）
+  if(data.gachaCollection&&Object.keys(data.gachaCollection).length){
+    if(!S.gachaCollection) S.gachaCollection={};
+    Object.entries(data.gachaCollection).forEach(([k,v])=>{
+      if(!S.gachaCollection[k]){S.gachaCollection[k]=v;changed=true;}
+      else if((v.count||0)>(S.gachaCollection[k].count||0)){S.gachaCollection[k].count=v.count;changed=true;}
     });
   }
   // 相手の名前
