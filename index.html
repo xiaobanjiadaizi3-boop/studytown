@@ -590,6 +590,10 @@ body.parent-mode #parent-nav{display:flex!important;}
 .coll-card-emoji{font-size:1.8rem;display:block;}
 .coll-card-count{position:absolute;top:3px;right:6px;font-size:0.58rem;color:var(--text2);font-weight:700;}
 .coll-card-rarity{font-size:0.55rem;font-weight:900;margin-top:3px;display:block;}
+.coll-card.locked{background:#080810;border-color:rgba(255,255,255,0.07)!important;box-shadow:none!important;}
+.coll-card.locked .coll-card-emoji{filter:brightness(0) opacity(0.2);}
+.coll-card.locked .coll-card-rarity{color:rgba(255,255,255,0.18)!important;}
+.coll-section-title{grid-column:1/-1;padding:6px 2px 4px;font-size:0.7rem;font-weight:900;letter-spacing:1px;}
 /* Rarity colors */
 .r-common  {border-color:rgba(136,146,176,0.3)!important;}
 .r-uncommon{border-color:rgba(46,204,113,0.35)!important;}
@@ -3891,35 +3895,43 @@ function renderGachaView(results) {
 function renderCollectionView() {
   const el = document.getElementById('collection-view'); if(!el) return;
   if(!S.gachaCollection) S.gachaCollection = {};
-  const entries = Object.entries(S.gachaCollection);
-  const total = entries.reduce((s,[,v])=>s+v.count, 0);
-  const unique = entries.length;
+  const coll = S.gachaCollection;
+  const pullTotal = Object.values(coll).reduce((s,v)=>s+v.count, 0);
+  const uniqueOwned = Object.keys(coll).length;
   const poolTotal = Object.values(GACHA_POOL).reduce((s,a)=>s+a.length, 0);
-  const sorted = [...entries].sort((a,b)=>{
-    const ai=RARITY_ORDER.indexOf(a[1].rarity), bi=RARITY_ORDER.indexOf(b[1].rarity);
-    return ai!==bi ? ai-bi : (a[1].firstDate<b[1].firstDate?-1:1);
+
+  // レア度順（コモン→フォーチューン）でセクション表示
+  const displayOrder = ['common','uncommon','rare','epic','legend','ultra','fortune'];
+  let gridHtml = '';
+  displayOrder.forEach(rid => {
+    const ri = RARITY_INFO[rid];
+    const pool = GACHA_POOL[rid];
+    const ownedInRarity = pool.filter(e => coll[e]).length;
+    gridHtml += `<div class="coll-section-title" style="color:${ri.color};">${ri.label} ${ownedInRarity}/${pool.length}</div>`;
+    pool.forEach(emoji => {
+      const data = coll[emoji];
+      if(data) {
+        gridHtml += `<div class="coll-card r-${rid}">
+          <span class="coll-card-emoji">${emoji}</span>
+          ${data.count>1?`<span class="coll-card-count">×${data.count}</span>`:''}
+          <span class="coll-card-rarity" style="color:${ri.color};">${ri.label}</span>
+        </div>`;
+      } else {
+        gridHtml += `<div class="coll-card locked">
+          <span class="coll-card-emoji">${emoji}</span>
+          <span class="coll-card-rarity">？？？</span>
+        </div>`;
+      }
+    });
   });
-  const breakdown = RARITY_ORDER.map(rid=>{
-    const ri=RARITY_INFO[rid]; const n=entries.filter(([,v])=>v.rarity===rid).length;
-    return n ? `<span style="color:${ri.color};font-weight:700;font-size:0.72rem;">${ri.label} ${n}</span>` : '';
-  }).filter(Boolean).join('&ensp;');
+
   el.innerHTML = `
     <div class="coll-stats">
-      <div class="coll-stat"><div class="coll-stat-num">${total}</div><div class="coll-stat-label">総ガチャ数</div></div>
-      <div class="coll-stat"><div class="coll-stat-num">${unique}</div><div class="coll-stat-label">種類</div></div>
-      <div class="coll-stat"><div class="coll-stat-num">${poolTotal}</div><div class="coll-stat-label">全種類数</div></div>
+      <div class="coll-stat"><div class="coll-stat-num">${pullTotal}</div><div class="coll-stat-label">総ガチャ数</div></div>
+      <div class="coll-stat"><div class="coll-stat-num">${uniqueOwned}/${poolTotal}</div><div class="coll-stat-label">コンプリート</div></div>
+      <div class="coll-stat"><div class="coll-stat-num">${poolTotal?Math.round(uniqueOwned/poolTotal*100):0}%</div><div class="coll-stat-label">図鑑達成率</div></div>
     </div>
-    ${breakdown?`<div style="padding:2px 16px 10px;text-align:center;">${breakdown}</div>`:''}
-    ${unique===0
-      ? `<div style="text-align:center;color:var(--text2);font-size:0.85rem;padding:40px 20px;">まだコレクションがありません<br>ガチャをまわしてみよう！</div>`
-      : `<div class="coll-grid">${sorted.map(([emoji,data])=>{
-          const ri=RARITY_INFO[data.rarity]||{color:'#888',label:data.rarity};
-          return `<div class="coll-card r-${data.rarity}">
-            <span class="coll-card-emoji">${emoji}</span>
-            ${data.count>1?`<span class="coll-card-count">×${data.count}</span>`:''}
-            <span class="coll-card-rarity" style="color:${ri.color};">${ri.label}</span>
-          </div>`;
-        }).join('')}</div>`}`;
+    <div class="coll-grid">${gridHtml}</div>`;
 }
 
 // ==================== GEO RESULT ====================
