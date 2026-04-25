@@ -598,14 +598,30 @@ body.parent-mode #parent-nav{display:flex!important;}
 .r-common  {border-color:rgba(136,146,176,0.3)!important;}
 .r-uncommon{border-color:rgba(46,204,113,0.35)!important;}
 .r-rare    {border-color:rgba(58,134,255,0.4)!important;}
-.r-epic    {border-color:rgba(155,89,182,0.5)!important;}
-.r-legend  {border-color:rgba(243,156,18,0.55)!important;box-shadow:0 0 6px rgba(243,156,18,0.18)!important;}
-.r-ultra   {border-color:rgba(231,76,60,0.6)!important;box-shadow:0 0 10px rgba(231,76,60,0.25)!important;}
-.r-fortune {border-color:rgba(255,107,53,0.7)!important;box-shadow:0 0 14px rgba(255,107,53,0.35)!important;}
-@keyframes hexGlow {
-  from { opacity: 0.45; }
-  to   { opacity: 1; }
-}
+.r-epic    {border-color:rgba(155,89,182,0.5)!important;animation:auraEpic 2s 0.45s ease-in-out infinite;}
+.r-legend  {border-color:rgba(243,156,18,0.6)!important;animation:auraLegend 1.5s 0.45s ease-in-out infinite;}
+.r-ultra   {border-color:rgba(231,76,60,0.65)!important;animation:auraUltra 1.2s 0.45s ease-in-out infinite;}
+.r-fortune {border-color:rgba(255,107,53,0.75)!important;animation:auraFortune 1.8s 0.45s ease-in-out infinite;}
+.r-god     {border-color:rgba(255,255,255,0.95)!important;animation:auraGod 2s 0.45s ease-in-out infinite;}
+@keyframes auraEpic{0%,100%{box-shadow:0 0 6px rgba(155,89,182,0.3);}50%{box-shadow:0 0 22px rgba(155,89,182,0.9),0 0 40px rgba(155,89,182,0.3);}}
+@keyframes auraLegend{0%,100%{box-shadow:0 0 8px rgba(243,156,18,0.4);}50%{box-shadow:0 0 28px rgba(243,156,18,1.0),0 0 55px rgba(255,200,0,0.4);}}
+@keyframes auraUltra{0%,100%{box-shadow:0 0 12px rgba(231,76,60,0.5);}50%{box-shadow:0 0 38px rgba(231,76,60,1.0),0 0 70px rgba(255,80,30,0.5);}}
+@keyframes auraFortune{0%,100%{box-shadow:0 0 18px rgba(255,107,53,0.6);}33%{box-shadow:0 0 42px rgba(255,220,0,1.0),0 0 80px rgba(255,180,0,0.5);}66%{box-shadow:0 0 42px rgba(120,80,255,1.0),0 0 80px rgba(200,0,255,0.4);}}
+@keyframes auraGod{0%{box-shadow:0 0 30px rgba(255,255,255,0.7),0 0 60px rgba(220,220,255,0.4);}25%{box-shadow:0 0 45px rgba(255,230,100,1.0),0 0 90px rgba(255,200,0,0.6);}50%{box-shadow:0 0 60px rgba(255,255,255,1.0),0 0 120px rgba(255,255,255,0.7);}75%{box-shadow:0 0 45px rgba(100,200,255,1.0),0 0 90px rgba(0,180,255,0.5);}}
+.gacha-card.reveal{animation:gachaReveal 0.42s ease-out both!important;}
+@keyframes hexGlow{from{opacity:0.45;}to{opacity:1;}}
+/* Spotlight overlay */
+.gacha-spotlight{position:fixed;inset:0;background:rgba(0,0,0,0.88);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;cursor:pointer;}
+.gacha-spotlight-card{background:var(--card);border-radius:28px;padding:36px 48px;text-align:center;border:2px solid;animation:spotlightIn 0.55s cubic-bezier(0.34,1.56,0.64,1) both;}
+@keyframes spotlightIn{0%{transform:scale(0.2) rotateY(180deg);opacity:0;}100%{transform:scale(1) rotateY(0deg);opacity:1;}}
+.spotlight-emoji{font-size:5rem;display:block;margin-bottom:12px;}
+.spotlight-name{font-size:1.1rem;font-weight:900;color:#fff;margin-top:8px;}
+.spotlight-rarity-label{font-size:0.8rem;font-weight:900;letter-spacing:2px;margin-top:6px;}
+.spotlight-new{font-size:1rem;font-weight:900;color:#2ecc71;margin-top:10px;animation:newPulse 0.7s ease-in-out infinite;}
+@keyframes newPulse{0%,100%{transform:scale(1);}50%{transform:scale(1.2);}}
+.spotlight-tap{color:rgba(255,255,255,0.45);font-size:0.7rem;margin-top:24px;}
+/* Card name label */
+.gacha-card-name{font-size:0.55rem;color:var(--text2);margin-top:3px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 
 /* ===== GEO STUDY SCREEN ===== */
 #screen-geo.active{display:flex!important;flex-direction:column;height:calc(100dvh - 64px - var(--safe-bot));overflow:hidden;}
@@ -3790,26 +3806,194 @@ async function geoJudgeAndExplain(q, userAnswer) {
 // ==================== GACHA SYSTEM ====================
 let townTab = 'town';
 const GACHA_COST_1 = 100, GACHA_COST_10 = 900;
-const GACHA_RARITIES = [
-  {id:'common',   label:'コモン',         color:'#8892b0', prob:0.40},
-  {id:'uncommon', label:'アンコモン',     color:'#2ecc71', prob:0.25},
-  {id:'rare',     label:'レア',           color:'#3a86ff', prob:0.15},
-  {id:'epic',     label:'エピック',       color:'#9b59b6', prob:0.10},
-  {id:'legend',   label:'レジェンド',     color:'#f39c12', prob:0.06},
-  {id:'ultra',    label:'ウルトラ',       color:'#e74c3c', prob:0.03},
-  {id:'fortune',  label:'フォーチューン', color:'#ff6b35', prob:0.01},
-];
-const GACHA_POOL = {
-  common:   ['🐱','🐶','🐰','🐸','🐻','🐼','🐨','🐥','🐢','🦆','🌸','🌼','🌻','🌺','🍀','🎵','🎈','🎀','🍭','⭐','🌈','🌿','🍃','🍉','🍓','🐝','🌱','🎨','🏠','🌙'],
-  uncommon: ['🦊','🦄','🦜','🦉','🦝','🐬','🦈','🐙','🦑','🌊','🌠','🎭','🔮','🎃','🎡','🌅','🌄','🎯','🎸','🎺','🎻','🛸','🦋','🏄','🌴','🎑','🦩','🦚','🐿️','🦔'],
-  rare:     ['🐉','🦁','🐯','🐺','🦅','⚡','🔥','🌟','💫','🗡️','🏹','🏆','🎆','🎇','💥','🌀','☄️','🌋','🌌','🦂'],
-  epic:     ['⚔️','🛡️','🔱','💠','👑','💎','✨','🌑','🌒','🔮','🌃','🏯','💀','🌌','🌠','💥','☄️','🌀','🐲','🗺️'],
-  legend:   ['🌟','💫','⚡','🔥','👑','💎','⚔️','🔱','💠','🐉','✨','🌌','🌠','💥','☄️','🏆','🌈','🌋','🔮','🌀'],
-  ultra:    ['☄️','🌌','⚡','💥','🔱','💠','🐉','🌟','✨','👑','💎','🌠','⚔️','🔥','💫'],
-  fortune:  ['🍀','☯️','🌟','💫','✨','🌌','⚡','🔱','💠','🐲','👑','💎','☄️','🌈','🎴'],
+const GACHA_ITEMS = {
+ god:[
+  ['📝','GOD'],
+ ],
+ fortune:[
+  ['🍀','神の四つ葉'],['🌟','ラッキースター'],['☯️','宇宙の調和'],['🎴','天命のカルタ'],['🃏','命運のカード'],
+  ['🏆','伝説の杯'],['🌈','神虹'],['🪙','錬金術の金貨'],['📿','運命の珠数'],['🔮','全てを見通す球'],
+  ['🪬','神の護符'],['💎','インフィニティジェム'],['🌌','宇宙の中心'],['☄️','ラグナロク'],
+ ],
+ ultra:[
+  ['💥','ビッグバン'],['🌀','ブラックホール'],['⚡','神の雷'],['🔥','宇宙の業火'],['🌊','無限の海'],
+  ['❄️','絶対零度の核'],['🌋','世界を割る噴火'],['🌪️','神の嵐'],['🌑','虚無の核'],['💫','時空のゆがみ'],
+  ['✨','光の創造'],['👑','宇宙の王冠'],['⚔️','世界を切る剣'],['🛡️','無敵の盾'],['🔱','神の三叉戟2'],
+  ['🧿','全知の眼'],['🪄','創造の杖'],['📜','宇宙の設計図'],['🗝️','次元の鍵'],['🏺','無限の壺'],
+  ['🌙','月の神殿'],['☀️','太陽の核'],['🌍','ガイア'],['🌎','アマゾン'],['🌏','龍の地'],
+  ['🦅','神鳥ガルーダ'],['🦁','伝説の百獣王'],['🐉','ファフニール'],['🦄','アルボルン'],
+ ],
+ legend:[
+  ['🐯','白虎'],['🐺','フェンリル'],['🦈','深海の怪魚'],['🦂','スコーピオンキング'],['🕷️','アラクネ'],
+  ['🦕','リバイアサン'],['🦖','ビヒモス'],['🦣','マンモスキング'],['🦍','コングキング'],['🦧','ビッグフット2'],
+  ['🐊','ロック鳥'],['🦑','クラーケン'],['🐙','深海の主'],['🌕','満月神'],['💍','全力の指輪'],
+  ['👸','女神アテナ'],['🤴','神王ゼウス'],['🧙','グランドウィザード'],['🧚','上位の妖精女王'],['🧜','人魚の女王'],
+  ['🧛','ヴァンパイアロード'],['🧝','エルフの大賢者'],['🧞','願いの精霊王'],['🧟','不死のリッチキング'],['💀','死の神'],
+  ['☠️','呪いの王骸骨'],['👿','上位悪魔'],['🦸','宇宙の守護神'],['🦹','宇宙の破壊者'],['🥷','影の主'],
+  ['🎭','仮面の神'],
+ ],
+ epic:[
+  ['🗡️','アサシンブレード'],['🏹','ヘラクレスの弓'],['🪃','魔法ブーメラン'],['🪓','伝説の斧'],['⛏️','破壊のピッケル'],
+  ['🪚','鋸鎌'],['🔩','アダマントボルト'],['⚙️','魔法歯車'],['🔗','縛りの鎖'],['⛓️','不壊の鎖'],
+  ['🧲','引力の石'],['🪝','不動のアンカー'],['🎯','必中のダーツ'],['🦴','ボーンソード'],['🪦','墓地の呪い'],
+  ['💠','神秘のクリスタル'],['🌒','三日月の刃'],['🌓','均衡の月'],['🌔','満ちる力'],['🌖','欠ける月'],
+  ['🌘','消滅の月'],['⭐','七星'],['🌠','流星群'],['🤺','マスターフェンサー'],['🏋️','超重量挙げ'],
+  ['🧗','フリーソロ'],['🏇','神速の騎手'],['🤸','空中師'],['🏯','魔王の城'],['🏰','騎士団の要塞'],
+  ['🛕','神秘の神殿'],['🕌','禁断のモスク'],['⛩️','封印の鳥居'],['🏔️','霊峰'],['🏝️','失われた島'],
+  ['🏜️','死の砂漠'],
+ ],
+ rare:[
+  ['🐲','東洋竜'],['🦎','コモドドラゴン2'],['🐍','キングコブラ'],['🦆','カモ嘴恐竜'],['🐘','マンモスゾウ'],
+  ['🦏','スマトラサイ'],['🦛','ナイルカバ'],['🐆','アムールトラ'],['🦘','赤いカンガルー'],['🦬','バッファロー'],
+  ['🦀','タスマニアデビル'],['🦐','オマール海老'],['🦞','スパイニーロブスター'],['🦠','ワクチン'],['🪸','テーブルコーラル'],
+  ['🌩️','雷雨'],['🌨️','吹雪'],['🌦️','激しい雨'],['🌡️','極限温度'],['💨','暴風'],
+  ['🌬️','北風'],['🌫️','濃霧'],['🌅','奇跡の夜明け'],['🌄','アルプスグロー'],['🌐','グローブ'],
+  ['🗺️','宝の地図'],['⛰️','アルプス'],['⛈️','嵐'],['☃️','雪だるま3'],['⛄','ブリザード'],
+  ['💧','雨露'],['🪨','隕石'],['☁️','積乱雲'],['🌧️','豪雨'],['🥇','金メダル'],
+  ['🥈','銀メダル'],['🥉','銅メダル'],['🎖️','名誉勲章'],['🏅','スポーツメダル'],['🎗️','アウェアネスリボン'],
+  ['🎳','完全ストライク'],['🎲','黒サイコロ'],['🗿','石神'],['🗽','女神像'],['⛪','ノートルダム'],
+  ['🕍','エルサレム'],['🌁','ゴールデンゲート橋'],['🌉','レインボーブリッジ'],['🎆','大打ち上げ花火'],['🎇','大線香花火'],
+  ['🏛️','パルテノン'],['🗼','エッフェル塔2'],['🦋','蝶の精'],['🌸','桜の精'],['♟️','チェス王'],
+  ['🀄','麻雀牌'],['🎰','ラッキーセブン'],['🌗','下弦月'],
+ ],
+ uncommon:[
+  ['🦊','きつね'],['🐬','イルカ'],['🐳','クジラ'],['🐋','シロナガスクジラ'],['🪰','ハエ'],
+  ['🪳','ゴキブリ'],['🐟','マグロ'],['🦓','シマウマ2'],['🐿️','シマリス'],['🦦','ラッコ'],
+  ['🦤','オオドードー'],['🦩','コウノトリ'],['🦚','ジャワクジャク'],['🦜','ヨウム'],['🦉','ミミズク'],
+  ['🦢','オオハクチョウ'],['🪲','カブトムシ'],['🦝','タヌキ'],['🦨','ストライプスカンク'],['🦡','ハチアナグマ'],
+  ['🐂','ファイティングブル'],['🦌','エゾシカ'],['🐎','アラブ馬'],['🐩','トイプードル'],['🦭','ゾウアザラシ'],
+  ['🦟','ハマダラカ'],['🚅','はやぶさ'],['🚆','でんき電車'],['🚇','ちかてつ'],['🚈','えきのでんしゃ'],
+  ['🚉','えき'],['🚊','路面電車'],['🚝','モノレール'],['🚞','やまのてせん'],['🚋','市電'],
+  ['🚌','ダブルデッカーバス'],['🚍','前向きバス'],['🚎','トロリーバス'],['🚐','ミニバン'],['🚑','救急車'],
+  ['🚒','消防車'],['🚓','パトカー2'],['🚔','前向きパトカー'],['🚕','タクシー2'],['🚖','前向きタクシー'],
+  ['🚗','SUV'],['🚘','前向きSUV'],['🚙','ミニバン2'],['🛻','ピックアップトラック'],['🚛','セミトラック'],
+  ['🚜','農業機械'],['🏎️','F1カー'],['🚲','ロードバイク'],['🛴','電動スクーター'],['🛹','ロングボード'],
+  ['🛼','インラインスケート'],['🛵','原付'],['🏍️','ビッグバイク'],['🚁','軍用ヘリ'],['✈️','ジェット旅客機'],
+  ['🛩️','セスナ'],['🛫','離陸中'],['🛬','着陸中'],['🛥️','クルーザー'],['🚢','クルーズ船'],
+  ['⛵','帆船'],['🛶','カヌー'],['⛴️','フェリー'],['🚤','スピードボート'],['🛸','円盤型UFO'],
+  ['🚀','スペースシャトル'],['🛰️','じんこうえいせい'],['🚡','ロープウェー2'],['🚠','ケーブルカー'],['🚟','モノレール2'],
+  ['🚃','通勤電車'],['📱','スマートフォン'],['💻','ノートPC'],['🖥️','タワーPC'],['📺','4Kテレビ'],
+  ['🕹️','ゲームコントローラー2'],['🎮','ゲームボーイ'],['🧬','DNA'],['🔬','電子顕微鏡'],['🔭','ハッブル望遠鏡'],
+  ['⚗️','フラスコ'],['🧪','試験管'],['🧫','ペトリ皿'],['🗜️','バイス'],['🔨','大ハンマー'],
+  ['⚒️','採掘ハンマー'],['🛠️','整備ツール'],['🔧','スパナ'],['🔑','マスターキー'],['🔐','施錠'],
+  ['🔓','解錠'],['🪜','伸縮はしご'],['🧰','工具箱'],['🪣','金属バケツ'],['🧹','ほうき2'],
+  ['🧺','洗濯かご'],['🧻','ロールペーパー'],['🧴','ソープポンプ'],['🧷','大型ピン'],['🪡','刺繍糸'],
+  ['🧵','工業用糸'],['🧶','モヘア毛糸'],['🪞','大型鏡'],['🪑','デザイナーズチェア'],['🛋️','革張りソファ'],
+  ['🛏️','キングベッド'],['🚪','重い扉'],['🪟','掃き出し窓'],['🏮','提灯'],['🧭','航海コンパス'],
+  ['📅','手帳カレンダー'],['🧮','電卓'],['📡','パラボラアンテナ'],['🔋','リチウム電池'],['🔌','電源タップ'],
+  ['💾','外付けHDD'],['💿','レコード'],['📀','ブルーレイ'],['🖨️','複合機'],['🌃','よるのまち'],
+  ['🌆','たそがれのまち'],['🌇','ゆうやけのまち'],['🗻','富士山'],['🏕️','キャンプ'],['🏖️','ビーチ'],
+  ['🏞️','こくりつこうえん'],['🏟️','スタジアム2'],['🏗️','建設中'],['🏘️','住宅街'],['🏚️','廃屋'],
+  ['🏙️','都市'],['🛖','茅葺き小屋'],['🏠','一戸建て'],['🏡','庭付き家'],['🏢','高層ビル'],
+  ['🏣','郵便局'],['🏤','欧風郵便局'],['🏥','総合病院'],['🏦','都市銀行'],['🎨','現代アート'],
+  ['🖼️','絵画'],['🎬','映画'],['🎥','ビデオ撮影'],['📽️','フィルム映写機'],['🎞️','フィルム'],
+  ['📹','ビデオカメラ'],['📸','インスタ写真'],['📷','一眼レフ'],['🎙️','放送マイク'],['🎚️','フェーダー'],
+  ['🎛️','ミキサー'],['🎤','スタンドマイク'],['🎧','DJ'],['🎼','スコア'],['🎵','ミュージックノート'],
+  ['🎶','ダブルノート'],['🎷','ジャズサックス'],['🎸','エレキギター'],['🎹','グランドピアノ'],['🎺','ジャズトランペット'],
+  ['🎻','クラシックバイオリン'],['🥁','ジャズドラム'],['🪘','コンガ'],['🪗','アコーディオン'],['🪕','バンジョー'],
+  ['📚','図書館'],['📖','百科事典'],['✏️','シャープペン'],['📏','定規'],['📐','三角定規'],
+  ['✂️','はさみ'],['🗂️','ファイル'],['📁','フォルダ'],['📂','開いたフォルダ'],['🗃️','ファイルボックス'],
+  ['🗄️','キャビネット'],['🗑️','ゴミ箱'],['📋','クリップボード'],['📌','プッシュピン'],['📍','まるピン'],
+  ['📎','クリップ'],['🖇️','ダブルクリップ'],['🖊️','ペン'],['🖋️','万年筆'],['🖌️','絵筆'],
+  ['🖍️','クレヨン'],['🔍','けんさく'],['🔎','大けんさく'],['🔏','鍵付き'],['💼','ブリーフケース'],
+  ['👝','クラッチバッグ'],['🎓','そつぎょうしょうしょ'],['🏫','大学'],['🎃','ハロウィン'],['🎄','クリスマスツリー'],
+  ['🎋','七夕'],['🎍','お正月'],['🎎','ひなにんぎょう'],['🎏','こいのぼり'],['🎐','風鈴'],
+  ['🎑','お月見2'],['🧨','爆竹'],['🪅','ピニャータ'],['🎪','見世物小屋'],['🎠','回転木馬'],
+  ['🎡','大観覧車'],['🎢','ループコースター'],['🧩','ジグソーパズル'],['🪀','ヨーヨー'],['🏓','ピンポン2'],
+  ['🏸','バドミントン2'],['🥏','フリスビー'],['🤿','スキューバ'],['🤼','レスリング'],['🤾','ハンドボール'],
+  ['🏌️','ゴルフ2'],['⛷️','ダウンヒルスキー'],['🛷','ボブスレー'],['🏊','水泳'],['🚴','ロードサイクリング'],
+  ['⛹️','バスケ2'],['🙏','おねがい'],['🤲','合掌'],['👐','オープンハンズ'],['🙌','両手あげ'],
+  ['🤜','グータッチ'],['🤛','グータッチ2'],['🖖','バルカン2'],['🤟','ロック'],['🤘','メタル'],
+  ['✊','グー'],['🤞','幸運の指'],['☝️','いちばん'],['🖐️','ファイブ'],['✋','ハイタッチ'],
+  ['👋','バイバイ'],['🎊','パーティークラッカー'],['🎉','テープ'],['🎈','風船'],['🎁','おくりもの'],
+  ['🎀','プレゼントリボン'],['🪆','ロシア人形'],['📣','メガフォン'],['📢','スピーカー'],['🔔','ベル2'],
+  ['🔕','サイレントベル'],['🔊','大音量'],['🔉','ちゅうおんりょう'],['🔈','こおんりょう'],['🔇','ミュート'],
+  ['📻','ポータブルラジオ'],['🧊','アイスキューブ'],['🫙','クッキー瓶'],['🧋','ミルクティー'],['🥤','スムージー'],
+  ['🍵','抹茶'],['🥂','乾杯グラス'],['🍾','シャンパンボトル'],['🥃','バーボン'],['🧉','エルバメテ'],
+  ['☕','カプチーノ'],['🌂','かさ'],['☂️','こうもり傘'],['☔','あめとかさ'],['⛱️','ビーチパラソル'],
+ ],
+ common:[
+  ['😀','スマイル'],['😃','よろこび'],['😄','にっこり'],['😁','えがお'],['😆','わらい'],
+  ['😅','あせわらい'],['😂','なきわらい'],['🤣','ゴロわらい'],['😊','ほほえみ'],['😇','てんし顔'],
+  ['🙂','ちいさなえがお'],['😉','ウィンク'],['😌','ほっとした'],['😍','めろめろ'],['😋','おいしそう'],
+  ['😛','べー'],['😜','ウィンクべー'],['😝','ベロ出し'],['🤪','ぐるぐる'],['🤑','お金目'],
+  ['🤗','ハグ'],['😤','ふんっ'],['😔','しょんぼり'],['😴','ねむい'],['😷','マスク'],
+  ['🤒','ねつ'],['🤕','ケガ'],['🤧','くしゃみ'],['🥴','ふらふら'],['😵','めまい'],
+  ['🤯','頭爆発'],['🥳','おいわい'],['🤓','オタク'],['😎','クール'],['🧐','まじめ'],
+  ['😕','こまり'],['😢','なみだ'],['😭','ごうきゅう'],['😠','おこ'],['🤬','げきおこ'],
+  ['🥺','うるうる'],['🥹','うれしなき'],['🤐','くちチャック'],['😑','むすっと'],['🫠','とろける'],
+  ['👶','あかちゃん'],['🧒','こども'],['👧','おんなのこ'],['👦','おとこのこ'],['🧑','わかもの'],
+  ['👩','じょせい'],['👨','だんせい'],['🧓','としより'],['👵','おばあちゃん'],['👴','おじいちゃん'],
+  ['🎅','サンタ'],['🤶','サンタのおくさん'],['🧑‍🎄','エルフ'],['👍','いいね'],['👎','だめ'],
+  ['👏','はくしゅ'],['✌️','ピース'],['👉','みぎ'],['👈','ひだり'],['🤙','シャカ'],
+  ['🐱','ねこ'],['🐶','いぬ'],['🐰','うさぎ'],['🐸','かえる'],['🐻','くま'],
+  ['🐼','パンダ'],['🐨','コアラ'],['🐥','ひよこ'],['🐢','かめ'],['🐷','ぶた'],
+  ['🐮','うし'],['🐔','にわとり'],['🐦','ことり'],['🐡','ふぐ'],['🐛','いもむし'],
+  ['🐌','かたつむり'],['🐜','あり'],['🐝','みつばち'],['🐞','てんとうむし'],['🕊️','はと'],
+  ['🐇','しろうさぎ'],['🐁','ねずみ'],['🦔','ハリネズミ'],['🦥','ナマケモノ'],['🦫','ビーバー'],
+  ['🐓','オンドリ'],['🦃','シチメンチョウ'],['🐧','ペンギン'],['🐤','ヒヨコ2'],['🐣','タマゴやぶり'],
+  ['🦗','コオロギ'],['🐠','ねったいぎょ'],['🐑','ひつじ'],['🐐','やぎ'],['🐄','にゅうぎゅう'],
+  ['🦙','アルパカ'],['🐪','ヒトコブラクダ'],['🐫','フタコブラクダ'],['🦒','キリン'],['🐾','あしあと'],
+  ['🪱','ミミズ'],['🐕','いぬ2'],['🐈','ねこ2'],['🐈‍⬛','くろねこ'],['🐃','スイギュウ'],
+  ['🐏','おひつじ'],['🐖','ぶた2'],['🌺','ハイビスカス'],['🌻','ひまわり'],['🌼','たんぽぽ'],
+  ['🌷','チューリップ'],['💐','はなたば'],['🌹','バラ'],['🥀','しおれバラ'],['🌱','めばえ'],
+  ['🌿','ハーブ'],['🍁','もみじ'],['🍂','かれは'],['🍃','みどりのは'],['🌲','もみのき'],
+  ['🌳','おおき木'],['🌴','ヤシ'],['🌵','サボテン'],['🍄','きのこ'],['🌾','いね'],
+  ['🌰','くり'],['🪴','うえきばち'],['🪷','はす'],['💦','みずしぶき'],['🪻','むらさきはな'],
+  ['🪼','くらげ'],['🐚','かいがら'],['🪵','まき'],['🌤️','はれくもり'],['⛅','はれのちくもり'],
+  ['🪹','からすのす'],['🍎','りんご'],['🍊','みかん'],['🍋','レモン'],['🍇','ぶどう'],
+  ['🍓','いちご'],['🍒','さくらんぼ'],['🍑','もも'],['🥭','マンゴー'],['🍍','パイナップル'],
+  ['🥝','キウイ'],['🍅','トマト'],['🫐','ブルーベリー'],['🍈','メロン'],['🍐','なし'],
+  ['🍏','みどりりんご'],['🥕','にんじん'],['🌽','とうもろこし'],['🥦','ブロッコリー'],['🥬','きゃべつ'],
+  ['🥒','きゅうり'],['🍆','なす'],['🧅','たまねぎ'],['🧄','にんにく'],['🥔','じゃがいも'],
+  ['🌶️','とうがらし'],['🥑','アボカド'],['🫑','ピーマン'],['🫒','オリーブ'],['🥜','ピーナッツ'],
+  ['🫘','まめ'],['🍠','さつまいも'],['🥐','クロワッサン'],['🍞','パン'],['🥨','プレッツェル'],
+  ['🥯','ベーグル'],['🧀','チーズ'],['🥚','たまご'],['🍳','めだまやき'],['🥞','ホットケーキ'],
+  ['🧇','ワッフル'],['🥓','ベーコン'],['🥩','にく'],['🍗','チキン'],['🍖','骨つきにく'],
+  ['🌮','タコス'],['🌯','ブリトー'],['🥙','ピタ'],['🧆','ファラフェル'],['🥗','サラダ'],
+  ['🥘','なべりょうり'],['🍲','なべ'],['🍜','ラーメン'],['🍝','スパゲッティ'],['🍛','カレー'],
+  ['🍣','すし'],['🍱','べんとう'],['🍤','えびふらい'],['🍙','おにぎり'],['🍚','ごはん'],
+  ['🍘','せんべい'],['🍢','おでん'],['🍡','だんご'],['🧁','カップケーキ'],['🎂','バースデーケーキ'],
+  ['🍰','ケーキ'],['🍦','ソフトクリーム'],['🍧','かきごおり'],['🍨','アイスクリーム'],['🍮','プリン'],
+  ['🍯','はちみつ'],['🍫','チョコレート'],['🍬','あめ'],['🍭','ぺろぺろキャンディ'],['🍪','クッキー'],
+  ['🍩','ドーナツ'],['🍶','にほんしゅ'],['🍺','ビール'],['🍷','ワイン'],['🥛','ぎゅうにゅう'],
+  ['🍼','ほにゅうびん'],['🧃','パックジュース'],['🍻','かんぱい'],['🍸','カクテル'],['🍹','トロピカルドリンク'],
+  ['🫖','きゅうす'],['🍿','ポップコーン'],['🧂','しお'],['🥫','かんづめ'],['🧈','バター'],
+  ['🥣','グラノーラ'],['🥧','タルト'],['🥠','フォーチュンクッキー'],['🍥','なると'],['🥟','ぎょうざ'],
+  ['🫔','トルティーヤ'],['🫓','フォカッチャ'],['🥮','げっぺい'],['🫕','キャセロール'],['🥡','テイクアウトボックス'],
+  ['🫗','うついれ'],['⚽','サッカー'],['🏀','バスケ'],['🏈','アメフト'],['⚾','やきゅう'],
+  ['🎾','テニス'],['🏒','ホッケー'],['⛳','ゴルフ'],['🎿','スキー'],['🏂','スノボ'],
+  ['🥊','ボクシング'],['🥋','からて'],['🎽','ランニング'],['🎱','ビリヤード'],['🎣','つり'],
+  ['🚵','マウンテンバイク'],['🏄','サーフィン'],['🤽','すいきゅう'],['🚣','ボートこぎ'],['🧘','ヨガ'],
+  ['💡','でんきゅう'],['🔦','かいちゅうでんとう'],['📦','はこ'],['📫','ゆうびんポスト'],['🔒','じょう'],
+  ['👒','ハット'],['🎩','シルクハット'],['🧢','キャップ'],['⛑️','ヘルメット'],['👔','ネクタイ'],
+  ['👗','ドレス'],['👘','きもの'],['🥻','サリー'],['👚','Tシャツ'],['👛','こがたバッグ'],
+  ['👜','ハンドバッグ'],['🎒','リュック'],['🧳','スーツケース'],['👓','メガネ'],['🕶️','サングラス'],
+  ['🥽','ゴーグル'],['🧤','てぶくろ'],['🧣','マフラー'],['🧥','コート'],['🥾','ブーツ'],
+  ['👠','ハイヒール'],['👟','スニーカー'],['🚂','きかんしゃ'],['🛺','トゥクトゥク'],['🚄','しんかんせん'],
+  ['🛤️','てつどう'],['⛽','ガソリンスタンド'],['🏨','ホテル'],['🏪','コンビニ'],['❤️','ハート'],
+  ['🧡','オレンジハート'],['💛','きいろハート'],['💚','みどりハート'],['💙','あおハート'],['💜','むらさきハート'],
+  ['🖤','くろハート'],['🤍','しろハート'],['🤎','ちゃいろハート'],['💕','ふたつハート'],['💞','まわるハート'],
+  ['💓','どきどきハート'],['💗','ピンクハート'],['💖','きらきらハート'],['💘','キューピッドハート'],['💝','リボンハート'],
+  ['♥️','トランプハート'],['❤️‍🔥','ほのおハート'],['🩷','ピンクハート2'],['🩵','みずいろハート'],['🩶','グレーハート'],
+  ['🩴','ぞうり'],['💯','ひゃくてん'],['♻️','リサイクル'],['🧸','ぬいぐるみ'],['🪁','パチンコ'],
+  ['🪔','ランタン'],['🕯️','ろうそく'],['⌨️','キーボード'],
+ ],
 };
+const GACHA_POOL = Object.fromEntries(Object.entries(GACHA_ITEMS).map(([k,v])=>[k,v.map(x=>x[0])]));
+const EMOJI_NAMES = Object.fromEntries(Object.values(GACHA_ITEMS).flat().map(([e,n])=>[e,n]));
+const GACHA_RARITIES = [
+  {id:'common',   label:'コモン',         color:'#8892b0', count:600,  prob:600/1901},
+  {id:'uncommon', label:'アンコモン',     color:'#2ecc71', count:500,  prob:500/1901},
+  {id:'rare',     label:'レア',           color:'#3a86ff', count:400,  prob:400/1901},
+  {id:'epic',     label:'エピック',       color:'#9b59b6', count:250,  prob:250/1901},
+  {id:'legend',   label:'レジェンド',     color:'#f39c12', count:100,  prob:100/1901},
+  {id:'ultra',    label:'ウルトラ',       color:'#e74c3c', count:35,   prob:35/1901},
+  {id:'fortune',  label:'フォーチューン', color:'#ff6b35', count:14,   prob:14/1901},
+  {id:'god',      label:'GOD',            color:'#ffffff', count:1,    prob:1/1901},
+];
 const RARITY_INFO = Object.fromEntries(GACHA_RARITIES.map(r=>[r.id,r]));
-const RARITY_ORDER = ['fortune','ultra','legend','epic','rare','uncommon','common'];
+const RARITY_ORDER = ['god','fortune','ultra','legend','epic','rare','uncommon','common'];
 
 function gachaRoll() {
   let r = Math.random(), cum = 0;
@@ -3833,9 +4017,44 @@ function doPull(count) {
   const cost = count===1 ? GACHA_COST_1 : GACHA_COST_10;
   if((S.totalPoints||0) < cost) { showToast(`ポイントが足りません（必要: ${cost}pt）`); return; }
   S.totalPoints -= cost;
-  const results = Array.from({length:count}, ()=>{ const r=gachaRoll(); gachaAddToCollection(r); return r; });
+  if(!S.gachaCollection) S.gachaCollection = {};
+  const prePullEmojis   = new Set(Object.keys(S.gachaCollection));
+  const prePullRarities = new Set(Object.values(S.gachaCollection).map(v=>v.rarity));
+  const results = Array.from({length:count}, ()=>gachaRoll());
+  const seenRarities = new Set();
+  results.forEach(r => {
+    r.isNewItem   = !prePullEmojis.has(r.emoji);
+    r.isNewRarity = !prePullRarities.has(r.rarity) && !seenRarities.has(r.rarity);
+    seenRarities.add(r.rarity);
+    gachaAddToCollection(r);
+  });
   save();
-  renderGachaView(results);
+  renderGachaView(results, count===10);
+}
+const LEGEND_PLUS = new Set(['legend','ultra','fortune','god']);
+function showSpotlight(item, onDone) {
+  const existing = document.getElementById('gacha-spotlight-el');
+  if(existing) existing.remove();
+  const ri = RARITY_INFO[item.rarity];
+  const name = EMOJI_NAMES[item.emoji] || '';
+  const isNew = item.isNewItem;
+  const el = document.createElement('div');
+  el.id = 'gacha-spotlight-el';
+  el.className = 'gacha-spotlight';
+  el.innerHTML = `
+    <div class="gacha-spotlight-card r-${item.rarity}" style="border-color:${ri.color};">
+      <span class="spotlight-emoji">${item.emoji}</span>
+      <div class="spotlight-rarity-label" style="color:${ri.color};">${ri.label}</div>
+      <div class="spotlight-name">${name}</div>
+      ${isNew?'<div class="spotlight-new">✨ NEW ✨</div>':''}
+    </div>
+    <div class="spotlight-tap">タップして続ける</div>`;
+  let done = false;
+  const finish = () => { if(done) return; done=true; el.remove(); onDone(); };
+  el.onclick = finish;
+  document.body.appendChild(el);
+  const delay = item.rarity==='god' ? 8000 : item.rarity==='fortune' ? 5000 : 3000;
+  setTimeout(finish, delay);
 }
 function townNav(name, navEl) {
   townTab = name;
@@ -3849,29 +4068,56 @@ function townNav(name, navEl) {
   else if(name==='gacha') renderGachaView(null);
   else if(name==='collection') renderCollectionView();
 }
-function renderGachaView(results) {
+function gachaCardHtml(r, idx, delay) {
+  const name = EMOJI_NAMES[r.emoji] || '';
+  return `<div class="gacha-card r-${r.rarity}" id="gc-${idx}" style="opacity:0;animation-delay:0ms">
+    <span class="gacha-card-emoji">${r.emoji}</span>
+    <span class="gacha-card-rarity" style="background:${r.color}22;color:${r.color};">${r.label}</span>
+    <span class="gacha-card-name">${name}</span>
+    ${r.isNewItem?'<div style="font-size:0.55rem;color:var(--green);font-weight:900;">NEW!</div>':''}
+  </div>`;
+}
+function revealCard(idx) {
+  const el = document.getElementById('gc-'+idx);
+  if(!el) return;
+  el.style.opacity = '1';
+  el.classList.add('reveal');
+}
+function runSequentialReveal(results) {
+  let i = 0;
+  function next() {
+    if(i >= results.length) return;
+    const r = results[i];
+    const idx = i; i++;
+    const needSpotlight = r.isNewRarity || (LEGEND_PLUS.has(r.rarity) && r.isNewItem);
+    if(needSpotlight) {
+      showSpotlight(r, () => { revealCard(idx); setTimeout(next, 300); });
+    } else {
+      revealCard(idx);
+      setTimeout(next, 160);
+    }
+  }
+  next();
+}
+function renderGachaView(results, sequential) {
   const el = document.getElementById('gacha-view'); if(!el) return;
   const pts = S.totalPoints||0;
   let resultHtml = '';
   if(results && results.length) {
     if(results.length===1) {
       const r = results[0];
-      const cnt = S.gachaCollection[r.emoji]?.count||0;
+      const name = EMOJI_NAMES[r.emoji] || '';
+      const needSpot = r.isNewRarity || (LEGEND_PLUS.has(r.rarity) && r.isNewItem);
       resultHtml = `<div class="gacha-result-single">
-        <div class="gacha-card reveal" style="display:inline-block;min-width:120px;border-color:${r.color};box-shadow:0 0 22px ${r.color}44;">
+        <div class="gacha-card r-${r.rarity} reveal" style="display:inline-block;min-width:130px;border-color:${r.color};">
           <span class="gacha-card-emoji" style="font-size:3rem;">${r.emoji}</span>
           <div style="margin:6px 0 4px;"><span class="gacha-card-rarity" style="background:${r.color}22;color:${r.color};">${r.label}</span></div>
-          <div style="font-size:0.68rem;font-weight:700;color:${cnt>1?'var(--text2)':'var(--green)'};">${cnt>1?cnt+'個目':'✨ NEW！'}</div>
+          <div style="font-size:0.8rem;font-weight:700;color:#fff;margin:4px 0 2px;">${name}</div>
+          ${r.isNewItem?'<div style="font-size:0.7rem;font-weight:900;color:var(--green);">✨ NEW！</div>':''}
         </div></div>`;
+      if(needSpot) setTimeout(()=>showSpotlight(r,()=>{}), 500);
     } else {
-      resultHtml = `<div class="gacha-result-grid">${results.map((r,i)=>{
-        const cnt=S.gachaCollection[r.emoji]?.count||0;
-        return `<div class="gacha-card reveal r-${r.rarity}" style="animation-delay:${i*55}ms">
-          <span class="gacha-card-emoji">${r.emoji}</span>
-          <span class="gacha-card-rarity" style="background:${r.color}22;color:${r.color};">${r.label}</span>
-          ${cnt===1?'<div style="font-size:0.55rem;color:var(--green);font-weight:900;">NEW!</div>':''}
-        </div>`;
-      }).join('')}</div>`;
+      resultHtml = `<div class="gacha-result-grid">${results.map((r,i)=>gachaCardHtml(r,i,i*80)).join('')}</div>`;
     }
   }
   el.innerHTML = `
@@ -3886,11 +4132,19 @@ function renderGachaView(results) {
       <button class="gacha-btn-10" ${pts>=GACHA_COST_10?'':'disabled'} onclick="doPull(10)">💎 10回まわす<br><span style="font-size:0.72rem;opacity:0.85;">${GACHA_COST_10}pt（お得！）</span></button>
     </div>
     <div style="padding:0 16px 6px;font-size:0.76rem;color:var(--text2);font-weight:700;">排出確率</div>
-    <div class="gacha-rate-table">${GACHA_RARITIES.map(r=>`
+    <div class="gacha-rate-table">
+      <div class="gacha-rate-row" style="opacity:0.55;font-size:0.7rem;">
+        <span style="flex:1.5;">レア度</span><span style="flex:1;text-align:right;">個数</span><span style="flex:1;text-align:right;">割合</span>
+      </div>
+      ${GACHA_RARITIES.map(r=>`
       <div class="gacha-rate-row">
-        <span style="font-weight:700;color:${r.color};">${r.label}</span>
-        <span style="color:var(--text2);">${(r.prob*100).toFixed(0)}%</span>
+        <span style="font-weight:700;color:${r.color};flex:1.5;">${r.label}</span>
+        <span style="color:var(--text2);flex:1;text-align:right;">${r.count}個</span>
+        <span style="color:var(--text2);flex:1;text-align:right;">${(r.prob*100).toFixed(1)}%</span>
       </div>`).join('')}</div>`;
+  if(sequential && results && results.length > 1) {
+    setTimeout(()=>runSequentialReveal(results), 100);
+  }
 }
 function renderCollectionView() {
   const el = document.getElementById('collection-view'); if(!el) return;
@@ -3898,10 +4152,10 @@ function renderCollectionView() {
   const coll = S.gachaCollection;
   const pullTotal = Object.values(coll).reduce((s,v)=>s+v.count, 0);
   const uniqueOwned = Object.keys(coll).length;
-  const poolTotal = Object.values(GACHA_POOL).reduce((s,a)=>s+a.length, 0);
+  const poolTotal = Object.values(GACHA_POOL).reduce((s,a)=>s+a.length,0);
 
   // レア度順（コモン→フォーチューン）でセクション表示
-  const displayOrder = ['common','uncommon','rare','epic','legend','ultra','fortune'];
+  const displayOrder = ['common','uncommon','rare','epic','legend','ultra','fortune','god'];
   let gridHtml = '';
   displayOrder.forEach(rid => {
     const ri = RARITY_INFO[rid];
