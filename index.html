@@ -4781,79 +4781,121 @@ function fbOnRemote(snapshot) {
   }
 
   let changed = false;
-  // 問題
-  const qIds = new Set(S.geoQuestions.map(q=>q.id));
+
+  // 問題：新規追加 ＋ 既存の全フィールド更新（問題文/答え/単元/科目/history全マージ）
+  const qMap = Object.fromEntries(S.geoQuestions.map(q=>[q.id,q]));
   (data.q||[]).forEach(q=>{
-    if(!qIds.has(q.id)){S.geoQuestions.push(q);changed=true;}
-    else{const ex=S.geoQuestions.find(e=>e.id===q.id);if(ex&&(q.history||[]).length>(ex.history||[]).length){ex.history=q.history;changed=true;}}
+    if(!qMap[q.id]){ S.geoQuestions.push(q); changed=true; }
+    else {
+      const ex = qMap[q.id];
+      if(q.question!==ex.question||q.answer!==ex.answer||q.unit!==ex.unit||q.subject!==ex.subject){
+        ex.question=q.question; ex.answer=q.answer; ex.unit=q.unit; ex.subject=q.subject; changed=true;
+      }
+      // history: 全ユニーク記録をマージ（d+rをキーに重複除去）
+      const exKeys = new Set((ex.history||[]).map(h=>h.d+'|'+h.r));
+      const added = (q.history||[]).filter(h=>!exKeys.has(h.d+'|'+h.r));
+      if(added.length){ ex.history=(ex.history||[]).concat(added).sort((a,b)=>a.d<b.d?-1:1); changed=true; }
+    }
   });
-  // PDF
+
+  // PDF：新規追加のみ
   const pdfIds=new Set((S.pdfs||[]).map(p=>p.id));
-  (data.pdfs||[]).forEach(p=>{if(!pdfIds.has(p.id)){S.pdfs.push(p);changed=true;}});
-  // ポイント
+  (data.pdfs||[]).forEach(p=>{if(!pdfIds.has(p.id)){(S.pdfs=S.pdfs||[]).push(p);changed=true;}});
+
+  // ポイント・セッション数：最大値
   if((data.pts||0)>(S.totalPoints||0)){S.totalPoints=data.pts;changed=true;}
   Object.keys(data.sub||{}).forEach(k=>{if((data.sub[k]||0)>(S.subjectPoints[k]||0)){S.subjectPoints[k]=data.sub[k];changed=true;}});
   if((data.cnt||0)>(S.geoSessionCount||0)){S.geoSessionCount=data.cnt;changed=true;}
-  // 勉強記録
+
+  // 勉強記録：新規追加
   const recIds=new Set((S.records||[]).map(r=>r.id));
-  (data.records||[]).forEach(r=>{if(r.id&&!recIds.has(r.id)){S.records.push(r);changed=true;}});
-  // 連続日数
+  (data.records||[]).forEach(r=>{if(r.id&&!recIds.has(r.id)){(S.records=S.records||[]).push(r);changed=true;}});
+
+  // 連続日数・週間分：最大値
   if((data.streak||0)>(S.streak||0)){S.streak=data.streak;S.lastStudyDate=data.lastStudyDate;changed=true;}
   Object.keys(data.weeklyMinutes||{}).forEach(k=>{if((data.weeklyMinutes[k]||0)>(S.weeklyMinutes[k]||0)){S.weeklyMinutes[k]=data.weeklyMinutes[k];changed=true;}});
-  // テスト
+
+  // テスト：新規追加
   const testIds=new Set((S.tests||[]).map(t=>t.id));
-  (data.tests||[]).forEach(t=>{if(t.id&&!testIds.has(t.id)){S.tests.push(t);changed=true;}});
-  // 目標
+  (data.tests||[]).forEach(t=>{if(t.id&&!testIds.has(t.id)){(S.tests=S.tests||[]).push(t);changed=true;}});
+
+  // 目標・シャッフル：リモートを採用（設定は最後書き込み側優先）
   if(data.goalMinutes&&data.goalMinutes!==S.goalMinutes){S.goalMinutes=data.goalMinutes;changed=true;}
-  // 報酬一覧
+  if(data.geoShuffle!==undefined&&data.geoShuffle!==S.geoShuffle){S.geoShuffle=data.geoShuffle;changed=true;}
+
+  // 報酬一覧：リモートが長ければ採用
   if((data.rewards||[]).length>(S.rewards||[]).length){S.rewards=data.rewards;changed=true;}
-  // 交換申請
-  const reqIds=new Set((S.exchangeRequests||[]).map(r=>r.id));
+
+  // 交換申請：新規追加 ＋ ステータス更新
+  const reqMap=Object.fromEntries((S.exchangeRequests||[]).map(r=>[r.id,r]));
   (data.exchangeRequests||[]).forEach(r=>{
     if(!r.id) return;
-    if(!reqIds.has(r.id)){S.exchangeRequests.push(r);changed=true;}
-    else{const ex=S.exchangeRequests.find(e=>e.id===r.id);if(ex&&ex.status!==r.status){ex.status=r.status;changed=true;}}
+    if(!reqMap[r.id]){(S.exchangeRequests=S.exchangeRequests||[]).push(r);changed=true;}
+    else if(reqMap[r.id].status!==r.status){reqMap[r.id].status=r.status;changed=true;}
   });
-  // ミッション
+
+  // ミッション：今日分を採用、クレームはマージ
   if(data.missionsDate&&data.missionsDate===todayStr()){
-    if(data.missionIds&&data.missionIds.length&&JSON.stringify(data.missionIds)!==JSON.stringify(S.missionIds)){S.missionIds=data.missionIds;S.missionsDate=data.missionsDate;changed=true;}
+    if(data.missionIds&&data.missionIds.length&&JSON.stringify(data.missionIds)!==JSON.stringify(S.missionIds)){
+      S.missionIds=data.missionIds;S.missionsDate=data.missionsDate;changed=true;
+    }
     const mc=new Set(S.missionsClaimed||[]);let mcChanged=false;
     (data.missionsClaimed||[]).forEach(id=>{if(!mc.has(id)){mc.add(id);mcChanged=true;}});
     if(mcChanged){S.missionsClaimed=[...mc];changed=true;}
   }
+
   // デイリーボーナス
-  if(data.dailyBonusClaimed&&data.dailyBonusClaimed>=(S.dailyBonusClaimed||'')){if(data.dailyBonusClaimed!==S.dailyBonusClaimed){S.dailyBonusClaimed=data.dailyBonusClaimed;changed=true;}}
-  // マイタウン
-  if(data.townTiles&&Object.keys(data.townTiles).length>Object.keys(S.townTiles||{}).length){S.townTiles=data.townTiles;changed=true;}
-  // シャッフル
-  if(data.geoShuffle!==undefined&&data.geoShuffle!==S.geoShuffle){S.geoShuffle=data.geoShuffle;changed=true;}
-  // チャンクカーソル（より進んでいる方を採用）
-  if(data.geoChunkCursors&&Object.keys(data.geoChunkCursors).length){
+  if(data.dailyBonusClaimed&&data.dailyBonusClaimed>=(S.dailyBonusClaimed||'')){
+    if(data.dailyBonusClaimed!==S.dailyBonusClaimed){S.dailyBonusClaimed=data.dailyBonusClaimed;changed=true;}
+  }
+
+  // マイタウン：キー単位でマージ（両デバイスのタイルを合成）
+  if(data.townTiles){
+    if(!S.townTiles) S.townTiles={};
+    Object.entries(data.townTiles).forEach(([k,v])=>{
+      if(!S.townTiles[k]){S.townTiles[k]=v;changed=true;}
+    });
+  }
+
+  // チャンクカーソル：最大値
+  if(data.geoChunkCursors){
     if(!S.geoChunkCursors) S.geoChunkCursors={};
     Object.entries(data.geoChunkCursors).forEach(([k,v])=>{
       if((v||0)>(S.geoChunkCursors[k]||0)){S.geoChunkCursors[k]=v;changed=true;}
     });
   }
-  // 復習バッチ
-  if(data.reviewBatches&&data.reviewBatches.length){
+
+  // 復習バッチ：新規追加 ＋ 全フィールド更新（round/ステップ・questionIds・dueDate含む）
+  if(data.reviewBatches){
     if(!S.reviewBatches) S.reviewBatches=[];
-    const rbIds=new Set(S.reviewBatches.map(b=>b.id));
+    const rbMap=Object.fromEntries(S.reviewBatches.map(b=>[b.id,b]));
     data.reviewBatches.forEach(b=>{
       if(!b.id) return;
-      if(!rbIds.has(b.id)){S.reviewBatches.push(b);changed=true;}
-      else{const ex=S.reviewBatches.find(e=>e.id===b.id);if(ex&&b.done&&!ex.done){ex.done=true;changed=true;}}
+      if(!rbMap[b.id]){ S.reviewBatches.push(b); changed=true; }
+      else {
+        const ex=rbMap[b.id]; let bc=false;
+        if(b.done!==ex.done){ex.done=b.done;bc=true;}
+        if(JSON.stringify(b.questionIds)!==JSON.stringify(ex.questionIds)){ex.questionIds=b.questionIds;bc=true;}
+        if(b.round!==ex.round){ex.round=b.round;bc=true;}
+        if(b.dueDate!==ex.dueDate){ex.dueDate=b.dueDate;bc=true;}
+        if(b.subject!==ex.subject){ex.subject=b.subject;bc=true;}
+        if(bc) changed=true;
+      }
     });
   }
-  // ガチャコレクション（マージ：多い方の数を採用）
-  if(data.gachaCollection&&Object.keys(data.gachaCollection).length){
+
+  // ガチャコレクション：新規追加 ＋ 件数は最大値
+  if(data.gachaCollection){
     if(!S.gachaCollection) S.gachaCollection={};
     Object.entries(data.gachaCollection).forEach(([k,v])=>{
       if(!S.gachaCollection[k]){S.gachaCollection[k]=v;changed=true;}
       else if((v.count||0)>(S.gachaCollection[k].count||0)){S.gachaCollection[k].count=v.count;changed=true;}
     });
   }
+
   // 相手の名前
   if(data.name&&data.name!==S.partnerName){S.partnerName=data.name;renderPartnerBanner();}
+
   if(changed){ save(); renderAll(); showToast('🔄 ' + (data.name||'相手') + 'のデータを同期しました'); }
   fbMerging = false;
   hideSpinner();
