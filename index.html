@@ -251,6 +251,12 @@ body{
   padding:12px 14px;margin-bottom:8px;cursor:pointer;transition:transform 0.15s;
 }
 .pdf-item:active{transform:scale(0.98);}
+.pdf-answerkey-badge{display:inline-flex;align-items:center;gap:3px;font-size:0.6rem;font-weight:700;padding:2px 7px;border-radius:99px;background:rgba(46,204,113,0.12);border:1px solid rgba(46,204,113,0.35);color:#7ae8a8;margin-top:4px;}
+.test-study-card{background:var(--card2);border:1.5px solid rgba(245,200,66,0.25);border-radius:14px;padding:12px 14px;margin-bottom:8px;cursor:pointer;transition:transform 0.15s;}
+.test-study-card:active{transform:scale(0.98);}
+.test-study-countdown{font-family:'Zen Kaku Gothic New';font-size:1.5rem;font-weight:900;color:var(--gold);}
+.folder-btn{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;background:rgba(58,134,255,0.08);border:1.5px dashed rgba(58,134,255,0.35);border-radius:99px;font-size:0.75rem;font-weight:700;color:#7ab8ff;cursor:pointer;transition:all 0.15s;}
+.folder-btn:active{background:rgba(58,134,255,0.18);}
 .pdf-icon{font-size:1.6rem;flex-shrink:0;}
 .pdf-info{flex:1;min-width:0;}
 .pdf-name{font-size:0.82rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -1079,6 +1085,8 @@ body.parent-mode.pc-mode .pc-sidebar-stats{display:none;}
     <div class="drop-sub">またはドラッグ＆ドロップ（まとめてOK）</div>
   </div>
   <input type="file" id="pdf-input" accept=".pdf,application/pdf" multiple style="display:none" onchange="handlePdfUpload(event)">
+  <input type="file" id="pdf-folder-input" webkitdirectory multiple style="display:none" onchange="handlePdfFolderUpload(event)">
+  <div style="text-align:center;margin:-4px 0 6px;"><span class="folder-btn" onclick="document.getElementById('pdf-folder-input').click()">📁 フォルダごと追加</span></div>
 
   <div style="padding:0 16px 6px;font-size:0.78rem;color:var(--text2);">科目で絞り込み</div>
   <div class="pdf-tag-row" id="pdf-filter-tags">
@@ -1262,7 +1270,17 @@ body.parent-mode.pc-mode .pc-sidebar-stats{display:none;}
       <input class="test-input" id="p-test-name" placeholder="テスト名（例：期末テスト）" style="margin:0;flex:1;">
       <input class="test-input" id="p-test-date" type="date" style="margin:0;width:130px;">
     </div>
-    <button class="btn-main" style="width:100%;margin:10px 0 0;" onclick="addTest()">テストを追加</button>
+    <div style="margin-top:8px;font-size:0.72rem;color:var(--text2);margin-bottom:5px;">テスト範囲の科目（複数可）：</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:4px;">
+      <label style="display:flex;align-items:center;gap:3px;font-size:0.78rem;cursor:pointer;color:var(--text);"><input type="checkbox" class="p-test-sub-check" value="国語"> 国語</label>
+      <label style="display:flex;align-items:center;gap:3px;font-size:0.78rem;cursor:pointer;color:var(--text);"><input type="checkbox" class="p-test-sub-check" value="英語"> 英語</label>
+      <label style="display:flex;align-items:center;gap:3px;font-size:0.78rem;cursor:pointer;color:var(--text);"><input type="checkbox" class="p-test-sub-check" value="数学"> 数学</label>
+      <label style="display:flex;align-items:center;gap:3px;font-size:0.78rem;cursor:pointer;color:var(--text);"><input type="checkbox" class="p-test-sub-check" value="理科"> 理科</label>
+      <label style="display:flex;align-items:center;gap:3px;font-size:0.78rem;cursor:pointer;color:var(--text);"><input type="checkbox" class="p-test-sub-check" value="歴史"> 歴史</label>
+      <label style="display:flex;align-items:center;gap:3px;font-size:0.78rem;cursor:pointer;color:var(--text);"><input type="checkbox" class="p-test-sub-check" value="地理"> 地理</label>
+      <label style="display:flex;align-items:center;gap:3px;font-size:0.78rem;cursor:pointer;color:var(--text);"><input type="checkbox" class="p-test-sub-check" value="公民"> 公民</label>
+    </div>
+    <button class="btn-main" style="width:100%;margin:6px 0 0;" onclick="addTest()">テストを追加 → 子ども画面に対策エリア表示</button>
   </div>
 
   <div class="sec-title" style="color:#ce93d8;border-color:#ce93d8;">📊 今週の科目バランス</div>
@@ -1928,6 +1946,62 @@ let pendingPdfFiles=[];
 let pdfProcessQueue=[];
 let isPdfProcessing=false;
 
+// ---- 解答PDF検出ユーティリティ ----
+const ANSWER_KEY_WORDS = ['解答', '答え合わせ', '解説'];
+function isAnswerKeyFilename(name) {
+  const stem = name.replace(/\.pdf$/i,'');
+  return ANSWER_KEY_WORDS.some(kw => stem.includes(kw));
+}
+function getAnswerKeyBaseName(name) {
+  const stem = name.replace(/\.pdf$/i,'');
+  for(const kw of ANSWER_KEY_WORDS) {
+    const idx = stem.indexOf(kw);
+    if(idx !== -1) return (stem.slice(0,idx) + stem.slice(idx+kw.length)).trim();
+  }
+  return stem.trim();
+}
+function getPdfProgress(pdfId, pdf) {
+  return S.geoQuestions.reduce((sum,q) => {
+    const linked = q.pdfId===pdfId || (!q.pdfId && pdf && q.subject===pdf.subject && pdf.unit && q.unit===pdf.unit);
+    return sum + (linked ? (q.history||[]).length : 0);
+  }, 0);
+}
+
+// ---- フォルダ対応 drop traversal ----
+async function collectFilesFromDrop(dataTransfer) {
+  const files = [];
+  const isPdf = f => f.type==='application/pdf' || f.name.toLowerCase().endsWith('.pdf');
+  async function traverseEntry(entry) {
+    if(entry.isFile) {
+      await new Promise(res => entry.file(f => { if(isPdf(f)) files.push(f); res(); }, res));
+    } else if(entry.isDirectory) {
+      const reader = entry.createReader();
+      let batch;
+      do {
+        batch = await new Promise(res => reader.readEntries(res, () => res([])));
+        for(const e of batch) await traverseEntry(e);
+      } while(batch.length > 0);
+    }
+  }
+  if(dataTransfer.items && dataTransfer.items.length && dataTransfer.items[0].webkitGetAsEntry) {
+    for(const item of Array.from(dataTransfer.items)) {
+      const entry = item.webkitGetAsEntry();
+      if(entry) await traverseEntry(entry);
+    }
+  } else {
+    Array.from(dataTransfer.files).filter(isPdf).forEach(f => files.push(f));
+  }
+  return files;
+}
+
+function handlePdfFolderUpload(e) {
+  const files = Array.from(e.target.files).filter(f => f.type==='application/pdf' || f.name.toLowerCase().endsWith('.pdf'));
+  e.target.value = '';
+  if(!files.length) { showToast('フォルダ内にPDFが見つかりませんでした'); return; }
+  showToast(`📁 フォルダから${files.length}件のPDFを検出`);
+  openPdfSubModal(files);
+}
+
 function openPdfSubModal(files){
   pendingPdfFiles=files;
   const sub=document.getElementById('pdf-sub-modal-sub');
@@ -1946,26 +2020,96 @@ function confirmPdfSubject(sub){
   document.getElementById('pdf-sub-modal').classList.remove('open');
   if(!pendingPdfFiles.length||!sub)return;
   const files=[...pendingPdfFiles]; pendingPdfFiles=[];
-  files.forEach((file,i)=>{
-    const id=(Date.now()+i).toString();
-    const kb=Math.round(file.size/1024);
-    const unit=file.name.replace(/\.pdf$/i,'').slice(0,40)||sub;
-    S.pdfs.push({id,name:file.name,subject:sub,unit,date:todayStr(),size:kb+'KB'});
-    S.totalPoints+=50; S.subjectPoints[sub]=(S.subjectPoints[sub]||0)+50;
-    pdfProcessQueue.push({file,unit,subject:sub,pdfId:id});
+
+  // --- 解答ファイルの検出・ペアリング ---
+  const mainFiles = files.filter(f => !isAnswerKeyFilename(f.name));
+  const answerFiles = files.filter(f => isAnswerKeyFilename(f.name));
+  const answerPairMap = new Map(); // File(main) → File(answer)
+  answerFiles.forEach(af => {
+    const base = getAnswerKeyBaseName(af.name).toLowerCase();
+    const match = mainFiles.find(mf => mf.name.replace(/\.pdf$/i,'').toLowerCase().trim() === base);
+    if(match) answerPairMap.set(match, af);
   });
-  save(); renderAll();
-  playSound('upload');
-  showToast(files.length>1?`📄 ${files.length}件のPDFを追加 +${files.length*50}pt`:`📄 ${files[0].name} を追加 +50pt`);
-  showToast('🤖 AIが問題を自動生成中... しばらくお待ちください');
-  setTimeout(drainPdfQueue,800);
+  // 既存PDFとのペアリング（解答のみアップ時）
+  answerFiles.filter(af => ![...answerPairMap.values()].includes(af)).forEach(af => {
+    const base = getAnswerKeyBaseName(af.name).toLowerCase();
+    const existing = (S.pdfs||[]).find(p => !p.isAnswerKey && p.name.replace(/\.pdf$/i,'').toLowerCase().trim() === base);
+    if(existing) answerPairMap.set(existing.id, af); // string key = existing pdfId
+  });
+
+  // --- 重複チェック・処理対象リスト構築 ---
+  const toProcess = [];
+  let skipped = 0;
+  for(let i=0; i<files.length; i++) {
+    const file = files[i];
+    const isAK = isAnswerKeyFilename(file.name);
+    const dup = (S.pdfs||[]).find(p => p.name === file.name);
+    if(dup) {
+      const progress = getPdfProgress(dup.id, dup);
+      if(progress === 0) {
+        // 未使用の旧版 → 自動差し替え
+        const oldQIds = new Set(S.geoQuestions.filter(q => q.pdfId===dup.id || (!q.pdfId&&q.subject===dup.subject&&dup.unit&&q.unit===dup.unit)).map(q=>q.id));
+        S.geoQuestions = S.geoQuestions.filter(q => !oldQIds.has(q.id));
+        (S.reviewBatches||[]).forEach(b => { b.questionIds=(b.questionIds||[]).filter(id=>!oldQIds.has(id)); if(!b.questionIds.length) b.done=true; });
+        S.pdfs = S.pdfs.filter(p => p.id !== dup.id);
+        showToast(`🔄 「${file.name}」の旧版（未使用）を差し替えました`);
+      } else {
+        skipped++;
+        showToast(`⚠️ 「${file.name}」は学習済みのため旧版を保持します（${progress}回回答済み）`);
+        continue;
+      }
+    }
+    toProcess.push({file, isAK});
+  }
+
+  if(!toProcess.length) { save(); renderAll(); return; }
+
+  // --- S.pdfs に追加 ---
+  const fileIdMap = new Map();
+  toProcess.forEach(({file, isAK}, i) => {
+    const id = (Date.now() + i).toString();
+    const kb = Math.round(file.size / 1024);
+    const unit = file.name.replace(/\.pdf$/i,'').slice(0,40) || sub;
+    fileIdMap.set(file, id);
+    S.pdfs.push({id, name:file.name, subject:sub, unit, date:todayStr(), size:kb+'KB', isAnswerKey:!!isAK, linkedPdfId:null});
+    if(!isAK) {
+      S.totalPoints += 50; S.subjectPoints[sub] = (S.subjectPoints[sub]||0) + 50;
+    }
+  });
+  // linkedPdfId の解決（バッチ内ペアリング）
+  S.pdfs.forEach(p => {
+    if(!p.isAnswerKey || p.linkedPdfId) return;
+    const base = getAnswerKeyBaseName(p.name).toLowerCase();
+    const main = S.pdfs.find(m => !m.isAnswerKey && m.name.replace(/\.pdf$/i,'').toLowerCase().trim() === base);
+    if(main) p.linkedPdfId = main.id;
+  });
+
+  // --- 処理キューに追加（解答ファイルをペアとして渡す）---
+  toProcess.forEach(({file, isAK}) => {
+    if(isAK) return;
+    const pdfId = fileIdMap.get(file);
+    const unit = file.name.replace(/\.pdf$/i,'').slice(0,40) || sub;
+    const answerKeyFile = answerPairMap.get(file) || null;
+    pdfProcessQueue.push({file, unit, subject:sub, pdfId, answerKeyFile});
+  });
+
+  save(); renderAll(); playSound('upload');
+  const mainCnt = toProcess.filter(t=>!t.isAK).length;
+  const akCnt = toProcess.filter(t=>t.isAK).length;
+  const paired = answerPairMap.size;
+  if(mainCnt) showToast(mainCnt>1 ? `📄 ${mainCnt}件のPDFを追加 +${mainCnt*50}pt` : `📄 ${toProcess.find(t=>!t.isAK).file.name} を追加 +50pt`);
+  if(akCnt) showToast(paired ? `🔑 解答PDF${akCnt}件をペアリングしました（より正確な問題を生成します）` : `🔑 解答PDF${akCnt}件を追加しました`);
+  if(pdfProcessQueue.length) {
+    showToast('🤖 AIが問題を自動生成中... しばらくお待ちください');
+    setTimeout(drainPdfQueue, 800);
+  }
 }
 
 async function drainPdfQueue(){
   if(isPdfProcessing||!pdfProcessQueue.length)return;
   isPdfProcessing=true;
-  const {file,unit,subject,pdfId}=pdfProcessQueue.shift();
-  await geoProcessPdfFile(file,unit,subject||'',pdfId||null);
+  const {file,unit,subject,pdfId,answerKeyFile}=pdfProcessQueue.shift();
+  await geoProcessPdfFile(file,unit,subject||'',pdfId||null,answerKeyFile||null);
   isPdfProcessing=false;
   if(pdfProcessQueue.length){
     showToast(`🤖 残り${pdfProcessQueue.length}件を処理中...`);
@@ -1990,11 +2134,12 @@ function renderPdfListInto(el){
   if(!list.length){el.innerHTML='<div style="text-align:center;color:var(--text2);font-size:0.82rem;padding:24px 0;">まだ教材がありません<br>PDFを追加してポイントをゲット！</div>';return;}
   el.innerHTML=list.map(p=>`
     <div class="pdf-item">
-      <span class="pdf-icon">📄</span>
+      <span class="pdf-icon">${p.isAnswerKey?'🔑':'📄'}</span>
       <div class="pdf-info">
         <div class="pdf-name">${p.name}</div>
         <div class="pdf-meta">${p.date} · ${p.size}</div>
         <span class="pdf-tag-badge" style="background:${tagBg[p.subject]};color:${tagColor[p.subject]}">${p.subject}</span>
+        ${p.isAnswerKey?`<span class="pdf-answerkey-badge">🔑 解答セット</span>`:''}
       </div>
       <button onclick="deletePdf('${p.id}')" style="margin-left:8px;flex-shrink:0;background:rgba(231,76,60,0.12);border:1.5px solid rgba(231,76,60,0.35);border-radius:10px;color:var(--red);font-size:0.8rem;padding:6px 10px;cursor:pointer;font-weight:700;">🗑️</button>
     </div>
@@ -2034,22 +2179,18 @@ function deletePdf(id) {
   });
 }
 
-// drag & drop
+// drag & drop（フォルダ対応）
 const dz=document.getElementById('drop-zone');
 dz.addEventListener('dragenter',e=>{e.preventDefault();e.stopPropagation();dz.classList.add('drag-over');});
 dz.addEventListener('dragover',e=>{e.preventDefault();e.stopPropagation();dz.classList.add('drag-over');});
 dz.addEventListener('dragleave',e=>{
-  // only remove if leaving the drop zone itself
   if(!dz.contains(e.relatedTarget)) dz.classList.remove('drag-over');
 });
-dz.addEventListener('drop',e=>{
+dz.addEventListener('drop',async e=>{
   e.preventDefault();e.stopPropagation();dz.classList.remove('drag-over');
-  const files=Array.from(e.dataTransfer.files).filter(f=>f.type==='application/pdf'||f.name.toLowerCase().endsWith('.pdf'));
-  if(files.length){
-    openPdfSubModal(files);
-  } else {
-    showToast('PDFファイルをドロップしてください');
-  }
+  const files = await collectFilesFromDrop(e.dataTransfer);
+  if(files.length){ openPdfSubModal(files); }
+  else { showToast('PDFファイルをドロップしてください（フォルダも可）'); }
 });
 
 // ==================== CALENDAR ====================
@@ -2272,7 +2413,7 @@ function renderParent(){
   const testEl=document.getElementById('p-test-list');
   testEl.innerHTML=S.tests.length?S.tests.map(t=>`
     <div class="test-list-item">
-      <span class="test-list-name">${t.name}</span>
+      <span class="test-list-name">${t.name}${(t.subjects||[]).length?'<span style="font-size:0.65rem;color:var(--text2);margin-left:5px;">('+t.subjects.join('・')+')</span>':''}</span>
       <span class="test-list-date">${t.date}</span>
       <span class="test-list-del" onclick="deleteTest('${t.id}')">🗑️</span>
     </div>
@@ -2499,11 +2640,13 @@ function addTest(){
   const name=document.getElementById('p-test-name').value.trim();
   const date=document.getElementById('p-test-date').value;
   if(!name||!date){showToast('テスト名と日付を入力してください');return;}
-  S.tests.push({id:Date.now().toString(),name,date});
+  const subjects=Array.from(document.querySelectorAll('.p-test-sub-check:checked')).map(c=>c.value);
+  S.tests.push({id:Date.now().toString(),name,date,subjects});
   save(); renderParent(); renderRewardScreen();
   document.getElementById('p-test-name').value='';
   document.getElementById('p-test-date').value='';
-  showToast(`📅 ${name}を登録しました`);
+  document.querySelectorAll('.p-test-sub-check').forEach(c=>c.checked=false);
+  showToast(`📅 ${name}を登録しました${subjects.length?' ('+subjects.join('・')+')':''} — 子ども画面にテスト対策エリアを表示します`);
 }
 
 function deleteTest(id){
@@ -3269,13 +3412,57 @@ function renderGeoHome() {
     ${weak>0?`<button class="btn-secondary" onclick="geoOpenStartModal('review')">🔁 苦手問題だけ復習</button>`:''}
     ${renderReviewSchedule()}`;
   const progSection = `<div class="sec-title">📚 単元別 学習進捗</div><div style="padding:0 16px 20px;">${progHtml}</div>`;
+  // テスト対策セクション（30日以内のテスト）
+  const today0 = new Date(); today0.setHours(0,0,0,0);
+  const upcomingTests = (S.tests||[]).map(t => {
+    const d = new Date(t.date); d.setHours(0,0,0,0);
+    return {...t, days: Math.round((d-today0)/(864e5))};
+  }).filter(t => t.days >= 0 && t.days <= 30).sort((a,b) => a.days-b.days);
+  const testStudySection = upcomingTests.length ? `
+    <div class="sec-title">📅 テスト対策</div>
+    <div style="padding:0 16px 16px;">
+      ${upcomingTests.map(t => `
+        <div class="test-study-card" onclick="startTestStudy('${t.id}')">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:0.88rem;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${geoEsc(t.name)}</div>
+              <div style="font-size:0.72rem;color:var(--text2);margin-top:2px;">${t.date}${(t.subjects||[]).length?' · '+t.subjects.join('・'):''}</div>
+            </div>
+            <div style="text-align:center;flex-shrink:0;margin-left:12px;">
+              <div class="test-study-countdown">${t.days}</div>
+              <div style="font-size:0.62rem;color:var(--text2);">${t.days===0?'今日':'日後'}</div>
+            </div>
+          </div>
+          <div style="margin-top:8px;font-size:0.75rem;color:#7ab8ff;font-weight:700;">▶ この範囲で学習をスタート</div>
+        </div>
+      `).join('')}
+    </div>` : '';
   if(pcModeOn) {
     el.innerHTML = `<div class="pc-geo-grid">
-      <div class="pc-geo-left">${statsHtml}</div>
+      <div class="pc-geo-left">${statsHtml}${testStudySection}</div>
       <div class="pc-geo-right">${cameraSection}${progSection}</div>
     </div>`;
   } else {
-    el.innerHTML = cameraSection + statsHtml + progSection;
+    el.innerHTML = cameraSection + testStudySection + statsHtml + progSection;
+  }
+}
+
+function startTestStudy(testId) {
+  const test = (S.tests||[]).find(t => t.id === testId);
+  if(!test) return;
+  const subs = test.subjects || [];
+  if(subs.length === 1) {
+    geoStartSubject = subs[0]; geoStartFilter = 'all';
+    geoOpenStartModal();
+    showToast(`📅 ${test.name}（${subs[0]}）の対策をスタート！`);
+  } else if(subs.length > 1) {
+    // 複数科目：最初の科目でスタート＋ガイド
+    geoStartSubject = subs[0]; geoStartFilter = 'all';
+    geoOpenStartModal();
+    showToast(`📅 ${test.name}（${subs.join('・')}）— まず${subs[0]}から学習！`);
+  } else {
+    geoOpenStartModal();
+    showToast(`📅 ${test.name}の対策をスタート！`);
   }
 }
 
@@ -4371,9 +4558,11 @@ function renderGeoPdf() {
     <div class="drop-zone" id="geo-drop-zone" onclick="document.getElementById('geo-pdf-input').click()">
       <div class="drop-icon">📄</div>
       <div class="drop-text">タップしてPDFを追加（複数可）</div>
-      <div class="drop-sub">またはドラッグ＆ドロップ（まとめてOK）</div>
+      <div class="drop-sub">またはドラッグ＆ドロップ（フォルダも可）</div>
     </div>
     <input type="file" id="geo-pdf-input" accept=".pdf,application/pdf" multiple style="display:none" onchange="handlePdfUpload(event)">
+    <input type="file" id="geo-pdf-folder-input" webkitdirectory multiple style="display:none" onchange="handlePdfFolderUpload(event)">
+    <div style="text-align:center;margin:-4px 0 6px;"><span class="folder-btn" onclick="document.getElementById('geo-pdf-folder-input').click()">📁 フォルダごと追加</span></div>
     <div style="padding:0 16px 6px;font-size:0.78rem;color:var(--text2);">科目で絞り込み</div>
     <div class="pdf-tag-row" id="geo-pdf-filter-tags">
       <div class="pdf-tag" onclick="filterPdf('all',this)">すべて</div>
@@ -4393,7 +4582,7 @@ function renderGeoPdf() {
   if(dz) {
     dz.addEventListener('dragover', e=>{e.preventDefault();dz.classList.add('drag-over');});
     dz.addEventListener('dragleave', ()=>dz.classList.remove('drag-over'));
-    dz.addEventListener('drop', e=>{e.preventDefault();dz.classList.remove('drag-over');const files=Array.from(e.dataTransfer.files).filter(f=>f.type==='application/pdf'||f.name.toLowerCase().endsWith('.pdf'));if(files.length)openPdfSubModal(files);else showToast('PDFファイルをドロップしてください');});
+    dz.addEventListener('drop', async e=>{e.preventDefault();dz.classList.remove('drag-over');const files=await collectFilesFromDrop(e.dataTransfer);if(files.length)openPdfSubModal(files);else showToast('PDFファイルをドロップしてください（フォルダも可）');});
   }
 }
 
@@ -4494,7 +4683,7 @@ function buildPdfPrompt(subject) {
   return base+`\n\n【問題形式のバリエーション（混ぜて作成）】\n・一問一答：「○○とは何か？」→答え\n・穴埋め：「_____は〜の性質がある。」→答え\n・その他：内容に応じた形式\nanswerは簡潔に。`;
 }
 
-async function geoProcessPdfFile(file, unit, subject='', pdfId=null) {
+async function geoProcessPdfFile(file, unit, subject='', pdfId=null, answerKeyFile=null) {
   if(!window.pdfjsLib) { showToast('⚠️ PDF処理モジュールを読み込み中です。しばらくしてから再試行してください'); return; }
   try {
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
@@ -4511,13 +4700,32 @@ async function geoProcessPdfFile(file, unit, subject='', pdfId=null) {
     }
     text = text.trim();
 
+    // 解答ファイルのテキスト抽出
+    let answerKeyText = '';
+    if(answerKeyFile) {
+      try {
+        const akBuf = await answerKeyFile.arrayBuffer();
+        const akPdf = await pdfjsLib.getDocument({data: akBuf}).promise;
+        const akPages = Math.min(akPdf.numPages, 20);
+        for(let i=1; i<=akPages; i++) {
+          const page = await akPdf.getPage(i);
+          const content = await page.getTextContent();
+          answerKeyText += content.items.map(it=>it.str).join(' ') + '\n';
+        }
+        answerKeyText = answerKeyText.trim();
+      } catch(e) { console.warn('解答PDF読み取りエラー:', e); }
+    }
+
     const apiKey = S.geoApiKey;
     if(!apiKey||!apiKey.startsWith('sk-ant')){ showToast('⚠️ APIキーが設定されていません'); return; }
 
     let messageContent;
     const prompt = buildPdfPrompt(subject);
-    if(text.length >= 50) {
-      messageContent = [{role:'user', content: prompt+`\n\n【テキスト】\n${text.slice(0,30000)}`}];
+    if(text.length >= 50 || answerKeyText.length >= 50) {
+      let combined = '';
+      if(text.length >= 50) combined += `【問題テキスト】\n${text.slice(0,20000)}\n\n`;
+      if(answerKeyText.length >= 50) combined += `【解答テキスト】\n${answerKeyText.slice(0,10000)}`;
+      messageContent = [{role:'user', content: prompt + `\n\n${combined.trim()}`}];
     } else {
       showToast('🔍 スキャンPDFを画像として読み取り中...');
       const images = await geoRenderPagesToImages(pdf, 20);
@@ -4690,7 +4898,7 @@ function fbWrite() {
     const data = {
       v:5, name:S.myName||'',
       q:S.geoQuestions, pts:S.totalPoints, sub:S.subjectPoints, cnt:S.geoSessionCount,
-      pdfs:(S.pdfs||[]).map(p=>({id:p.id,name:p.name,subject:p.subject,date:p.date,size:p.size})),
+      pdfs:(S.pdfs||[]).map(p=>({id:p.id,name:p.name,subject:p.subject,date:p.date,size:p.size,isAnswerKey:p.isAnswerKey||false,linkedPdfId:p.linkedPdfId||null})),
       records:S.records||[], streak:S.streak||0, lastStudyDate:S.lastStudyDate||null,
       weeklyMinutes:S.weeklyMinutes||{}, tests:S.tests||[], goalMinutes:S.goalMinutes||60,
       rewards:S.rewards||[],
@@ -4798,9 +5006,9 @@ function fbOnRemote(snapshot) {
     }
   });
 
-  // PDF：新規追加のみ
+  // PDF：新規追加のみ（解答バッジ等のフィールドも引継ぎ）
   const pdfIds=new Set((S.pdfs||[]).map(p=>p.id));
-  (data.pdfs||[]).forEach(p=>{if(!pdfIds.has(p.id)){(S.pdfs=S.pdfs||[]).push(p);changed=true;}});
+  (data.pdfs||[]).forEach(p=>{if(!pdfIds.has(p.id)){(S.pdfs=S.pdfs||[]).push({...p,isAnswerKey:p.isAnswerKey||false,linkedPdfId:p.linkedPdfId||null});changed=true;}});
 
   // ポイント・セッション数：最大値
   if((data.pts||0)>(S.totalPoints||0)){S.totalPoints=data.pts;changed=true;}
@@ -4815,9 +5023,15 @@ function fbOnRemote(snapshot) {
   if((data.streak||0)>(S.streak||0)){S.streak=data.streak;S.lastStudyDate=data.lastStudyDate;changed=true;}
   Object.keys(data.weeklyMinutes||{}).forEach(k=>{if((data.weeklyMinutes[k]||0)>(S.weeklyMinutes[k]||0)){S.weeklyMinutes[k]=data.weeklyMinutes[k];changed=true;}});
 
-  // テスト：新規追加
-  const testIds=new Set((S.tests||[]).map(t=>t.id));
-  (data.tests||[]).forEach(t=>{if(t.id&&!testIds.has(t.id)){(S.tests=S.tests||[]).push(t);changed=true;}});
+  // テスト：新規追加 ＋ subjects更新
+  const testMap=Object.fromEntries((S.tests||[]).map(t=>[t.id,t]));
+  (data.tests||[]).forEach(t=>{
+    if(!t.id) return;
+    if(!testMap[t.id]){ (S.tests=S.tests||[]).push({...t,subjects:t.subjects||[]}); changed=true; }
+    else if(t.subjects && JSON.stringify(t.subjects)!==JSON.stringify(testMap[t.id].subjects||[])){
+      testMap[t.id].subjects=t.subjects; changed=true;
+    }
+  });
 
   // 目標・シャッフル：リモートを採用（設定は最後書き込み側優先）
   if(data.goalMinutes&&data.goalMinutes!==S.goalMinutes){S.goalMinutes=data.goalMinutes;changed=true;}
@@ -4971,6 +5185,8 @@ function renderFbSettingsUI() {
 if(!S.rewards) S.rewards = defaultState().rewards;
 if(!S.exchangeRequests) S.exchangeRequests = [];
 if(!S.tests) S.tests = [];
+S.tests.forEach(t=>{ if(!t.subjects) t.subjects=[]; });
+(S.pdfs||[]).forEach(p=>{ if(p.isAnswerKey===undefined) p.isAnswerKey=false; if(p.linkedPdfId===undefined) p.linkedPdfId=null; });
 if(!S.missionIds) { S.missionsDate=null; S.missionIds=[]; S.missionsClaimed=[]; }
 if(S.townTiles === undefined) S.townTiles = null;
 if(S.rewards) S.rewards = S.rewards.filter(r=>r.id!=='r4');
