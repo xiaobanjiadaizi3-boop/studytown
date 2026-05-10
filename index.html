@@ -257,6 +257,17 @@ body{
 .test-study-countdown{font-family:'Zen Kaku Gothic New';font-size:1.5rem;font-weight:900;color:var(--gold);}
 .folder-btn{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;background:rgba(58,134,255,0.08);border:1.5px dashed rgba(58,134,255,0.35);border-radius:99px;font-size:0.75rem;font-weight:700;color:#7ab8ff;cursor:pointer;transition:all 0.15s;}
 .folder-btn:active{background:rgba(58,134,255,0.18);}
+.pdf-zone-sep{font-size:0.75rem;font-weight:700;color:var(--text2);padding:10px 16px 5px;letter-spacing:0.5px;}
+.drop-zone-half{
+  flex:1;border:2px dashed rgba(245,200,66,0.25);border-radius:14px;
+  padding:18px 8px;text-align:center;cursor:pointer;transition:all 0.2s;
+  background:rgba(245,200,66,0.02);display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:90px;
+}
+.drop-zone-half.drag-over{border-color:var(--gold);background:rgba(245,200,66,0.08);}
+.drop-zone-half.has-file{border-color:rgba(46,204,113,0.5);background:rgba(46,204,113,0.06);}
+.drop-zone-half-icon{font-size:1.6rem;margin-bottom:4px;}
+.drop-zone-half-text{font-size:0.78rem;font-weight:700;color:var(--text);}
+.drop-zone-half-sub{font-size:0.65rem;color:var(--text2);margin-top:3px;word-break:break-all;padding:0 4px;}
 .pdf-icon{font-size:1.6rem;flex-shrink:0;}
 .pdf-info{flex:1;min-width:0;}
 .pdf-name{font-size:0.82rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -1079,14 +1090,38 @@ body.parent-mode.pc-mode .pc-sidebar-stats{display:none;}
     <div style="font-size:0.75rem;color:var(--text2);margin-top:3px;">PDFを追加するごとに+50pt！</div>
   </div>
 
-  <div class="drop-zone" id="drop-zone" onclick="document.getElementById('pdf-input').click()">
-    <div class="drop-icon">📄</div>
-    <div class="drop-text">タップしてPDFを追加（複数可）</div>
-    <div class="drop-sub">またはドラッグ＆ドロップ（まとめてOK）</div>
+  <!-- Zone A: 一冊型 -->
+  <div class="pdf-zone-sep">📗 問題と答えが一緒の冊子</div>
+  <div style="margin:0 16px;">
+    <div class="drop-zone" id="drop-zone" onclick="document.getElementById('pdf-input').click()">
+      <div class="drop-icon">📚</div>
+      <div class="drop-text">タップして追加（複数可）</div>
+      <div class="drop-sub">またはD&amp;D・フォルダも可</div>
+    </div>
+    <input type="file" id="pdf-input" accept=".pdf,application/pdf" multiple style="display:none" onchange="handlePdfUpload(event)">
+    <input type="file" id="pdf-folder-input" webkitdirectory multiple style="display:none" onchange="handlePdfFolderUpload(event)">
+    <div style="text-align:center;margin:-4px 0 8px;"><span class="folder-btn" onclick="document.getElementById('pdf-folder-input').click()">📁 フォルダごと追加</span></div>
   </div>
-  <input type="file" id="pdf-input" accept=".pdf,application/pdf" multiple style="display:none" onchange="handlePdfUpload(event)">
-  <input type="file" id="pdf-folder-input" webkitdirectory multiple style="display:none" onchange="handlePdfFolderUpload(event)">
-  <div style="text-align:center;margin:-4px 0 6px;"><span class="folder-btn" onclick="document.getElementById('pdf-folder-input').click()">📁 フォルダごと追加</span></div>
+
+  <!-- Zone B: 2冊別々型 -->
+  <div class="pdf-zone-sep">📘 問題と答えが別の冊子（2冊セット）</div>
+  <div style="margin:0 16px;">
+    <div style="display:flex;gap:8px;margin-bottom:6px;">
+      <div class="drop-zone-half" id="drop-zone-work" onclick="document.getElementById('pdf-input-work').click()">
+        <div class="drop-zone-half-icon">📝</div>
+        <div class="drop-zone-half-text">ワーク（問題）</div>
+        <div class="drop-zone-half-sub" id="drop-work-name" style="display:none;color:var(--green);"></div>
+      </div>
+      <div class="drop-zone-half" id="drop-zone-answer" onclick="document.getElementById('pdf-input-answer').click()">
+        <div class="drop-zone-half-icon">🔑</div>
+        <div class="drop-zone-half-text">解答</div>
+        <div class="drop-zone-half-sub" id="drop-answer-name" style="display:none;color:var(--green);"></div>
+      </div>
+    </div>
+    <input type="file" id="pdf-input-work" accept=".pdf,application/pdf" style="display:none" onchange="handlePdfWorkSelect(event)">
+    <input type="file" id="pdf-input-answer" accept=".pdf,application/pdf" style="display:none" onchange="handlePdfAnswerSelect(event)">
+    <button id="pdf-pair-btn" class="btn-main" style="width:100%;margin:0 0 8px;display:none;" onclick="submitPdfPair()">▶ この2冊で問題を生成</button>
+  </div>
 
   <div style="padding:0 16px 6px;font-size:0.78rem;color:var(--text2);">科目で絞り込み</div>
   <div class="pdf-tag-row" id="pdf-filter-tags">
@@ -1946,19 +1981,72 @@ let pendingPdfFiles=[];
 let pdfProcessQueue=[];
 let isPdfProcessing=false;
 
-// ---- 解答PDF検出ユーティリティ ----
-const ANSWER_KEY_WORDS = ['解答', '答え合わせ', '解説'];
-function isAnswerKeyFilename(name) {
-  const stem = name.replace(/\.pdf$/i,'');
-  return ANSWER_KEY_WORDS.some(kw => stem.includes(kw));
+// ---- 2冊セット（別冊）モード ----
+let pendingWorkFile = null;
+let pendingAnswerFile = null;
+let pendingPairedAnswerKey = null; // confirmPdfSubject で参照
+
+function handlePdfWorkSelect(e) {
+  const file = e.target.files[0]; e.target.value = '';
+  if(!file) return;
+  pendingWorkFile = file; updatePairUI();
 }
-function getAnswerKeyBaseName(name) {
-  const stem = name.replace(/\.pdf$/i,'');
-  for(const kw of ANSWER_KEY_WORDS) {
-    const idx = stem.indexOf(kw);
-    if(idx !== -1) return (stem.slice(0,idx) + stem.slice(idx+kw.length)).trim();
-  }
-  return stem.trim();
+function handlePdfAnswerSelect(e) {
+  const file = e.target.files[0]; e.target.value = '';
+  if(!file) return;
+  pendingAnswerFile = file; updatePairUI();
+}
+function updatePairUI() {
+  const wn = document.getElementById('drop-work-name');
+  const an = document.getElementById('drop-answer-name');
+  const btn = document.getElementById('pdf-pair-btn');
+  const wz = document.getElementById('drop-zone-work');
+  const az = document.getElementById('drop-zone-answer');
+  if(wn){ wn.textContent = pendingWorkFile ? pendingWorkFile.name : ''; wn.style.display = pendingWorkFile ? '' : 'none'; }
+  if(an){ an.textContent = pendingAnswerFile ? pendingAnswerFile.name : ''; an.style.display = pendingAnswerFile ? '' : 'none'; }
+  if(wz) wz.classList.toggle('has-file', !!pendingWorkFile);
+  if(az) az.classList.toggle('has-file', !!pendingAnswerFile);
+  if(btn) btn.style.display = (pendingWorkFile && pendingAnswerFile) ? '' : 'none';
+}
+function submitPdfPair() {
+  if(!pendingWorkFile || !pendingAnswerFile) return;
+  pendingPairedAnswerKey = pendingAnswerFile;
+  const work = pendingWorkFile;
+  pendingWorkFile = null; pendingAnswerFile = null;
+  updatePairUI();
+  openPdfSubModal([work]);
+}
+
+// geo画面用（screen-pdf と pendingWorkFile/pendingAnswerFile は共用）
+function handleGeoPdfWorkSelect(e) {
+  const file = e.target.files[0]; e.target.value = '';
+  if(!file) return;
+  pendingWorkFile = file; updateGeoPairUI();
+}
+function handleGeoPdfAnswerSelect(e) {
+  const file = e.target.files[0]; e.target.value = '';
+  if(!file) return;
+  pendingAnswerFile = file; updateGeoPairUI();
+}
+function updateGeoPairUI() {
+  const wn = document.getElementById('geo-drop-work-name');
+  const an = document.getElementById('geo-drop-answer-name');
+  const btn = document.getElementById('geo-pdf-pair-btn');
+  const wz = document.getElementById('geo-drop-zone-work');
+  const az = document.getElementById('geo-drop-zone-answer');
+  if(wn){ wn.textContent = pendingWorkFile ? pendingWorkFile.name : ''; wn.style.display = pendingWorkFile ? '' : 'none'; }
+  if(an){ an.textContent = pendingAnswerFile ? pendingAnswerFile.name : ''; an.style.display = pendingAnswerFile ? '' : 'none'; }
+  if(wz) wz.classList.toggle('has-file', !!pendingWorkFile);
+  if(az) az.classList.toggle('has-file', !!pendingAnswerFile);
+  if(btn) btn.style.display = (pendingWorkFile && pendingAnswerFile) ? '' : 'none';
+}
+function submitGeoPdfPair() {
+  if(!pendingWorkFile || !pendingAnswerFile) return;
+  pendingPairedAnswerKey = pendingAnswerFile;
+  const work = pendingWorkFile;
+  pendingWorkFile = null; pendingAnswerFile = null;
+  updateGeoPairUI();
+  openPdfSubModal([work]);
 }
 function getPdfProgress(pdfId, pdf) {
   return S.geoQuestions.reduce((sum,q) => {
@@ -2020,29 +2108,13 @@ function confirmPdfSubject(sub){
   document.getElementById('pdf-sub-modal').classList.remove('open');
   if(!pendingPdfFiles.length||!sub)return;
   const files=[...pendingPdfFiles]; pendingPdfFiles=[];
-
-  // --- 解答ファイルの検出・ペアリング ---
-  const mainFiles = files.filter(f => !isAnswerKeyFilename(f.name));
-  const answerFiles = files.filter(f => isAnswerKeyFilename(f.name));
-  const answerPairMap = new Map(); // File(main) → File(answer)
-  answerFiles.forEach(af => {
-    const base = getAnswerKeyBaseName(af.name).toLowerCase();
-    const match = mainFiles.find(mf => mf.name.replace(/\.pdf$/i,'').toLowerCase().trim() === base);
-    if(match) answerPairMap.set(match, af);
-  });
-  // 既存PDFとのペアリング（解答のみアップ時）
-  answerFiles.filter(af => ![...answerPairMap.values()].includes(af)).forEach(af => {
-    const base = getAnswerKeyBaseName(af.name).toLowerCase();
-    const existing = (S.pdfs||[]).find(p => !p.isAnswerKey && p.name.replace(/\.pdf$/i,'').toLowerCase().trim() === base);
-    if(existing) answerPairMap.set(existing.id, af); // string key = existing pdfId
-  });
+  // 2冊セットの解答ファイルを取り出す
+  const pairedAnswerKey = pendingPairedAnswerKey;
+  pendingPairedAnswerKey = null;
 
   // --- 重複チェック・処理対象リスト構築 ---
   const toProcess = [];
-  let skipped = 0;
-  for(let i=0; i<files.length; i++) {
-    const file = files[i];
-    const isAK = isAnswerKeyFilename(file.name);
+  for(const file of files) {
     const dup = (S.pdfs||[]).find(p => p.name === file.name);
     if(dup) {
       const progress = getPdfProgress(dup.id, dup);
@@ -2054,51 +2126,46 @@ function confirmPdfSubject(sub){
         S.pdfs = S.pdfs.filter(p => p.id !== dup.id);
         showToast(`🔄 「${file.name}」の旧版（未使用）を差し替えました`);
       } else {
-        skipped++;
         showToast(`⚠️ 「${file.name}」は学習済みのため旧版を保持します（${progress}回回答済み）`);
         continue;
       }
     }
-    toProcess.push({file, isAK});
+    toProcess.push(file);
   }
-
   if(!toProcess.length) { save(); renderAll(); return; }
 
   // --- S.pdfs に追加 ---
   const fileIdMap = new Map();
-  toProcess.forEach(({file, isAK}, i) => {
+  toProcess.forEach((file, i) => {
     const id = (Date.now() + i).toString();
     const kb = Math.round(file.size / 1024);
     const unit = file.name.replace(/\.pdf$/i,'').slice(0,40) || sub;
     fileIdMap.set(file, id);
-    S.pdfs.push({id, name:file.name, subject:sub, unit, date:todayStr(), size:kb+'KB', isAnswerKey:!!isAK, linkedPdfId:null});
-    if(!isAK) {
-      S.totalPoints += 50; S.subjectPoints[sub] = (S.subjectPoints[sub]||0) + 50;
-    }
+    const hasPair = !!(pairedAnswerKey && toProcess.length === 1);
+    S.pdfs.push({id, name:file.name, subject:sub, unit, date:todayStr(), size:kb+'KB', isAnswerKey:false, linkedPdfId:null, hasPairedAnswer:hasPair});
+    S.totalPoints += 50; S.subjectPoints[sub] = (S.subjectPoints[sub]||0) + 50;
   });
-  // linkedPdfId の解決（バッチ内ペアリング）
-  S.pdfs.forEach(p => {
-    if(!p.isAnswerKey || p.linkedPdfId) return;
-    const base = getAnswerKeyBaseName(p.name).toLowerCase();
-    const main = S.pdfs.find(m => !m.isAnswerKey && m.name.replace(/\.pdf$/i,'').toLowerCase().trim() === base);
-    if(main) p.linkedPdfId = main.id;
-  });
+  // 解答ファイルも S.pdfs に登録（2冊セット時）
+  if(pairedAnswerKey && toProcess.length === 1) {
+    const mainId = fileIdMap.get(toProcess[0]);
+    const akId = (Date.now() + 999).toString();
+    const akKb = Math.round(pairedAnswerKey.size / 1024);
+    const akUnit = pairedAnswerKey.name.replace(/\.pdf$/i,'').slice(0,40) || sub;
+    S.pdfs.push({id:akId, name:pairedAnswerKey.name, subject:sub, unit:akUnit, date:todayStr(), size:akKb+'KB', isAnswerKey:true, linkedPdfId:mainId, hasPairedAnswer:false});
+  }
 
-  // --- 処理キューに追加（解答ファイルをペアとして渡す）---
-  toProcess.forEach(({file, isAK}) => {
-    if(isAK) return;
+  // --- 処理キューに追加 ---
+  toProcess.forEach(file => {
     const pdfId = fileIdMap.get(file);
     const unit = file.name.replace(/\.pdf$/i,'').slice(0,40) || sub;
-    const answerKeyFile = answerPairMap.get(file) || null;
+    const answerKeyFile = (pairedAnswerKey && toProcess.length === 1) ? pairedAnswerKey : null;
     pdfProcessQueue.push({file, unit, subject:sub, pdfId, answerKeyFile});
   });
 
   save(); renderAll(); playSound('upload');
-  const mainCnt = toProcess.filter(t=>!t.isAK).length;
-  const akCnt = toProcess.filter(t=>t.isAK).length;
-  const paired = answerPairMap.size;
-  if(mainCnt) showToast(mainCnt>1 ? `📄 ${mainCnt}件のPDFを追加 +${mainCnt*50}pt` : `📄 ${toProcess.find(t=>!t.isAK).file.name} を追加 +50pt`);
-  if(akCnt) showToast(paired ? `🔑 解答PDF${akCnt}件をペアリングしました（より正確な問題を生成します）` : `🔑 解答PDF${akCnt}件を追加しました`);
+  if(toProcess.length > 1) showToast(`📄 ${toProcess.length}件のPDFを追加 +${toProcess.length*50}pt`);
+  else showToast(`📄 ${toProcess[0].name} を追加 +50pt`);
+  if(pairedAnswerKey) showToast('🔑 解答とペアリング済み — より正確な問題を生成します');
   if(pdfProcessQueue.length) {
     showToast('🤖 AIが問題を自動生成中... しばらくお待ちください');
     setTimeout(drainPdfQueue, 800);
@@ -2179,7 +2246,7 @@ function deletePdf(id) {
   });
 }
 
-// drag & drop（フォルダ対応）
+// drag & drop（フォルダ対応）— 一冊型ゾーン
 const dz=document.getElementById('drop-zone');
 dz.addEventListener('dragenter',e=>{e.preventDefault();e.stopPropagation();dz.classList.add('drag-over');});
 dz.addEventListener('dragover',e=>{e.preventDefault();e.stopPropagation();dz.classList.add('drag-over');});
@@ -2192,6 +2259,19 @@ dz.addEventListener('drop',async e=>{
   if(files.length){ openPdfSubModal(files); }
   else { showToast('PDFファイルをドロップしてください（フォルダも可）'); }
 });
+// drag & drop — 2冊別々ゾーン（screen-pdf）
+const dzWork=document.getElementById('drop-zone-work');
+const dzAns=document.getElementById('drop-zone-answer');
+if(dzWork){
+  dzWork.addEventListener('dragover',e=>{e.preventDefault();dzWork.classList.add('drag-over');});
+  dzWork.addEventListener('dragleave',()=>dzWork.classList.remove('drag-over'));
+  dzWork.addEventListener('drop',e=>{e.preventDefault();dzWork.classList.remove('drag-over');const f=Array.from(e.dataTransfer.files).find(x=>x.type==='application/pdf'||x.name.toLowerCase().endsWith('.pdf'));if(f){pendingWorkFile=f;updatePairUI();}});
+}
+if(dzAns){
+  dzAns.addEventListener('dragover',e=>{e.preventDefault();dzAns.classList.add('drag-over');});
+  dzAns.addEventListener('dragleave',()=>dzAns.classList.remove('drag-over'));
+  dzAns.addEventListener('drop',e=>{e.preventDefault();dzAns.classList.remove('drag-over');const f=Array.from(e.dataTransfer.files).find(x=>x.type==='application/pdf'||x.name.toLowerCase().endsWith('.pdf'));if(f){pendingAnswerFile=f;updatePairUI();}});
+}
 
 // ==================== CALENDAR ====================
 let calYear=new Date().getFullYear(), calMon=new Date().getMonth();
@@ -4555,14 +4635,31 @@ function renderGeoPdf() {
       <div style="font-family:'Zen Kaku Gothic New';font-size:1.05rem;font-weight:700;">📂 教材ライブラリ</div>
       <div style="font-size:0.75rem;color:var(--text2);margin-top:3px;">PDFを追加するごとに+50pt！</div>
     </div>
+    <div class="pdf-zone-sep" style="padding:0 0 5px;">📗 問題と答えが一緒の冊子</div>
     <div class="drop-zone" id="geo-drop-zone" onclick="document.getElementById('geo-pdf-input').click()">
-      <div class="drop-icon">📄</div>
-      <div class="drop-text">タップしてPDFを追加（複数可）</div>
-      <div class="drop-sub">またはドラッグ＆ドロップ（フォルダも可）</div>
+      <div class="drop-icon">📚</div>
+      <div class="drop-text">タップして追加（複数可）</div>
+      <div class="drop-sub">またはD&amp;D・フォルダも可</div>
     </div>
     <input type="file" id="geo-pdf-input" accept=".pdf,application/pdf" multiple style="display:none" onchange="handlePdfUpload(event)">
     <input type="file" id="geo-pdf-folder-input" webkitdirectory multiple style="display:none" onchange="handlePdfFolderUpload(event)">
-    <div style="text-align:center;margin:-4px 0 6px;"><span class="folder-btn" onclick="document.getElementById('geo-pdf-folder-input').click()">📁 フォルダごと追加</span></div>
+    <div style="text-align:center;margin:-4px 0 8px;"><span class="folder-btn" onclick="document.getElementById('geo-pdf-folder-input').click()">📁 フォルダごと追加</span></div>
+    <div class="pdf-zone-sep" style="padding:0 0 5px;">📘 問題と答えが別の冊子（2冊セット）</div>
+    <div style="display:flex;gap:8px;margin-bottom:6px;">
+      <div class="drop-zone-half" id="geo-drop-zone-work" onclick="document.getElementById('geo-pdf-input-work').click()">
+        <div class="drop-zone-half-icon">📝</div>
+        <div class="drop-zone-half-text">ワーク（問題）</div>
+        <div class="drop-zone-half-sub" id="geo-drop-work-name" style="display:none;color:var(--green);"></div>
+      </div>
+      <div class="drop-zone-half" id="geo-drop-zone-answer" onclick="document.getElementById('geo-pdf-input-answer').click()">
+        <div class="drop-zone-half-icon">🔑</div>
+        <div class="drop-zone-half-text">解答</div>
+        <div class="drop-zone-half-sub" id="geo-drop-answer-name" style="display:none;color:var(--green);"></div>
+      </div>
+    </div>
+    <input type="file" id="geo-pdf-input-work" accept=".pdf,application/pdf" style="display:none" onchange="handleGeoPdfWorkSelect(event)">
+    <input type="file" id="geo-pdf-input-answer" accept=".pdf,application/pdf" style="display:none" onchange="handleGeoPdfAnswerSelect(event)">
+    <button id="geo-pdf-pair-btn" class="btn-main" style="width:100%;margin:0 0 8px;display:none;" onclick="submitGeoPdfPair()">▶ この2冊で問題を生成</button>
     <div style="padding:0 16px 6px;font-size:0.78rem;color:var(--text2);">科目で絞り込み</div>
     <div class="pdf-tag-row" id="geo-pdf-filter-tags">
       <div class="pdf-tag" onclick="filterPdf('all',this)">すべて</div>
@@ -4577,12 +4674,26 @@ function renderGeoPdf() {
     <div class="pdf-list" id="pdf-list-geo"></div>`;
   // render pdf list into geo container
   renderPdfListInto(document.getElementById('pdf-list-geo'));
-  // drag/drop
+  // drag/drop — 一冊型ゾーン
   const dz = document.getElementById('geo-drop-zone');
   if(dz) {
     dz.addEventListener('dragover', e=>{e.preventDefault();dz.classList.add('drag-over');});
     dz.addEventListener('dragleave', ()=>dz.classList.remove('drag-over'));
     dz.addEventListener('drop', async e=>{e.preventDefault();dz.classList.remove('drag-over');const files=await collectFilesFromDrop(e.dataTransfer);if(files.length)openPdfSubModal(files);else showToast('PDFファイルをドロップしてください（フォルダも可）');});
+  }
+  // drag/drop — 2冊別々ゾーン（ワーク側）
+  const dwz = document.getElementById('geo-drop-zone-work');
+  if(dwz) {
+    dwz.addEventListener('dragover', e=>{e.preventDefault();dwz.classList.add('drag-over');});
+    dwz.addEventListener('dragleave', ()=>dwz.classList.remove('drag-over'));
+    dwz.addEventListener('drop', e=>{e.preventDefault();dwz.classList.remove('drag-over');const f=Array.from(e.dataTransfer.files).find(x=>x.type==='application/pdf'||x.name.toLowerCase().endsWith('.pdf'));if(f){pendingWorkFile=f;updateGeoPairUI();}});
+  }
+  // drag/drop — 2冊別々ゾーン（解答側）
+  const daz = document.getElementById('geo-drop-zone-answer');
+  if(daz) {
+    daz.addEventListener('dragover', e=>{e.preventDefault();daz.classList.add('drag-over');});
+    daz.addEventListener('dragleave', ()=>daz.classList.remove('drag-over'));
+    daz.addEventListener('drop', e=>{e.preventDefault();daz.classList.remove('drag-over');const f=Array.from(e.dataTransfer.files).find(x=>x.type==='application/pdf'||x.name.toLowerCase().endsWith('.pdf'));if(f){pendingAnswerFile=f;updateGeoPairUI();}});
   }
 }
 
