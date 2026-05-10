@@ -258,6 +258,16 @@ body{
 .folder-btn{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;background:rgba(58,134,255,0.08);border:1.5px dashed rgba(58,134,255,0.35);border-radius:99px;font-size:0.75rem;font-weight:700;color:#7ab8ff;cursor:pointer;transition:all 0.15s;}
 .folder-btn:active{background:rgba(58,134,255,0.18);}
 .pdf-zone-sep{font-size:0.75rem;font-weight:700;color:var(--text2);padding:10px 16px 5px;letter-spacing:0.5px;}
+@keyframes scanPulse{0%,100%{opacity:1}50%{opacity:0.35}}
+@keyframes scanShimmer{0%{background-position:200% center}100%{background-position:-200% center}}
+.pdf-scan-bar{height:4px;background:rgba(255,255,255,0.07);border-radius:99px;overflow:hidden;margin-top:5px;}
+.pdf-scan-fill{height:100%;border-radius:99px;transition:width 0.4s ease;}
+.pdf-scan-fill.scanning{background:var(--blue);}
+.pdf-scan-fill.generating{background:linear-gradient(90deg,#9b59b6,#3a86ff,#9b59b6);background-size:200% auto;animation:scanShimmer 1.8s linear infinite;width:100%!important;}
+.pdf-scan-fill.pending{background:rgba(255,255,255,0.2);animation:scanPulse 1.5s ease-in-out infinite;width:30%!important;}
+.pdf-scan-fill.done{background:var(--green);width:100%!important;}
+.pdf-scan-fill.error{background:var(--red);width:100%!important;}
+.pdf-scan-label{font-size:0.63rem;font-weight:700;margin-top:3px;}
 .drop-zone-half{
   flex:1;border:2px dashed rgba(245,200,66,0.25);border-radius:14px;
   padding:18px 8px;text-align:center;cursor:pointer;transition:all 0.2s;
@@ -1980,6 +1990,47 @@ let pdfFilter='all';
 let pendingPdfFiles=[];
 let pdfProcessQueue=[];
 let isPdfProcessing=false;
+const pdfScanState={}; // pdfId → {status:'pending'|'scanning'|'generating'|'done'|'error', page, totalPages, questionCount, errorMsg}
+
+function pdfScanSetState(pdfId, patch) {
+  if(!pdfId) return;
+  pdfScanState[pdfId] = Object.assign(pdfScanState[pdfId]||{status:'pending',page:0,totalPages:0,questionCount:0}, patch);
+  refreshPdfScanGauges();
+}
+function buildScanGaugeHTML(pdfId) {
+  const st = pdfScanState[pdfId];
+  if(!st) {
+    // 既存PDF：生成済み問題数を表示
+    const cnt = S.geoQuestions.filter(q=>q.pdfId===pdfId).length;
+    if(!cnt) return '';
+    return `<div class="pdf-scan-label" style="color:var(--text2);">📝 ${cnt}問 生成済み</div>`;
+  }
+  const {status,page,totalPages,questionCount,errorMsg} = st;
+  if(status==='done') return `
+    <div class="pdf-scan-bar"><div class="pdf-scan-fill done"></div></div>
+    <div class="pdf-scan-label" style="color:var(--green);">✅ ${questionCount}問を生成しました</div>`;
+  if(status==='error') return `
+    <div class="pdf-scan-bar"><div class="pdf-scan-fill error"></div></div>
+    <div class="pdf-scan-label" style="color:var(--red);">⚠️ ${errorMsg||'エラーが発生しました'}</div>`;
+  if(status==='generating') return `
+    <div class="pdf-scan-bar"><div class="pdf-scan-fill generating"></div></div>
+    <div class="pdf-scan-label" style="color:#ce93d8;">🤖 AIが問題を生成中...</div>`;
+  if(status==='scanning') {
+    const pct = totalPages>0 ? Math.round(page/totalPages*100) : 0;
+    return `
+    <div class="pdf-scan-bar"><div class="pdf-scan-fill scanning" style="width:${pct}%;"></div></div>
+    <div class="pdf-scan-label" style="color:var(--blue);">📄 スキャン中 ${page}/${totalPages}ページ</div>`;
+  }
+  // pending
+  return `
+    <div class="pdf-scan-bar"><div class="pdf-scan-fill pending"></div></div>
+    <div class="pdf-scan-label" style="color:var(--text2);">⏳ 待機中...</div>`;
+}
+function refreshPdfScanGauges() {
+  document.querySelectorAll('.pdf-scan-gauge[data-pdfid]').forEach(el=>{
+    el.innerHTML = buildScanGaugeHTML(el.dataset.pdfid);
+  });
+}
 
 // ---- 2冊セット（別冊）モード ----
 let pendingWorkFile = null;
@@ -2154,11 +2205,12 @@ function confirmPdfSubject(sub){
     S.pdfs.push({id:akId, name:pairedAnswerKey.name, subject:sub, unit:akUnit, date:todayStr(), size:akKb+'KB', isAnswerKey:true, linkedPdfId:mainId, hasPairedAnswer:false});
   }
 
-  // --- 処理キューに追加 ---
+  // --- 処理キューに追加（pending状態で初期化）---
   toProcess.forEach(file => {
     const pdfId = fileIdMap.get(file);
     const unit = file.name.replace(/\.pdf$/i,'').slice(0,40) || sub;
     const answerKeyFile = (pairedAnswerKey && toProcess.length === 1) ? pairedAnswerKey : null;
+    pdfScanState[pdfId] = {status:'pending', page:0, totalPages:0, questionCount:0};
     pdfProcessQueue.push({file, unit, subject:sub, pdfId, answerKeyFile});
   });
 
@@ -2176,6 +2228,7 @@ async function drainPdfQueue(){
   if(isPdfProcessing||!pdfProcessQueue.length)return;
   isPdfProcessing=true;
   const {file,unit,subject,pdfId,answerKeyFile}=pdfProcessQueue.shift();
+  pdfScanSetState(pdfId,{status:'scanning'});
   await geoProcessPdfFile(file,unit,subject||'',pdfId||null,answerKeyFile||null);
   isPdfProcessing=false;
   if(pdfProcessQueue.length){
@@ -2184,6 +2237,7 @@ async function drainPdfQueue(){
   } else {
     playSound('upload');
     showToast('✅ 全ての問題生成が完了しました！');
+    renderPdfList();
   }
 }
 function filterPdf(f,el){
@@ -2200,15 +2254,18 @@ function renderPdfListInto(el){
   const tagColor={国語:'#7ab8ff',英語:'#7ae8a8',数学:'#f0a060',理科:'#c8a0e0',歴史:'#f08878',地理:'#f0a0a0',公民:'#70e0c0'};
   if(!list.length){el.innerHTML='<div style="text-align:center;color:var(--text2);font-size:0.82rem;padding:24px 0;">まだ教材がありません<br>PDFを追加してポイントをゲット！</div>';return;}
   el.innerHTML=list.map(p=>`
-    <div class="pdf-item">
-      <span class="pdf-icon">${p.isAnswerKey?'🔑':'📄'}</span>
-      <div class="pdf-info">
-        <div class="pdf-name">${p.name}</div>
-        <div class="pdf-meta">${p.date} · ${p.size}</div>
-        <span class="pdf-tag-badge" style="background:${tagBg[p.subject]};color:${tagColor[p.subject]}">${p.subject}</span>
-        ${p.isAnswerKey?`<span class="pdf-answerkey-badge">🔑 解答セット</span>`:''}
+    <div class="pdf-item" style="flex-direction:column;align-items:stretch;gap:0;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span class="pdf-icon" style="align-self:flex-start;padding-top:2px;">${p.isAnswerKey?'🔑':'📄'}</span>
+        <div class="pdf-info" style="flex:1;min-width:0;">
+          <div class="pdf-name">${p.name}</div>
+          <div class="pdf-meta">${p.date} · ${p.size}</div>
+          <span class="pdf-tag-badge" style="background:${tagBg[p.subject]};color:${tagColor[p.subject]}">${p.subject}</span>
+          ${p.isAnswerKey?`<span class="pdf-answerkey-badge">🔑 解答セット</span>`:''}
+        </div>
+        <button onclick="deletePdf('${p.id}')" style="flex-shrink:0;background:rgba(231,76,60,0.12);border:1.5px solid rgba(231,76,60,0.35);border-radius:10px;color:var(--red);font-size:0.8rem;padding:6px 10px;cursor:pointer;font-weight:700;align-self:flex-start;">🗑️</button>
       </div>
-      <button onclick="deletePdf('${p.id}')" style="margin-left:8px;flex-shrink:0;background:rgba(231,76,60,0.12);border:1.5px solid rgba(231,76,60,0.35);border-radius:10px;color:var(--red);font-size:0.8rem;padding:6px 10px;cursor:pointer;font-weight:700;">🗑️</button>
+      ${!p.isAnswerKey ? `<div class="pdf-scan-gauge" data-pdfid="${p.id}" style="padding-left:44px;">${buildScanGaugeHTML(p.id)}</div>` : ''}
     </div>
   `).join('');
 }
@@ -4804,10 +4861,12 @@ async function geoProcessPdfFile(file, unit, subject='', pdfId=null, answerKeyFi
     // まずテキスト抽出を試みる
     let text = '';
     const maxTextPages = Math.min(pdf.numPages, 20);
+    pdfScanSetState(pdfId, {status:'scanning', totalPages:maxTextPages, page:0});
     for(let i=1; i<=maxTextPages; i++){
       const page = await pdf.getPage(i);
       const content = await page.getTextContent();
       text += content.items.map(it=>it.str).join(' ') + '\n';
+      pdfScanSetState(pdfId, {page:i});
     }
     text = text.trim();
 
@@ -4839,7 +4898,9 @@ async function geoProcessPdfFile(file, unit, subject='', pdfId=null, answerKeyFi
       messageContent = [{role:'user', content: prompt + `\n\n${combined.trim()}`}];
     } else {
       showToast('🔍 スキャンPDFを画像として読み取り中...');
+      pdfScanSetState(pdfId, {status:'scanning', totalPages:Math.min(pdf.numPages,20), page:0});
       const images = await geoRenderPagesToImages(pdf, 20);
+      pdfScanSetState(pdfId, {page:Math.min(pdf.numPages,20)});
       if(!images.length){ showToast('⚠️ PDFページの読み取りに失敗しました'); return; }
       const contentBlocks = [];
       images.forEach((b64, idx) => {
@@ -4850,6 +4911,7 @@ async function geoProcessPdfFile(file, unit, subject='', pdfId=null, answerKeyFi
       messageContent = [{role:'user', content: contentBlocks}];
     }
 
+    pdfScanSetState(pdfId, {status:'generating'});
     const res = await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
@@ -4869,6 +4931,7 @@ async function geoProcessPdfFile(file, unit, subject='', pdfId=null, answerKeyFi
         added++;
       }
     });
+    pdfScanSetState(pdfId, {status:'done', questionCount:added});
     if(added>0){
       save();
       showToast(`✅ ${added}問を「学習」タブに追加しました！`);
@@ -4878,6 +4941,7 @@ async function geoProcessPdfFile(file, unit, subject='', pdfId=null, answerKeyFi
       }
     }
   } catch(e) {
+    pdfScanSetState(pdfId, {status:'error', errorMsg:e.message.slice(0,30)});
     showToast('⚠️ 問題生成エラー: '+e.message);
   }
 }
