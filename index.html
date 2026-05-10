@@ -4841,7 +4841,8 @@ async function geoRenderPagesToImages(pdf, maxPages) {
 function buildPdfPrompt(subject) {
   const social = ['歴史','地理','公民'];
   const english = ['英語'];
-  const base = `あなたは中学生向けの問題を作成するベテランの先生です。以下の内容からできるだけ多くの問題を抽出・作成してください（問題集・ワークなら全問抽出）。\n必ずJSON配列のみで返してください（説明文・マークダウン不要）：\n[{"question":"問題文","answer":"答え"},...]`;
+  const selfContainedRule = `\n\n【絶対ルール：問題文は必ず自己完結させること】\n問題文の中に「この物質」「上記の」「次の実験で」「ある物質を」のような曖昧な指示語を絶対に使わない。\n必ず具体的な固有名詞・物質名・人物名・実験名・場所名などを問題文中に明記すること。\n悪い例：「物質を加熱したとき、石灰水はどうなるか」\n良い例：「炭酸水素ナトリウムを加熱したとき、発生した気体を石灰水に通すとどうなるか」\n問題文だけを読んだ人が、教科書を参照せずに何について聞かれているか100%理解できる状態にすること。`;
+  const base = `あなたは中学生向けの問題を作成するベテランの先生です。以下の内容からできるだけ多くの問題を抽出・作成してください（問題集・ワークなら全問抽出）。\n必ずJSON配列のみで返してください（説明文・マークダウン不要）：\n[{"question":"問題文","answer":"答え"},...]`+selfContainedRule;
   if(english.includes(subject)){
     return base+`\n\n【英語の特別ルール】questionには英単語・熟語そのものだけ（質問形式にしない）、answerには日本語の意味。例：{"question":"look for","answer":"～を探す"}`;
   }
